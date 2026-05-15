@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Noto+Serif+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg: #ecebe1;
@@ -25,7 +26,6 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 html, body { height: 100%; }
 
 body {
@@ -49,7 +49,77 @@ body {
 
 .container { width: 100%; max-width: 540px; }
 
-/* Header */
+/* ===== Sign-in screen ===== */
+.signin-screen {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 32px;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.signin-title {
+  font-family: var(--display-font);
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.signin-subtitle {
+  font-family: var(--label-font);
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.signin-btn {
+  font-family: var(--label-font);
+  font-size: 12px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  background-color: var(--text);
+  color: var(--bg);
+  border: none;
+  padding: 14px 32px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.signin-btn:hover { opacity: 0.85; }
+
+.signin-btn svg { width: 16px; height: 16px; }
+
+/* ===== Loading ===== */
+.loading-screen {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-dots {
+  font-family: var(--display-font);
+  font-size: 28px;
+  color: var(--text-muted);
+  letter-spacing: 0.5em;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* ===== Header ===== */
 .header { margin-bottom: 64px; animation: fadeIn 0.6s ease-out; }
 
 .date-nav {
@@ -130,7 +200,7 @@ body {
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Sections */
+/* ===== Sections ===== */
 .section { margin-bottom: 56px; animation: fadeIn 0.8s ease-out backwards; }
 .section:nth-of-type(1) { animation-delay: 0.1s; }
 .section:nth-of-type(2) { animation-delay: 0.2s; }
@@ -155,7 +225,7 @@ body {
 
 .section-line { flex: 1; height: 1px; background-color: var(--line); }
 
-/* Game item */
+/* ===== Game item ===== */
 .game-item {
   padding: 14px 0;
   border-bottom: 1px solid var(--line);
@@ -268,7 +338,7 @@ body {
 
 .remove:hover { color: var(--accent); opacity: 1; }
 
-/* Subtasks */
+/* ===== Subtasks ===== */
 .subtasks-row {
   margin-top: 12px;
   margin-left: 30px;
@@ -362,7 +432,7 @@ body {
   width: 130px;
 }
 
-/* Roster */
+/* ===== Roster ===== */
 .roster-item {
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
@@ -457,7 +527,7 @@ body {
   background-color: transparent;
 }
 
-/* Add game */
+/* ===== Add game ===== */
 .add-row { margin-top: 18px; }
 
 .add-game {
@@ -490,7 +560,7 @@ body {
   width: 220px;
 }
 
-/* Heatmap */
+/* ===== Heatmap ===== */
 .heatmap-container { margin-top: 12px; }
 
 .heatmap {
@@ -570,7 +640,7 @@ body {
 
 .heatmap-legend .heatmap-cell:hover { outline: none; }
 
-/* Footer */
+/* ===== Footer ===== */
 .app-footer {
   font-family: var(--label-font);
   margin-top: 80px;
@@ -583,6 +653,16 @@ body {
   text-align: center;
 }
 
+.app-footer .user-email {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0.05em;
+  font-size: 10px;
+  font-style: italic;
+}
+
 .app-footer a {
   color: var(--text-faint);
   text-decoration: none;
@@ -592,7 +672,7 @@ body {
 
 .app-footer a:hover { color: var(--accent); }
 
-/* Tooltip */
+/* ===== Tooltip ===== */
 .tooltip {
   position: fixed;
   font-family: var(--label-font);
@@ -612,6 +692,42 @@ body {
 
 .tooltip.visible { opacity: 1; }
 
+/* ===== Save indicator ===== */
+.save-indicator {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  font-family: var(--label-font);
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  padding: 7px 13px;
+  border-radius: 4px;
+  z-index: 90;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--bg);
+  border: 1px solid var(--line-strong);
+  color: var(--text-muted);
+  animation: fadeIn 0.3s;
+}
+
+.save-indicator.visible { display: flex; }
+
+.save-indicator.error {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+}
+
+.save-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -627,83 +743,31 @@ body {
 </style>
 </head>
 <body>
-<div class="container">
 
-  <header class="header">
-    <div class="date-nav">
-      <div class="date-arrow" id="prev-day" title="Previous day">‹</div>
-      <div class="date" id="date"></div>
-      <div class="date-arrow" id="next-day" title="Next day">›</div>
-      <div class="today-link" id="today-link" style="display:none">↩ Today</div>
-    </div>
-    <div class="progress-label-row">
-      <div class="progress-label">完成度</div>
-      <div class="display-font progress-percentage" id="progress-pct">0%</div>
-    </div>
-    <div class="progress-track">
-      <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
-    </div>
-  </header>
-
-  <section class="section">
-    <div class="section-header">
-      <div class="section-title">Daily</div>
-      <div class="section-line"></div>
-    </div>
-    <div id="tier1-list"></div>
-    <div class="add-row" id="add-tier1-container"></div>
-  </section>
-
-  <section class="section">
-    <div class="section-header">
-      <div class="section-title">Opt-in</div>
-      <div class="section-line"></div>
-    </div>
-    <div id="tier2-list"></div>
-    <div class="add-row" id="add-tier2-container"></div>
-  </section>
-
-  <section class="section">
-    <div class="section-header">
-      <div class="section-title">Current Roster</div>
-      <div class="section-line"></div>
-    </div>
-    <div id="tier3-list"></div>
-    <div class="add-row" id="add-tier3-container"></div>
-  </section>
-
-  <section class="section">
-    <div class="section-header">
-      <div class="section-title">History</div>
-      <div class="section-line"></div>
-    </div>
-    <div class="heatmap-container">
-      <div class="heatmap" id="heatmap"></div>
-      <div class="heatmap-footer">
-        <div>12 weeks · click to edit · dbl-click name to rename</div>
-        <div class="heatmap-legend">
-          <span>Less</span>
-          <span class="heatmap-cell" data-intensity="0"></span>
-          <span class="heatmap-cell" data-intensity="1"></span>
-          <span class="heatmap-cell" data-intensity="2"></span>
-          <span class="heatmap-cell" data-intensity="3"></span>
-          <span class="heatmap-cell" data-intensity="4"></span>
-          <span>More</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <footer class="app-footer">
-    <a id="export-btn">Export</a>·<a id="import-btn">Import</a>·<a id="reset-btn">Reset</a>
-  </footer>
-
+<div class="container" id="root">
+  <div class="loading-screen">
+    <div class="loading-dots">···</div>
+  </div>
 </div>
+
 <div class="tooltip" id="tooltip"></div>
+<div class="save-indicator" id="save-indicator">
+  <span class="save-dot"></span>
+  <span id="save-text">Saving</span>
+</div>
 
 <script>
-const STORAGE_KEY = 'dailyGameTracker_v3';
+// ============================================================
+// Supabase configuration
+// ============================================================
+const SUPABASE_URL = 'https://qhcjddtxvktuowoaemnc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_tRpF5o9qWkIdAjwhPatp1A_igucPgGB';
 
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ============================================================
+// Default config
+// ============================================================
 const DEFAULT_CONFIG = {
   tier1: [
     { id: 'arknights', name: '明日方舟', subtasks: [] },
@@ -739,6 +803,9 @@ function makeDefault() {
   return { config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)), history: {} };
 }
 
+// ============================================================
+// Date helpers
+// ============================================================
 function pad(n) { return String(n).padStart(2, '0'); }
 function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 function todayKey() { return dateKey(new Date()); }
@@ -747,30 +814,91 @@ function parseDateKey(s) {
   return new Date(p[0], p[1] - 1, p[2]);
 }
 
-function loadState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return makeDefault();
-  try {
-    const s = JSON.parse(raw);
-    if (!s.config) s.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
-    if (!s.history) s.history = {};
-    return s;
-  } catch (e) {
-    return makeDefault();
-  }
-}
-
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-let state = loadState();
+// ============================================================
+// App state
+// ============================================================
+let state = null;
+let session = null;
 let viewDate = todayKey();
 let addMode = null;
 let addSubtaskGameId = null;
-let editingGameId = null;  // { tier, id } | null
-let editingSubtaskInfo = null;  // { gameId, subtaskId } | null
+let editingGameId = null;
+let editingSubtaskInfo = null;
 
+// ============================================================
+// Save infrastructure - debounce + retry
+// ============================================================
+let saveTimeout = null;
+let pendingSave = false;
+let saving = false;
+let consecutiveFailures = 0;
+
+function scheduleSave() {
+  pendingSave = true;
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(performSave, 500);
+}
+
+async function performSave() {
+  if (saving || !pendingSave || !session) return;
+  saving = true;
+  pendingSave = false;
+  showSaveIndicator('saving');
+
+  const stateToSave = JSON.parse(JSON.stringify(state));
+
+  try {
+    const { error } = await supabaseClient
+      .from('tracker_data')
+      .upsert({
+        user_id: session.user.id,
+        data: stateToSave,
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) throw error;
+
+    consecutiveFailures = 0;
+    saving = false;
+    hideSaveIndicator();
+
+    // If something changed while saving, save again
+    if (pendingSave) scheduleSave();
+  } catch (e) {
+    console.error('Save failed:', e);
+    consecutiveFailures++;
+    saving = false;
+    pendingSave = true;
+    showSaveIndicator('error');
+
+    // Retry with backoff
+    const delay = Math.min(1000 * Math.pow(2, consecutiveFailures - 1), 30000);
+    setTimeout(performSave, delay);
+  }
+}
+
+function showSaveIndicator(mode) {
+  const el = document.getElementById('save-indicator');
+  const textEl = document.getElementById('save-text');
+  el.classList.add('visible');
+  if (mode === 'error') {
+    el.classList.add('error');
+    textEl.textContent = 'Save failed · retrying';
+  } else {
+    el.classList.remove('error');
+    textEl.textContent = 'Saving';
+  }
+}
+
+function hideSaveIndicator() {
+  const el = document.getElementById('save-indicator');
+  el.classList.remove('visible');
+  el.classList.remove('error');
+}
+
+// ============================================================
+// Data accessors
+// ============================================================
 function getDay(date) {
   if (!state.history[date]) state.history[date] = { tier1: {}, tier2: {}, tier3: {} };
   return state.history[date];
@@ -782,11 +910,13 @@ function getTier1Game(date, gameId) {
   return day.tier1[gameId];
 }
 
-// === Toggles ===
+// ============================================================
+// Toggles
+// ============================================================
 function toggleTier1(gameId) {
   const g = getTier1Game(viewDate, gameId);
   g.checkedIn = !g.checkedIn;
-  saveState();
+  scheduleSave();
   render();
 }
 
@@ -798,28 +928,28 @@ function toggleSubtask(gameId, subtaskId) {
     const allDone = cfg.subtasks.every(t => g.subtasks[t.id]);
     if (allDone && !g.checkedIn) g.checkedIn = true;
   }
-  saveState();
+  scheduleSave();
   render();
 }
 
 function toggleExtra(gameId) {
   const g = getTier1Game(viewDate, gameId);
   g.extra = !g.extra;
-  saveState();
+  scheduleSave();
   render();
 }
 
 function toggleTier2(gameId) {
   const day = getDay(viewDate);
   day.tier2[gameId] = !day.tier2[gameId];
-  saveState();
+  scheduleSave();
   render();
 }
 
 function toggleTier3(gameId) {
   const day = getDay(viewDate);
   day.tier3[gameId] = !day.tier3[gameId];
-  saveState();
+  scheduleSave();
   render();
 }
 
@@ -827,17 +957,19 @@ function cycleTier3Status(gameId) {
   const g = state.config.tier3.find(x => x.id === gameId);
   const statuses = ['playing', 'paused', 'done'];
   g.status = statuses[(statuses.indexOf(g.status) + 1) % statuses.length];
-  saveState();
+  scheduleSave();
   render();
 }
 
-// === Add/Remove/Rename ===
+// ============================================================
+// Add / Remove / Rename
+// ============================================================
 function addGame(tier, name) {
   const id = 'game_' + Date.now();
   if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [] });
   else if (tier === 'tier2') state.config.tier2.push({ id, name });
   else state.config.tier3.push({ id, name, status: 'playing' });
-  saveState();
+  scheduleSave();
   render();
 }
 
@@ -845,7 +977,7 @@ function removeGame(tier, gameId) {
   if (tier === 'tier1') state.config.tier1 = state.config.tier1.filter(g => g.id !== gameId);
   else if (tier === 'tier2') state.config.tier2 = state.config.tier2.filter(g => g.id !== gameId);
   else state.config.tier3 = state.config.tier3.filter(g => g.id !== gameId);
-  saveState();
+  scheduleSave();
   render();
 }
 
@@ -853,21 +985,21 @@ function renameGame(tier, gameId, newName) {
   const game = state.config[tier].find(g => g.id === gameId);
   if (game && newName.trim()) {
     game.name = newName.trim();
-    saveState();
+    scheduleSave();
   }
 }
 
 function addSubtask(gameId, name) {
   const game = state.config.tier1.find(g => g.id === gameId);
   if (game) game.subtasks.push({ id: 'st_' + Date.now(), name });
-  saveState();
+  scheduleSave();
   render();
 }
 
 function removeSubtask(gameId, subtaskId) {
   const game = state.config.tier1.find(g => g.id === gameId);
   if (game) game.subtasks = game.subtasks.filter(st => st.id !== subtaskId);
-  saveState();
+  scheduleSave();
   render();
 }
 
@@ -877,12 +1009,14 @@ function renameSubtask(gameId, subtaskId, newName) {
     const st = game.subtasks.find(s => s.id === subtaskId);
     if (st && newName.trim()) {
       st.name = newName.trim();
-      saveState();
+      scheduleSave();
     }
   }
 }
 
-// === Computed ===
+// ============================================================
+// Computed
+// ============================================================
 function getStreak(gameId, tier) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -939,30 +1073,24 @@ function getDayIntensity(dateStr) {
   return 4;
 }
 
-// === Date nav ===
+// ============================================================
+// Date nav
+// ============================================================
 function isViewingToday() { return viewDate === todayKey(); }
-
 function goToPrevDay() {
-  const d = parseDateKey(viewDate);
-  d.setDate(d.getDate() - 1);
-  viewDate = dateKey(d);
-  render();
+  const d = parseDateKey(viewDate); d.setDate(d.getDate() - 1);
+  viewDate = dateKey(d); render();
 }
-
 function goToNextDay() {
   if (isViewingToday()) return;
-  const d = parseDateKey(viewDate);
-  d.setDate(d.getDate() + 1);
-  viewDate = dateKey(d);
-  render();
+  const d = parseDateKey(viewDate); d.setDate(d.getDate() + 1);
+  viewDate = dateKey(d); render();
 }
+function goToToday() { viewDate = todayKey(); render(); }
 
-function goToToday() {
-  viewDate = todayKey();
-  render();
-}
-
-// === Helpers for editable name ===
+// ============================================================
+// Editable name helpers
+// ============================================================
 function makeEditableName(tier, game, isChecked) {
   const editing = editingGameId && editingGameId.tier === tier && editingGameId.id === game.id;
   if (editing) {
@@ -997,13 +1125,123 @@ function makeEditableName(tier, game, isChecked) {
   }
 }
 
-// === Render ===
+// ============================================================
+// Render
+// ============================================================
 function render() {
+  if (!session) {
+    renderSignIn();
+    return;
+  }
+  if (!state) {
+    renderLoading();
+    return;
+  }
+  renderApp();
+}
+
+function renderSignIn() {
+  const root = document.getElementById('root');
+  root.innerHTML = '';
+  const screen = document.createElement('div');
+  screen.className = 'signin-screen';
+  screen.innerHTML = `
+    <div class="signin-title">Daily Ritual</div>
+    <div class="signin-subtitle">登录以同步你的进度</div>
+    <button class="signin-btn" id="signin-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+      </svg>
+      Sign in with Google
+    </button>
+  `;
+  root.appendChild(screen);
+  document.getElementById('signin-btn').onclick = signIn;
+}
+
+function renderLoading() {
+  const root = document.getElementById('root');
+  root.innerHTML = '<div class="loading-screen"><div class="loading-dots">···</div></div>';
+}
+
+function renderApp() {
+  const root = document.getElementById('root');
+  root.innerHTML = `
+    <header class="header">
+      <div class="date-nav">
+        <div class="date-arrow" id="prev-day" title="Previous day">‹</div>
+        <div class="date" id="date"></div>
+        <div class="date-arrow" id="next-day" title="Next day">›</div>
+        <div class="today-link" id="today-link" style="display:none">↩ Today</div>
+      </div>
+      <div class="progress-label-row">
+        <div class="progress-label">完成度</div>
+        <div class="display-font progress-percentage" id="progress-pct">0%</div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="section-header"><div class="section-title">Daily</div><div class="section-line"></div></div>
+      <div id="tier1-list"></div>
+      <div class="add-row" id="add-tier1-container"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header"><div class="section-title">Opt-in</div><div class="section-line"></div></div>
+      <div id="tier2-list"></div>
+      <div class="add-row" id="add-tier2-container"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header"><div class="section-title">Current Roster</div><div class="section-line"></div></div>
+      <div id="tier3-list"></div>
+      <div class="add-row" id="add-tier3-container"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header"><div class="section-title">History</div><div class="section-line"></div></div>
+      <div class="heatmap-container">
+        <div class="heatmap" id="heatmap"></div>
+        <div class="heatmap-footer">
+          <div>12 weeks · click to edit · dbl-click name to rename</div>
+          <div class="heatmap-legend">
+            <span>Less</span>
+            <span class="heatmap-cell" data-intensity="0"></span>
+            <span class="heatmap-cell" data-intensity="1"></span>
+            <span class="heatmap-cell" data-intensity="2"></span>
+            <span class="heatmap-cell" data-intensity="3"></span>
+            <span class="heatmap-cell" data-intensity="4"></span>
+            <span>More</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <span class="user-email" id="user-email"></span>
+      <a id="export-btn">Export</a>·<a id="import-btn">Import</a>·<a id="signout-btn">Sign out</a>
+    </footer>
+  `;
+
   renderHeader();
   renderTier1();
   renderTier2();
   renderTier3();
   renderHeatmap();
+
+  document.getElementById('user-email').textContent = session.user.email;
+  document.getElementById('prev-day').onclick = goToPrevDay;
+  document.getElementById('next-day').onclick = () => { if (!isViewingToday()) goToNextDay(); };
+  document.getElementById('today-link').onclick = goToToday;
+  document.getElementById('export-btn').onclick = exportData;
+  document.getElementById('import-btn').onclick = importData;
+  document.getElementById('signout-btn').onclick = signOut;
 }
 
 function renderHeader() {
@@ -1013,13 +1251,8 @@ function renderHeader() {
   document.getElementById('date').textContent =
     wd[d.getDay()] + ' · ' + mo[d.getMonth()] + ' ' + d.getDate() + ' · ' + d.getFullYear();
   document.getElementById('date').className = 'date' + (isViewingToday() ? '' : ' past');
-
-  const nextBtn = document.getElementById('next-day');
-  nextBtn.className = 'date-arrow' + (isViewingToday() ? ' disabled' : '');
-
-  const todayLink = document.getElementById('today-link');
-  todayLink.style.display = isViewingToday() ? 'none' : '';
-
+  document.getElementById('next-day').className = 'date-arrow' + (isViewingToday() ? ' disabled' : '');
+  document.getElementById('today-link').style.display = isViewingToday() ? 'none' : '';
   const pct = getDayProgress(viewDate);
   document.getElementById('progress-pct').textContent = pct + '%';
   document.getElementById('progress-fill').style.width = pct + '%';
@@ -1029,7 +1262,6 @@ function renderTier1() {
   const day = getDay(viewDate);
   const container = document.getElementById('tier1-list');
   container.innerHTML = '';
-
   state.config.tier1.forEach(game => {
     const gd = day.tier1[game.id] || { checkedIn: false, subtasks: {}, extra: false };
     const streak = getStreak(game.id, 'tier1');
@@ -1038,7 +1270,6 @@ function renderTier1() {
 
     const item = document.createElement('div');
     item.className = 'game-item';
-
     const row = document.createElement('div');
     row.className = 'game-row';
 
@@ -1049,11 +1280,7 @@ function renderTier1() {
     const name = makeEditableName('tier1', game, gd.checkedIn);
     if (!editingGameId || editingGameId.id !== game.id) {
       name.onclick = () => toggleTier1(game.id);
-      name.ondblclick = (e) => {
-        e.preventDefault();
-        editingGameId = { tier: 'tier1', id: game.id };
-        render();
-      };
+      name.ondblclick = (e) => { e.preventDefault(); editingGameId = { tier: 'tier1', id: game.id }; render(); };
     }
 
     const extra = document.createElement('div');
@@ -1075,11 +1302,7 @@ function renderTier1() {
       if (confirm('移除 "' + game.name + '"? 历史数据将无法访问。')) removeGame('tier1', game.id);
     };
 
-    row.appendChild(cb);
-    row.appendChild(name);
-    row.appendChild(extra);
-    row.appendChild(streakEl);
-    row.appendChild(remove);
+    row.appendChild(cb); row.appendChild(name); row.appendChild(extra); row.appendChild(streakEl); row.appendChild(remove);
     item.appendChild(row);
 
     const subRow = document.createElement('div');
@@ -1087,10 +1310,8 @@ function renderTier1() {
 
     game.subtasks.forEach(st => {
       const isEditingThis = editingSubtaskInfo && editingSubtaskInfo.gameId === game.id && editingSubtaskInfo.subtaskId === st.id;
-
       const sub = document.createElement('div');
       sub.className = 'subtask' + (gd.subtasks[st.id] ? ' checked' : '');
-
       if (isEditingThis) {
         const input = document.createElement('input');
         input.className = 'subtask-edit';
@@ -1098,11 +1319,9 @@ function renderTier1() {
         input.value = st.name;
         let committed = false;
         const commit = () => {
-          if (committed) return;
-          committed = true;
+          if (committed) return; committed = true;
           renameSubtask(game.id, st.id, input.value);
-          editingSubtaskInfo = null;
-          render();
+          editingSubtaskInfo = null; render();
         };
         input.onkeydown = (e) => {
           if (e.key === 'Enter') commit();
@@ -1116,21 +1335,12 @@ function renderTier1() {
         subLabel.className = 'subtask-label';
         subLabel.textContent = st.name;
         subLabel.onclick = () => toggleSubtask(game.id, st.id);
-        subLabel.ondblclick = (e) => {
-          e.preventDefault();
-          editingSubtaskInfo = { gameId: game.id, subtaskId: st.id };
-          render();
-        };
-
+        subLabel.ondblclick = (e) => { e.preventDefault(); editingSubtaskInfo = { gameId: game.id, subtaskId: st.id }; render(); };
         const subRemove = document.createElement('span');
         subRemove.className = 'subtask-remove';
         subRemove.innerHTML = '×';
         subRemove.title = 'Remove sub-task';
-        subRemove.onclick = (e) => {
-          e.stopPropagation();
-          removeSubtask(game.id, st.id);
-        };
-
+        subRemove.onclick = (e) => { e.stopPropagation(); removeSubtask(game.id, st.id); };
         sub.appendChild(subLabel);
         sub.appendChild(subRemove);
       }
@@ -1144,12 +1354,10 @@ function renderTier1() {
       input.placeholder = 'Sub-task';
       let committed = false;
       const commit = () => {
-        if (committed) return;
-        committed = true;
+        if (committed) return; committed = true;
         const v = input.value.trim();
         if (v) addSubtask(game.id, v);
-        addSubtaskGameId = null;
-        render();
+        addSubtaskGameId = null; render();
       };
       input.onkeydown = (e) => {
         if (e.key === 'Enter') commit();
@@ -1169,7 +1377,6 @@ function renderTier1() {
     item.appendChild(subRow);
     container.appendChild(item);
   });
-
   renderAddRow('tier1');
 }
 
@@ -1177,14 +1384,11 @@ function renderTier2() {
   const day = getDay(viewDate);
   const container = document.getElementById('tier2-list');
   container.innerHTML = '';
-
   state.config.tier2.forEach(game => {
     const checked = day.tier2[game.id] === true;
     const streak = getStreak(game.id, 'tier2');
-
     const item = document.createElement('div');
     item.className = 'game-item';
-
     const row = document.createElement('div');
     row.className = 'game-row';
 
@@ -1195,11 +1399,7 @@ function renderTier2() {
     const name = makeEditableName('tier2', game, checked);
     if (!editingGameId || editingGameId.id !== game.id) {
       name.onclick = () => toggleTier2(game.id);
-      name.ondblclick = (e) => {
-        e.preventDefault();
-        editingGameId = { tier: 'tier2', id: game.id };
-        render();
-      };
+      name.ondblclick = (e) => { e.preventDefault(); editingGameId = { tier: 'tier2', id: game.id }; render(); };
     }
 
     const streakEl = document.createElement('div');
@@ -1215,14 +1415,10 @@ function renderTier2() {
       if (confirm('移除 "' + game.name + '"? 历史数据将无法访问。')) removeGame('tier2', game.id);
     };
 
-    row.appendChild(cb);
-    row.appendChild(name);
-    row.appendChild(streakEl);
-    row.appendChild(remove);
+    row.appendChild(cb); row.appendChild(name); row.appendChild(streakEl); row.appendChild(remove);
     item.appendChild(row);
     container.appendChild(item);
   });
-
   renderAddRow('tier2');
 }
 
@@ -1230,11 +1426,9 @@ function renderTier3() {
   const day = getDay(viewDate);
   const container = document.getElementById('tier3-list');
   container.innerHTML = '';
-
   state.config.tier3.forEach(game => {
     const playedToday = day.tier3[game.id] === true;
     const labels = { playing: 'In play', paused: 'Paused', done: 'Done' };
-
     const item = document.createElement('div');
     item.className = 'roster-item';
 
@@ -1245,11 +1439,7 @@ function renderTier3() {
     const name = makeEditableName('tier3', game, playedToday);
     if (!editingGameId || editingGameId.id !== game.id) {
       name.onclick = () => toggleTier3(game.id);
-      name.ondblclick = (e) => {
-        e.preventDefault();
-        editingGameId = { tier: 'tier3', id: game.id };
-        render();
-      };
+      name.ondblclick = (e) => { e.preventDefault(); editingGameId = { tier: 'tier3', id: game.id }; render(); };
     }
 
     const status = document.createElement('div');
@@ -1267,20 +1457,15 @@ function renderTier3() {
       if (confirm('移出 roster: "' + game.name + '"?')) removeGame('tier3', game.id);
     };
 
-    item.appendChild(check);
-    item.appendChild(name);
-    item.appendChild(status);
-    item.appendChild(remove);
+    item.appendChild(check); item.appendChild(name); item.appendChild(status); item.appendChild(remove);
     container.appendChild(item);
   });
-
   renderAddRow('tier3');
 }
 
 function renderAddRow(tier) {
   const container = document.getElementById('add-' + tier + '-container');
   container.innerHTML = '';
-
   if (addMode === tier) {
     const input = document.createElement('input');
     input.className = 'add-game-input';
@@ -1288,12 +1473,10 @@ function renderAddRow(tier) {
     input.placeholder = 'Game name';
     let committed = false;
     const commit = () => {
-      if (committed) return;
-      committed = true;
+      if (committed) return; committed = true;
       const v = input.value.trim();
       if (v) addGame(tier, v);
-      addMode = null;
-      render();
+      addMode = null; render();
     };
     input.onkeydown = (e) => {
       if (e.key === 'Enter') commit();
@@ -1314,15 +1497,12 @@ function renderAddRow(tier) {
 function renderHeatmap() {
   const container = document.getElementById('heatmap');
   container.innerHTML = '';
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
   const numWeeks = 12;
   const dayOfWeek = (today.getDay() + 6) % 7;
   const startDate = new Date(today);
   startDate.setDate(today.getDate() - dayOfWeek - (numWeeks - 1) * 7);
-
   const showLabel = [true, false, true, false, true, false, false];
   const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -1350,7 +1530,6 @@ function renderHeatmap() {
       if (!isFuture) {
         cell.dataset.intensity = getDayIntensity(key);
         cell.onclick = () => { viewDate = key; render(); };
-
         cell.addEventListener('mouseenter', () => {
           const tt = document.getElementById('tooltip');
           const dd = state.history[key];
@@ -1381,12 +1560,64 @@ function renderHeatmap() {
   }
 }
 
-// === Footer actions ===
-document.getElementById('prev-day').onclick = goToPrevDay;
-document.getElementById('next-day').onclick = () => { if (!isViewingToday()) goToNextDay(); };
-document.getElementById('today-link').onclick = goToToday;
+// ============================================================
+// Auth
+// ============================================================
+async function signIn() {
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.href.split('#')[0].split('?')[0]
+    }
+  });
+  if (error) {
+    console.error('Sign-in error:', error);
+    alert('Sign-in failed: ' + error.message);
+  }
+}
 
-document.getElementById('export-btn').onclick = () => {
+async function signOut() {
+  await supabaseClient.auth.signOut();
+  session = null;
+  state = null;
+  viewDate = todayKey();
+  render();
+}
+
+// ============================================================
+// Data load
+// ============================================================
+async function loadStateFromCloud() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('tracker_data')
+      .select('data')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (data && data.data) {
+      state = data.data;
+      // Migration: ensure required structure
+      if (!state.config) state.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      if (!state.history) state.history = {};
+    } else {
+      // First time: initialize with default and save
+      state = makeDefault();
+      scheduleSave();
+    }
+    render();
+  } catch (e) {
+    console.error('Load failed:', e);
+    alert('加载数据失败: ' + e.message);
+  }
+}
+
+// ============================================================
+// Export / Import
+// ============================================================
+function exportData() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1394,9 +1625,9 @@ document.getElementById('export-btn').onclick = () => {
   a.download = 'daily-ritual-' + todayKey() + '.json';
   a.click();
   URL.revokeObjectURL(url);
-};
+}
 
-document.getElementById('import-btn').onclick = () => {
+function importData() {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.json,application/json';
@@ -1408,8 +1639,9 @@ document.getElementById('import-btn').onclick = () => {
       try {
         const imported = JSON.parse(ev.target.result);
         if (imported.config && imported.history) {
+          if (!confirm('Import会覆盖当前所有云端数据。确认继续吗?')) return;
           state = imported;
-          saveState();
+          scheduleSave();
           render();
         } else {
           alert('Import失败: JSON结构不对');
@@ -1421,18 +1653,35 @@ document.getElementById('import-btn').onclick = () => {
     reader.readAsText(file);
   };
   input.click();
-};
+}
 
-document.getElementById('reset-btn').onclick = () => {
-  if (confirm('清空所有数据 (config + history)? 这个操作不可逆。')) {
-    localStorage.removeItem(STORAGE_KEY);
-    state = loadState();
-    viewDate = todayKey();
+// ============================================================
+// Init
+// ============================================================
+async function init() {
+  // Check session on load
+  const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
+  session = currentSession;
+
+  // Listen for auth state changes
+  supabaseClient.auth.onAuthStateChange((event, newSession) => {
+    session = newSession;
+    if (session && !state) {
+      loadStateFromCloud();
+    } else if (!session) {
+      state = null;
+      render();
+    }
+  });
+
+  if (session) {
+    await loadStateFromCloud();
+  } else {
     render();
   }
-};
+}
 
-render();
+init();
 </script>
 </body>
 </html>
