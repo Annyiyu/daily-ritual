@@ -39,7 +39,17 @@ body {
   display: flex;
   justify-content: center;
   -webkit-font-smoothing: antialiased;
+  /* Prevent scroll while dragging on mobile */
+  touch-action: pan-y;
 }
+
+body.dragging {
+  cursor: grabbing !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.dragging * { cursor: grabbing !important; }
 
 .display-font {
   font-family: var(--display-font);
@@ -95,7 +105,6 @@ body {
 }
 
 .signin-btn:hover { opacity: 0.85; }
-
 .signin-btn svg { width: 16px; height: 16px; }
 
 /* ===== Loading ===== */
@@ -187,13 +196,7 @@ body {
 }
 
 .progress-percentage { font-size: 2rem; font-weight: 300; color: var(--text); }
-
-.progress-track {
-  height: 1px;
-  width: 100%;
-  background-color: var(--accent-soft);
-}
-
+.progress-track { height: 1px; width: 100%; background-color: var(--accent-soft); }
 .progress-fill {
   height: 1px;
   background-color: var(--accent);
@@ -221,22 +224,62 @@ body {
   text-transform: uppercase;
   color: var(--text-muted);
   flex-shrink: 0;
+  transition: color 0.2s, background-color 0.2s;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-left: -8px;
 }
 
-.section-line { flex: 1; height: 1px; background-color: var(--line); }
+.section-line { flex: 1; height: 1px; background-color: var(--line); transition: background-color 0.2s; }
+
+/* Highlight section when something can be dropped into it from another tier */
+.section.drop-target .section-title {
+  color: var(--accent);
+  background-color: var(--accent-faint);
+}
+.section.drop-target .section-line { background-color: var(--accent-soft); }
+
+/* ===== Drag handle ===== */
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 18px;
+  cursor: grab;
+  color: var(--text-faint);
+  opacity: 0.45;
+  transition: opacity 0.2s, color 0.2s;
+  flex-shrink: 0;
+  user-select: none;
+  touch-action: none;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.drag-handle:hover { opacity: 1; color: var(--accent); }
+.drag-handle:active { cursor: grabbing; }
+
+.drag-handle svg { width: 10px; height: 14px; }
 
 /* ===== Game item ===== */
 .game-item {
   padding: 14px 0;
   border-bottom: 1px solid var(--line);
+  transition: opacity 0.15s, transform 0.15s;
 }
 
 .game-item:last-child { border-bottom: none; }
 
+.game-item.dragging {
+  opacity: 0.35;
+}
+
 .game-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   user-select: none;
 }
 
@@ -253,10 +296,7 @@ body {
   background-color: transparent;
 }
 
-.checkbox.checked {
-  background-color: var(--accent);
-  border-color: var(--accent);
-}
+.checkbox.checked { background-color: var(--accent); border-color: var(--accent); }
 
 .checkbox.checked::after {
   content: '';
@@ -338,6 +378,20 @@ body {
 
 .remove:hover { color: var(--accent); opacity: 1; }
 
+/* ===== Drop indicator line ===== */
+.drop-line {
+  height: 0;
+  border-top: 2px solid var(--accent);
+  margin: -1px 0;
+  pointer-events: none;
+  animation: lineGlow 0.4s ease-out;
+}
+
+@keyframes lineGlow {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* ===== Subtasks ===== */
 .subtasks-row {
   margin-top: 12px;
@@ -361,16 +415,36 @@ body {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  padding: 4px 11px;
+  padding: 4px 6px 4px 8px;
   border-radius: 999px;
   border: 1px solid var(--line-strong);
   color: var(--text-muted);
   user-select: none;
-  transition: all 0.2s ease;
+  transition: all 0.2s ease, opacity 0.15s;
   background-color: transparent;
 }
 
-.subtask-label { cursor: pointer; }
+.subtask.dragging { opacity: 0.35; }
+
+.subtask-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: currentColor;
+  opacity: 0.5;
+  touch-action: none;
+  user-select: none;
+  padding: 0 2px;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.subtask-drag-handle:hover { opacity: 1; }
+.subtask-drag-handle:active { cursor: grabbing; }
+
+.subtask-label { cursor: pointer; padding: 0 2px; }
 .subtask:hover .subtask-label { color: var(--text); }
 
 .subtask.checked {
@@ -405,6 +479,15 @@ body {
 .subtask:hover .subtask-remove { opacity: 0.7; }
 .subtask-remove:hover { opacity: 1 !important; color: var(--accent) !important; }
 
+/* Subtask drop indicator (vertical bar between pills) */
+.subtask-drop-marker {
+  width: 2px;
+  height: 22px;
+  background-color: var(--accent);
+  border-radius: 2px;
+  animation: lineGlow 0.4s ease-out;
+}
+
 .add-subtask {
   font-family: var(--label-font);
   font-size: 10px;
@@ -438,10 +521,12 @@ body {
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  transition: opacity 0.15s;
 }
 
 .roster-item:last-of-type { border-bottom: none; }
+.roster-item.dragging { opacity: 0.35; }
 
 .roster-check {
   width: 14px; height: 14px;
@@ -456,10 +541,7 @@ body {
   background-color: transparent;
 }
 
-.roster-check.checked {
-  background-color: var(--accent);
-  border-color: var(--accent);
-}
+.roster-check.checked { background-color: var(--accent); border-color: var(--accent); }
 
 .roster-check.checked::after {
   content: '';
@@ -510,22 +592,14 @@ body {
   flex-shrink: 0;
 }
 
-.roster-status[data-status="playing"] {
-  color: var(--accent);
-  background-color: var(--accent-faint);
-}
-
+.roster-status[data-status="playing"] { color: var(--accent); background-color: var(--accent-faint); }
 .roster-status[data-status="paused"] {
   color: var(--text-faint);
   background-color: transparent;
   border: 1px dashed var(--line-strong);
   padding: 2px 8px;
 }
-
-.roster-status[data-status="done"] {
-  color: var(--text-muted);
-  background-color: transparent;
-}
+.roster-status[data-status="done"] { color: var(--text-muted); background-color: transparent; }
 
 /* ===== Add game ===== */
 .add-row { margin-top: 18px; }
@@ -597,26 +671,10 @@ body {
 .heatmap-cell[data-intensity="3"] { background-color: rgba(184, 118, 62, 0.75); }
 .heatmap-cell[data-intensity="4"] { background-color: var(--accent); }
 
-.heatmap-cell:hover {
-  outline: 1px solid var(--text-muted);
-  outline-offset: 1px;
-}
-
-.heatmap-cell.today {
-  outline: 1.5px solid var(--text);
-  outline-offset: 1px;
-}
-
-.heatmap-cell.viewing {
-  outline: 1.5px solid var(--accent);
-  outline-offset: 1px;
-}
-
-.heatmap-cell.future {
-  background-color: transparent;
-  cursor: default;
-}
-
+.heatmap-cell:hover { outline: 1px solid var(--text-muted); outline-offset: 1px; }
+.heatmap-cell.today { outline: 1.5px solid var(--text); outline-offset: 1px; }
+.heatmap-cell.viewing { outline: 1.5px solid var(--accent); outline-offset: 1px; }
+.heatmap-cell.future { background-color: transparent; cursor: default; }
 .heatmap-cell.future:hover { outline: none; }
 
 .heatmap-footer {
@@ -632,12 +690,7 @@ body {
 }
 
 .heatmap-legend { display: flex; align-items: center; gap: 4px; }
-
-.heatmap-legend .heatmap-cell {
-  width: 10px; height: 10px;
-  cursor: default;
-}
-
+.heatmap-legend .heatmap-cell { width: 10px; height: 10px; cursor: default; }
 .heatmap-legend .heatmap-cell:hover { outline: none; }
 
 /* ===== Footer ===== */
@@ -692,6 +745,26 @@ body {
 
 .tooltip.visible { opacity: 1; }
 
+/* ===== Drag ghost ===== */
+.drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  background-color: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: var(--body-font);
+  font-size: 14px;
+  color: var(--text);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  opacity: 0.95;
+  white-space: nowrap;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ===== Save indicator ===== */
 .save-indicator {
   position: fixed;
@@ -714,15 +787,10 @@ body {
 }
 
 .save-indicator.visible { display: flex; }
-
-.save-indicator.error {
-  color: var(--accent);
-  border-color: var(--accent-soft);
-}
+.save-indicator.error { color: var(--accent); border-color: var(--accent-soft); }
 
 .save-dot {
-  width: 6px;
-  height: 6px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   background-color: currentColor;
   animation: pulse 1.2s ease-in-out infinite;
@@ -739,6 +807,7 @@ body {
   .header { margin-bottom: 48px; }
   .subtasks-row { margin-left: 28px; }
   .streak { min-width: 34px; }
+  .drag-handle { opacity: 0.6; }
 }
 </style>
 </head>
@@ -762,7 +831,6 @@ body {
 // ============================================================
 const SUPABASE_URL = 'https://qhcjddtxvktuowoaemnc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_tRpF5o9qWkIdAjwhPatp1A_igucPgGB';
-
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ============================================================
@@ -804,7 +872,7 @@ function makeDefault() {
 }
 
 // ============================================================
-// Date helpers
+// Helpers
 // ============================================================
 function pad(n) { return String(n).padStart(2, '0'); }
 function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
@@ -826,7 +894,7 @@ let editingGameId = null;
 let editingSubtaskInfo = null;
 
 // ============================================================
-// Save infrastructure - debounce + retry
+// Save
 // ============================================================
 let saveTimeout = null;
 let pendingSave = false;
@@ -844,9 +912,7 @@ async function performSave() {
   saving = true;
   pendingSave = false;
   showSaveIndicator('saving');
-
   const stateToSave = JSON.parse(JSON.stringify(state));
-
   try {
     const { error } = await supabaseClient
       .from('tracker_data')
@@ -855,14 +921,10 @@ async function performSave() {
         data: stateToSave,
         updated_at: new Date().toISOString()
       });
-
     if (error) throw error;
-
     consecutiveFailures = 0;
     saving = false;
     hideSaveIndicator();
-
-    // If something changed while saving, save again
     if (pendingSave) scheduleSave();
   } catch (e) {
     console.error('Save failed:', e);
@@ -870,8 +932,6 @@ async function performSave() {
     saving = false;
     pendingSave = true;
     showSaveIndicator('error');
-
-    // Retry with backoff
     const delay = Math.min(1000 * Math.pow(2, consecutiveFailures - 1), 30000);
     setTimeout(performSave, delay);
   }
@@ -916,8 +976,7 @@ function getTier1Game(date, gameId) {
 function toggleTier1(gameId) {
   const g = getTier1Game(viewDate, gameId);
   g.checkedIn = !g.checkedIn;
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
 
 function toggleSubtask(gameId, subtaskId) {
@@ -928,37 +987,32 @@ function toggleSubtask(gameId, subtaskId) {
     const allDone = cfg.subtasks.every(t => g.subtasks[t.id]);
     if (allDone && !g.checkedIn) g.checkedIn = true;
   }
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
 
 function toggleExtra(gameId) {
   const g = getTier1Game(viewDate, gameId);
   g.extra = !g.extra;
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
 
 function toggleTier2(gameId) {
   const day = getDay(viewDate);
   day.tier2[gameId] = !day.tier2[gameId];
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
 
 function toggleTier3(gameId) {
   const day = getDay(viewDate);
   day.tier3[gameId] = !day.tier3[gameId];
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
 
 function cycleTier3Status(gameId) {
   const g = state.config.tier3.find(x => x.id === gameId);
   const statuses = ['playing', 'paused', 'done'];
   g.status = statuses[(statuses.indexOf(g.status) + 1) % statuses.length];
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
 
 // ============================================================
@@ -969,16 +1023,14 @@ function addGame(tier, name) {
   if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [] });
   else if (tier === 'tier2') state.config.tier2.push({ id, name });
   else state.config.tier3.push({ id, name, status: 'playing' });
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
 
 function removeGame(tier, gameId) {
   if (tier === 'tier1') state.config.tier1 = state.config.tier1.filter(g => g.id !== gameId);
   else if (tier === 'tier2') state.config.tier2 = state.config.tier2.filter(g => g.id !== gameId);
   else state.config.tier3 = state.config.tier3.filter(g => g.id !== gameId);
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
 
 function renameGame(tier, gameId, newName) {
@@ -992,15 +1044,13 @@ function renameGame(tier, gameId, newName) {
 function addSubtask(gameId, name) {
   const game = state.config.tier1.find(g => g.id === gameId);
   if (game) game.subtasks.push({ id: 'st_' + Date.now(), name });
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
 
 function removeSubtask(gameId, subtaskId) {
   const game = state.config.tier1.find(g => g.id === gameId);
   if (game) game.subtasks = game.subtasks.filter(st => st.id !== subtaskId);
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
 
 function renameSubtask(gameId, subtaskId, newName) {
@@ -1012,6 +1062,305 @@ function renameSubtask(gameId, subtaskId, newName) {
       scheduleSave();
     }
   }
+}
+
+// ============================================================
+// Drag & Drop infrastructure
+// ============================================================
+const drag = {
+  active: false,
+  type: null,         // 'game' | 'subtask'
+  sourceTier: null,   // 'tier1' | 'tier2' | 'tier3' (for game) or game id (for subtask)
+  sourceId: null,     // gameId or subtaskId
+  ghost: null,
+  startX: 0,
+  startY: 0,
+  threshold: 5,       // pixels before drag activates
+  pending: null,      // pending drag info before threshold met
+  currentDropTarget: null
+};
+
+function startDragPotential(type, sourceTier, sourceId, displayName, e) {
+  // Get pointer coords (works for mouse + touch)
+  const pt = e.touches ? e.touches[0] : e;
+  drag.pending = {
+    type, sourceTier, sourceId, displayName,
+    startX: pt.clientX, startY: pt.clientY
+  };
+  // Prevent text selection
+  e.preventDefault();
+
+  // Attach listeners
+  const moveHandler = (ev) => handleDragMove(ev);
+  const endHandler = (ev) => handleDragEnd(ev, moveHandler, endHandler);
+  document.addEventListener('mousemove', moveHandler, { passive: false });
+  document.addEventListener('mouseup', endHandler);
+  document.addEventListener('touchmove', moveHandler, { passive: false });
+  document.addEventListener('touchend', endHandler);
+  document.addEventListener('touchcancel', endHandler);
+}
+
+function handleDragMove(e) {
+  if (!drag.pending && !drag.active) return;
+  const pt = e.touches ? e.touches[0] : e;
+
+  // Check if threshold met (start the actual drag)
+  if (drag.pending && !drag.active) {
+    const dx = pt.clientX - drag.pending.startX;
+    const dy = pt.clientY - drag.pending.startY;
+    if (Math.sqrt(dx*dx + dy*dy) < drag.threshold) return;
+
+    // Activate drag
+    drag.active = true;
+    drag.type = drag.pending.type;
+    drag.sourceTier = drag.pending.sourceTier;
+    drag.sourceId = drag.pending.sourceId;
+    drag.pending = null;
+    document.body.classList.add('dragging');
+
+    // Create ghost
+    drag.ghost = document.createElement('div');
+    drag.ghost.className = 'drag-ghost';
+    drag.ghost.textContent = drag.type === 'game' ?
+      (state.config[drag.sourceTier].find(g => g.id === drag.sourceId)?.name || '') :
+      (state.config.tier1.find(g => g.id === drag.sourceTier)?.subtasks.find(s => s.id === drag.sourceId)?.name || '');
+    document.body.appendChild(drag.ghost);
+
+    // Mark source as dragging
+    markSourceAsDragging(true);
+  }
+
+  if (!drag.active) return;
+  e.preventDefault();
+
+  // Move ghost
+  if (drag.ghost) {
+    drag.ghost.style.left = (pt.clientX + 12) + 'px';
+    drag.ghost.style.top = (pt.clientY + 12) + 'px';
+  }
+
+  // Determine drop target
+  updateDropIndicator(pt.clientX, pt.clientY);
+}
+
+function markSourceAsDragging(on) {
+  if (drag.type === 'game') {
+    const el = document.querySelector(`[data-game-id="${drag.sourceId}"]`);
+    if (el) el.classList.toggle('dragging', on);
+  } else if (drag.type === 'subtask') {
+    const el = document.querySelector(`[data-subtask-id="${drag.sourceId}"]`);
+    if (el) el.classList.toggle('dragging', on);
+  }
+}
+
+function clearDropIndicators() {
+  document.querySelectorAll('.drop-line, .subtask-drop-marker').forEach(el => el.remove());
+  document.querySelectorAll('.section.drop-target').forEach(el => el.classList.remove('drop-target'));
+  drag.currentDropTarget = null;
+}
+
+function updateDropIndicator(clientX, clientY) {
+  clearDropIndicators();
+
+  if (drag.type === 'game') {
+    updateGameDropIndicator(clientX, clientY);
+  } else {
+    updateSubtaskDropIndicator(clientX, clientY);
+  }
+}
+
+function updateGameDropIndicator(clientX, clientY) {
+  // Find which section we're over
+  const sections = ['tier1', 'tier2', 'tier3'];
+  let targetTier = null;
+  let targetSection = null;
+
+  for (const tier of sections) {
+    const sec = document.getElementById(`section-${tier}`);
+    if (!sec) continue;
+    const rect = sec.getBoundingClientRect();
+    if (clientY >= rect.top && clientY <= rect.bottom) {
+      targetTier = tier;
+      targetSection = sec;
+      break;
+    }
+  }
+
+  if (!targetTier) return;
+
+  // Highlight cross-tier sections
+  if (targetTier !== drag.sourceTier) {
+    targetSection.classList.add('drop-target');
+  }
+
+  // Find drop index within target section
+  const list = document.getElementById(`${targetTier}-list`);
+  if (!list) return;
+
+  const items = Array.from(list.querySelectorAll(`[data-game-id]`)).filter(
+    el => !el.classList.contains('dragging')
+  );
+
+  let dropIndex = items.length;
+  for (let i = 0; i < items.length; i++) {
+    const rect = items[i].getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) {
+      dropIndex = i;
+      break;
+    }
+  }
+
+  // Insert drop line
+  const line = document.createElement('div');
+  line.className = 'drop-line';
+  if (dropIndex === items.length) {
+    if (items.length > 0) {
+      items[items.length - 1].after(line);
+    } else {
+      list.appendChild(line);
+    }
+  } else {
+    items[dropIndex].before(line);
+  }
+
+  drag.currentDropTarget = { tier: targetTier, index: dropIndex };
+}
+
+function updateSubtaskDropIndicator(clientX, clientY) {
+  // Subtask can only be reordered within its own game
+  const game = state.config.tier1.find(g => g.id === drag.sourceTier);
+  if (!game) return;
+
+  // Find the subtasks-row for that game
+  const gameEl = document.querySelector(`[data-game-id="${drag.sourceTier}"]`);
+  if (!gameEl) return;
+  const subRow = gameEl.querySelector('.subtasks-row');
+  if (!subRow) return;
+
+  const pills = Array.from(subRow.querySelectorAll('[data-subtask-id]')).filter(
+    el => !el.classList.contains('dragging')
+  );
+
+  let dropIndex = pills.length;
+  for (let i = 0; i < pills.length; i++) {
+    const rect = pills[i].getBoundingClientRect();
+    // Use center X for horizontal arrangement
+    if (clientX < rect.left + rect.width / 2 && clientY < rect.bottom && clientY > rect.top - 12) {
+      dropIndex = i;
+      break;
+    }
+  }
+
+  // Insert drop marker (vertical bar)
+  const marker = document.createElement('div');
+  marker.className = 'subtask-drop-marker';
+  if (dropIndex === pills.length) {
+    if (pills.length > 0) {
+      pills[pills.length - 1].after(marker);
+    } else {
+      subRow.insertBefore(marker, subRow.firstChild);
+    }
+  } else {
+    pills[dropIndex].before(marker);
+  }
+
+  drag.currentDropTarget = { gameId: drag.sourceTier, index: dropIndex };
+}
+
+function handleDragEnd(e, moveHandler, endHandler) {
+  document.removeEventListener('mousemove', moveHandler);
+  document.removeEventListener('mouseup', endHandler);
+  document.removeEventListener('touchmove', moveHandler);
+  document.removeEventListener('touchend', endHandler);
+  document.removeEventListener('touchcancel', endHandler);
+
+  if (!drag.active) {
+    drag.pending = null;
+    return;
+  }
+
+  // Commit if we have a drop target
+  if (drag.currentDropTarget) {
+    if (drag.type === 'game') {
+      commitGameMove(drag.sourceTier, drag.sourceId, drag.currentDropTarget.tier, drag.currentDropTarget.index);
+    } else {
+      commitSubtaskMove(drag.sourceTier, drag.sourceId, drag.currentDropTarget.index);
+    }
+  }
+
+  // Cleanup
+  markSourceAsDragging(false);
+  clearDropIndicators();
+  if (drag.ghost) { drag.ghost.remove(); drag.ghost = null; }
+  document.body.classList.remove('dragging');
+  drag.active = false;
+  drag.type = null;
+  drag.sourceTier = null;
+  drag.sourceId = null;
+  drag.pending = null;
+  drag.currentDropTarget = null;
+
+  render();
+}
+
+function commitGameMove(fromTier, gameId, toTier, toIndex) {
+  const fromList = state.config[fromTier];
+  const fromIndex = fromList.findIndex(g => g.id === gameId);
+  if (fromIndex === -1) return;
+
+  const game = fromList[fromIndex];
+
+  // Cross-tier: warn about subtask loss for tier1→tier2/3
+  if (fromTier !== toTier && fromTier === 'tier1' && game.subtasks && game.subtasks.length > 0) {
+    if (!confirm(`将 "${game.name}" 移到其他section，sub-tasks (${game.subtasks.length}个) 会被删除。继续?`)) {
+      return;
+    }
+  }
+
+  // Remove from source
+  fromList.splice(fromIndex, 1);
+
+  // Transform game shape if crossing tiers
+  let movedGame;
+  if (toTier === 'tier1') {
+    movedGame = {
+      id: game.id,
+      name: game.name,
+      subtasks: game.subtasks || []
+    };
+  } else if (toTier === 'tier2') {
+    movedGame = { id: game.id, name: game.name };
+  } else {
+    movedGame = {
+      id: game.id,
+      name: game.name,
+      status: game.status || 'playing'
+    };
+  }
+
+  // Adjust toIndex if same tier and we removed from before
+  let adjustedIndex = toIndex;
+  if (fromTier === toTier && fromIndex < toIndex) {
+    adjustedIndex = toIndex - 1;
+  }
+
+  state.config[toTier].splice(adjustedIndex, 0, movedGame);
+  scheduleSave();
+}
+
+function commitSubtaskMove(gameId, subtaskId, toIndex) {
+  const game = state.config.tier1.find(g => g.id === gameId);
+  if (!game) return;
+  const fromIndex = game.subtasks.findIndex(s => s.id === subtaskId);
+  if (fromIndex === -1) return;
+
+  const [moved] = game.subtasks.splice(fromIndex, 1);
+
+  let adjustedIndex = toIndex;
+  if (fromIndex < toIndex) adjustedIndex = toIndex - 1;
+
+  game.subtasks.splice(adjustedIndex, 0, moved);
+  scheduleSave();
 }
 
 // ============================================================
@@ -1125,18 +1474,27 @@ function makeEditableName(tier, game, isChecked) {
   }
 }
 
+function makeDragHandle(type, sourceTier, sourceId, displayName) {
+  const handle = document.createElement('div');
+  handle.className = type === 'subtask' ? 'subtask-drag-handle' : 'drag-handle';
+  handle.innerHTML = '⋮⋮';
+  handle.title = 'Drag to reorder';
+  // Mouse + touch start
+  const handler = (e) => {
+    if (e.button !== undefined && e.button !== 0) return; // left click only on mouse
+    startDragPotential(type, sourceTier, sourceId, displayName, e);
+  };
+  handle.addEventListener('mousedown', handler);
+  handle.addEventListener('touchstart', handler, { passive: false });
+  return handle;
+}
+
 // ============================================================
 // Render
 // ============================================================
 function render() {
-  if (!session) {
-    renderSignIn();
-    return;
-  }
-  if (!state) {
-    renderLoading();
-    return;
-  }
+  if (!session) { renderSignIn(); return; }
+  if (!state) { renderLoading(); return; }
   renderApp();
 }
 
@@ -1181,24 +1539,22 @@ function renderApp() {
         <div class="progress-label">完成度</div>
         <div class="display-font progress-percentage" id="progress-pct">0%</div>
       </div>
-      <div class="progress-track">
-        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
-      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width: 0%"></div></div>
     </header>
 
-    <section class="section">
+    <section class="section" id="section-tier1">
       <div class="section-header"><div class="section-title">Daily</div><div class="section-line"></div></div>
       <div id="tier1-list"></div>
       <div class="add-row" id="add-tier1-container"></div>
     </section>
 
-    <section class="section">
+    <section class="section" id="section-tier2">
       <div class="section-header"><div class="section-title">Opt-in</div><div class="section-line"></div></div>
       <div id="tier2-list"></div>
       <div class="add-row" id="add-tier2-container"></div>
     </section>
 
-    <section class="section">
+    <section class="section" id="section-tier3">
       <div class="section-header"><div class="section-title">Current Roster</div><div class="section-line"></div></div>
       <div id="tier3-list"></div>
       <div class="add-row" id="add-tier3-container"></div>
@@ -1209,7 +1565,7 @@ function renderApp() {
       <div class="heatmap-container">
         <div class="heatmap" id="heatmap"></div>
         <div class="heatmap-footer">
-          <div>12 weeks · click to edit · dbl-click name to rename</div>
+          <div>12w · click to edit · dbl-click name to rename · drag ⋮⋮ to reorder</div>
           <div class="heatmap-legend">
             <span>Less</span>
             <span class="heatmap-cell" data-intensity="0"></span>
@@ -1270,8 +1626,12 @@ function renderTier1() {
 
     const item = document.createElement('div');
     item.className = 'game-item';
+    item.dataset.gameId = game.id;
+
     const row = document.createElement('div');
     row.className = 'game-row';
+
+    row.appendChild(makeDragHandle('game', 'tier1', game.id, game.name));
 
     const cb = document.createElement('div');
     cb.className = 'checkbox' + (gd.checkedIn ? ' checked' : '');
@@ -1312,6 +1672,7 @@ function renderTier1() {
       const isEditingThis = editingSubtaskInfo && editingSubtaskInfo.gameId === game.id && editingSubtaskInfo.subtaskId === st.id;
       const sub = document.createElement('div');
       sub.className = 'subtask' + (gd.subtasks[st.id] ? ' checked' : '');
+      sub.dataset.subtaskId = st.id;
       if (isEditingThis) {
         const input = document.createElement('input');
         input.className = 'subtask-edit';
@@ -1331,6 +1692,7 @@ function renderTier1() {
         sub.appendChild(input);
         setTimeout(() => { input.focus(); input.select(); }, 0);
       } else {
+        sub.appendChild(makeDragHandle('subtask', game.id, st.id, st.name));
         const subLabel = document.createElement('span');
         subLabel.className = 'subtask-label';
         subLabel.textContent = st.name;
@@ -1389,8 +1751,11 @@ function renderTier2() {
     const streak = getStreak(game.id, 'tier2');
     const item = document.createElement('div');
     item.className = 'game-item';
+    item.dataset.gameId = game.id;
     const row = document.createElement('div');
     row.className = 'game-row';
+
+    row.appendChild(makeDragHandle('game', 'tier2', game.id, game.name));
 
     const cb = document.createElement('div');
     cb.className = 'checkbox' + (checked ? ' checked' : '');
@@ -1431,6 +1796,9 @@ function renderTier3() {
     const labels = { playing: 'In play', paused: 'Paused', done: 'Done' };
     const item = document.createElement('div');
     item.className = 'roster-item';
+    item.dataset.gameId = game.id;
+
+    item.appendChild(makeDragHandle('game', 'tier3', game.id, game.name));
 
     const check = document.createElement('div');
     check.className = 'roster-check' + (playedToday ? ' checked' : '');
@@ -1566,9 +1934,7 @@ function renderHeatmap() {
 async function signIn() {
   const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: window.location.href.split('#')[0].split('?')[0]
-    }
+    options: { redirectTo: window.location.href.split('#')[0].split('?')[0] }
   });
   if (error) {
     console.error('Sign-in error:', error);
@@ -1594,16 +1960,12 @@ async function loadStateFromCloud() {
       .select('data')
       .eq('user_id', session.user.id)
       .maybeSingle();
-
     if (error) throw error;
-
     if (data && data.data) {
       state = data.data;
-      // Migration: ensure required structure
       if (!state.config) state.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
       if (!state.history) state.history = {};
     } else {
-      // First time: initialize with default and save
       state = makeDefault();
       scheduleSave();
     }
@@ -1659,26 +2021,15 @@ function importData() {
 // Init
 // ============================================================
 async function init() {
-  // Check session on load
   const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
   session = currentSession;
-
-  // Listen for auth state changes
   supabaseClient.auth.onAuthStateChange((event, newSession) => {
     session = newSession;
-    if (session && !state) {
-      loadStateFromCloud();
-    } else if (!session) {
-      state = null;
-      render();
-    }
+    if (session && !state) loadStateFromCloud();
+    else if (!session) { state = null; render(); }
   });
-
-  if (session) {
-    await loadStateFromCloud();
-  } else {
-    render();
-  }
+  if (session) await loadStateFromCloud();
+  else render();
 }
 
 init();
