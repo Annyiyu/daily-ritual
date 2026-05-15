@@ -1,0 +1,1994 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Ritual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,500i&family=Noto+Serif+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #ecebe1;
+  --text: #2a241c;
+  --text-muted: #6b5e4a;
+  --text-faint: #9c8f78;
+  --accent: #b8763e;
+  --accent-soft: rgba(184, 118, 62, 0.2);
+  --accent-faint: rgba(184, 118, 62, 0.08);
+  --line: rgba(42, 36, 28, 0.1);
+  --line-strong: rgba(42, 36, 28, 0.18);
+
+  --body-font: 'Fraunces', 'Noto Serif SC', 'Songti SC', 'Songti TC', serif;
+  --display-font: 'Fraunces', 'Noto Serif SC', Georgia, serif;
+  --label-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--body-font);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 48px 24px 80px;
+  display: flex;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+  touch-action: pan-y;
+}
+
+body.dragging { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
+body.dragging * { cursor: grabbing !important; }
+
+.display-font { font-family: var(--display-font); font-feature-settings: 'tnum'; letter-spacing: -0.02em; }
+
+.container { width: 100%; max-width: 540px; }
+
+/* Sign-in */
+.signin-screen {
+  min-height: 80vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  gap: 32px; animation: fadeIn 0.6s ease-out;
+}
+.signin-title { font-family: var(--display-font); font-size: 32px; font-weight: 300; color: var(--text); letter-spacing: -0.02em; }
+.signin-subtitle { font-family: var(--label-font); font-size: 11px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--text-muted); }
+.signin-btn {
+  font-family: var(--label-font); font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase;
+  background-color: var(--text); color: var(--bg); border: none; padding: 14px 32px;
+  border-radius: 999px; cursor: pointer; transition: opacity 0.2s;
+  display: inline-flex; align-items: center; gap: 12px;
+}
+.signin-btn:hover { opacity: 0.85; }
+.signin-btn svg { width: 16px; height: 16px; }
+
+/* Loading */
+.loading-screen { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
+.loading-dots {
+  font-family: var(--display-font); font-size: 28px; color: var(--text-muted);
+  letter-spacing: 0.5em; animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* Header */
+.header { margin-bottom: 64px; animation: fadeIn 0.6s ease-out; }
+.date-nav { display: flex; align-items: center; gap: 6px; margin-bottom: 28px; }
+.date-arrow {
+  font-family: var(--display-font); font-size: 18px; color: var(--text-muted);
+  cursor: pointer; padding: 4px 8px; user-select: none; transition: color 0.2s; line-height: 1;
+}
+.date-arrow:hover { color: var(--accent); }
+.date-arrow.disabled { color: var(--text-faint); cursor: default; opacity: 0.3; }
+.date-arrow.disabled:hover { color: var(--text-faint); }
+.date {
+  font-family: var(--label-font); font-size: 11px; letter-spacing: 0.35em;
+  text-transform: uppercase; color: var(--text-muted); flex: 1; text-align: center;
+}
+.date.past { color: var(--accent); }
+.today-link {
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.25em;
+  text-transform: uppercase; color: var(--accent); cursor: pointer;
+  padding: 4px 8px; user-select: none; transition: opacity 0.2s; white-space: nowrap;
+}
+.today-link:hover { opacity: 0.6; }
+.progress-label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.progress-label { font-family: var(--label-font); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-muted); }
+.progress-percentage { font-size: 2rem; font-weight: 300; color: var(--text); }
+.progress-track { height: 1px; width: 100%; background-color: var(--accent-soft); }
+.progress-fill { height: 1px; background-color: var(--accent); transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* Sections */
+.section { margin-bottom: 56px; animation: fadeIn 0.8s ease-out backwards; }
+.section:nth-of-type(1) { animation-delay: 0.1s; }
+.section:nth-of-type(2) { animation-delay: 0.2s; }
+.section:nth-of-type(3) { animation-delay: 0.3s; }
+.section:nth-of-type(4) { animation-delay: 0.4s; }
+
+.section-header { display: flex; align-items: center; margin-bottom: 24px; gap: 16px; }
+.section-title {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.35em;
+  text-transform: uppercase; color: var(--text-muted); flex-shrink: 0;
+  transition: color 0.2s, background-color 0.2s;
+  padding: 2px 8px; border-radius: 999px; margin-left: -8px;
+}
+.section-line { flex: 1; height: 1px; background-color: var(--line); transition: background-color 0.2s; }
+
+.section.drop-target .section-title { color: var(--accent); background-color: var(--accent-faint); }
+.section.drop-target .section-line { background-color: var(--accent-soft); }
+
+/* Drag handles */
+.drag-handle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 18px; cursor: grab; color: var(--text-faint);
+  opacity: 0.45; transition: opacity 0.2s, color 0.2s; flex-shrink: 0;
+  user-select: none; touch-action: none; font-size: 14px; line-height: 1; letter-spacing: -1px;
+}
+.drag-handle:hover { opacity: 1; color: var(--accent); }
+.drag-handle:active { cursor: grabbing; }
+
+/* Game item */
+.game-item { padding: 14px 0; border-bottom: 1px solid var(--line); transition: opacity 0.15s, transform 0.15s; }
+.game-item:last-child { border-bottom: none; }
+.game-item.dragging { opacity: 0.35; }
+
+.game-row { display: flex; align-items: center; gap: 10px; user-select: none; flex-wrap: nowrap; }
+
+.checkbox {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--text-muted); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.25s ease; cursor: pointer; background-color: transparent;
+}
+.checkbox.checked { background-color: var(--accent); border-color: var(--accent); }
+.checkbox.checked::after {
+  content: ''; width: 5px; height: 8px;
+  border: solid var(--bg); border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg) translate(0, -1px);
+  animation: checkPop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes checkPop {
+  0% { opacity: 0; transform: rotate(45deg) translate(0, -1px) scale(0.5); }
+  100% { opacity: 1; transform: rotate(45deg) translate(0, -1px) scale(1); }
+}
+
+.name-wrap {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+}
+
+.game-name {
+  font-size: 15px; color: var(--text); letter-spacing: -0.005em;
+  cursor: pointer; transition: color 0.25s ease;
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap;
+}
+.game-name.checked { color: var(--text-muted); }
+.game-name.dimmed { color: var(--text-faint); }
+.game-name.struck { color: var(--text-faint); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+
+.completion-mark {
+  font-family: var(--display-font); font-size: 11px;
+  color: var(--accent); letter-spacing: 0.05em; opacity: 0.75;
+  user-select: none;
+}
+
+.game-note {
+  font-family: var(--body-font); font-size: 12px;
+  color: var(--text-faint); font-style: italic;
+  letter-spacing: -0.005em; line-height: 1.4;
+  cursor: pointer;
+  word-break: break-word;
+}
+.game-note:hover { color: var(--text-muted); }
+
+.game-name-edit {
+  flex: 1; font-family: var(--body-font); font-size: 15px;
+  color: var(--text); letter-spacing: -0.005em;
+  background: transparent; border: none; border-bottom: 1px solid var(--accent);
+  outline: none; padding: 0; min-width: 0;
+}
+
+.note-edit {
+  font-family: var(--body-font); font-size: 12px; font-style: italic;
+  color: var(--text); background: transparent; border: none;
+  border-bottom: 1px solid var(--accent); outline: none;
+  padding: 2px 0; width: 100%;
+}
+
+.extra-toggle {
+  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; color: var(--text-faint);
+  transition: all 0.2s ease; user-select: none; flex-shrink: 0;
+}
+.extra-toggle:hover { color: var(--accent); }
+.extra-toggle.active { color: var(--accent); }
+
+.streak {
+  font-family: var(--display-font); font-size: 12px; letter-spacing: 0.05em;
+  color: var(--text-faint); font-variant-numeric: tabular-nums;
+  min-width: 32px; text-align: right; flex-shrink: 0;
+}
+.streak.active { color: var(--accent); }
+
+/* Status pills (Playing completion + Roster status) */
+.status-pill {
+  font-family: var(--label-font); font-size: 9px;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--text-muted); cursor: pointer;
+  padding: 3px 9px; border-radius: 999px;
+  transition: all 0.2s; user-select: none; flex-shrink: 0;
+  border: 1px solid transparent;
+}
+.status-pill.empty {
+  opacity: 0; padding: 3px 4px; pointer-events: none; min-width: 0;
+}
+.game-item:hover .status-pill.empty,
+.roster-item:hover .status-pill.empty {
+  opacity: 0.4; pointer-events: auto;
+}
+.game-item:hover .status-pill.empty:hover,
+.roster-item:hover .status-pill.empty:hover { opacity: 1; }
+
+.status-pill.empty::before { content: '+ status'; letter-spacing: 0.15em; }
+
+/* Tier 2 completion */
+.status-pill[data-status="beaten"] { color: var(--accent); background-color: var(--accent-faint); }
+.status-pill[data-status="completed"] { color: var(--accent); background-color: var(--accent-faint); font-weight: 500; }
+.status-pill[data-status="sated"] { color: var(--text-muted); background-color: transparent; border-color: var(--line-strong); }
+.status-pill[data-status="abandoned"] {
+  color: var(--text-faint); background-color: transparent;
+  border-color: var(--line-strong); border-style: dashed;
+}
+
+/* Tier 3 roster status */
+.status-pill[data-status="up_next"] { color: var(--accent); background-color: var(--accent-faint); font-weight: 500; }
+.status-pill[data-status="considering"] { color: var(--text-muted); background-color: transparent; border-color: var(--line-strong); }
+.status-pill[data-status="backlog"] { color: var(--text-faint); background-color: transparent; }
+
+/* Hide / Note buttons */
+.row-action {
+  font-size: 14px; color: var(--text-faint); cursor: pointer;
+  padding: 0 4px; transition: color 0.2s, opacity 0.2s;
+  user-select: none; line-height: 1; opacity: 0.35;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+}
+.row-action:hover { color: var(--accent); opacity: 1; }
+.row-action.active { opacity: 0.8; color: var(--accent); }
+
+/* Drop indicator */
+.drop-line { height: 0; border-top: 2px solid var(--accent); margin: -1px 0; pointer-events: none; animation: lineGlow 0.4s ease-out; }
+@keyframes lineGlow { from { opacity: 0; } to { opacity: 1; } }
+
+/* Subtasks */
+.subtasks-row { margin-top: 12px; margin-left: 30px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.subtasks-row.empty { margin-top: 4px; opacity: 0; transition: opacity 0.2s; }
+.game-item:hover .subtasks-row.empty { opacity: 0.6; }
+
+.subtask {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; padding: 4px 6px 4px 8px;
+  border-radius: 999px; border: 1px solid var(--line-strong);
+  color: var(--text-muted); user-select: none;
+  transition: all 0.2s ease, opacity 0.15s; background-color: transparent;
+}
+.subtask.dragging { opacity: 0.35; }
+
+.subtask-drag-handle {
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: grab; color: currentColor; opacity: 0.5;
+  touch-action: none; user-select: none;
+  padding: 0 2px; font-size: 11px; line-height: 1; letter-spacing: -1px;
+}
+.subtask-drag-handle:hover { opacity: 1; }
+.subtask-drag-handle:active { cursor: grabbing; }
+
+.subtask-label { cursor: pointer; padding: 0 2px; }
+.subtask:hover .subtask-label { color: var(--text); }
+.subtask.checked { background-color: var(--accent-faint); border-color: transparent; color: var(--accent); }
+
+.subtask-edit {
+  font-family: var(--body-font); font-size: 12px; color: var(--text);
+  background: transparent; border: none; border-bottom: 1px solid var(--accent);
+  outline: none; padding: 0; width: 80px;
+}
+
+.subtask-hide {
+  font-size: 12px; line-height: 1; opacity: 0; cursor: pointer; color: inherit;
+  transition: opacity 0.15s; margin-right: -3px; margin-left: 1px;
+}
+.subtask:hover .subtask-hide { opacity: 0.7; }
+.subtask-hide:hover { opacity: 1 !important; color: var(--accent) !important; }
+
+.subtask-drop-marker {
+  width: 2px; height: 22px; background-color: var(--accent);
+  border-radius: 2px; animation: lineGlow 0.4s ease-out;
+}
+
+.add-subtask {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--text-faint); cursor: pointer;
+  padding: 4px 8px; background: none; border: none; transition: color 0.2s;
+}
+.add-subtask:hover { color: var(--accent); }
+
+.add-subtask-input {
+  background: transparent; border: none; border-bottom: 1px solid var(--accent);
+  color: var(--text); font-size: 12px; font-family: var(--body-font);
+  outline: none; padding: 3px 4px; width: 130px;
+}
+
+.subtask-manage-link {
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--text-faint); cursor: pointer;
+  padding: 4px 8px; margin-left: 4px;
+  border-radius: 999px; transition: color 0.2s, background-color 0.2s;
+  opacity: 0;
+}
+.game-item:hover .subtask-manage-link { opacity: 0.6; }
+.subtask-manage-link:hover { color: var(--accent); opacity: 1 !important; }
+
+/* Subtask manage modal */
+.manage-popup {
+  position: fixed; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg); border: 1px solid var(--line-strong);
+  border-radius: 8px; padding: 24px 24px 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  z-index: 200; min-width: 280px; max-width: 90vw;
+  animation: fadeIn 0.2s ease-out;
+}
+.manage-overlay {
+  position: fixed; inset: 0; background: rgba(42,36,28,0.2); z-index: 199;
+  animation: fadeIn 0.2s ease-out;
+}
+.manage-title {
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px;
+}
+.manage-section { margin-bottom: 14px; }
+.manage-section:last-of-type { margin-bottom: 0; }
+.manage-section-label {
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px;
+}
+.manage-pills { display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; }
+.manage-empty {
+  font-family: var(--body-font); font-size: 12px;
+  color: var(--text-faint); font-style: italic;
+}
+.manage-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--line-strong); color: var(--text-muted);
+}
+.manage-pill.hidden-pill { opacity: 0.6; }
+.manage-pill-restore, .manage-pill-delete {
+  cursor: pointer; opacity: 0.6; transition: opacity 0.2s, color 0.2s;
+}
+.manage-pill-restore:hover { opacity: 1; color: var(--accent); }
+.manage-pill-delete:hover { opacity: 1; color: var(--accent); }
+.manage-close {
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.25em;
+  text-transform: uppercase; color: var(--text-muted); cursor: pointer;
+  padding: 6px 0; background: none; border: none; margin-top: 12px;
+  display: block; margin-left: auto;
+}
+.manage-close:hover { color: var(--accent); }
+
+/* Roster item */
+.roster-item { padding: 12px 0; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; transition: opacity 0.15s; flex-wrap: nowrap; }
+.roster-item:last-of-type { border-bottom: none; }
+.roster-item.dragging { opacity: 0.35; }
+
+.roster-check {
+  width: 14px; height: 14px; border-radius: 3px;
+  border: 1.5px solid var(--text-muted); flex-shrink: 0; cursor: pointer;
+  transition: all 0.25s ease; display: flex; align-items: center;
+  justify-content: center; background-color: transparent;
+}
+.roster-check.checked { background-color: var(--accent); border-color: var(--accent); }
+.roster-check.checked::after {
+  content: ''; width: 4px; height: 7px; border: solid var(--bg);
+  border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translate(0, -1px);
+}
+
+.roster-name-edit {
+  flex: 1; font-family: var(--body-font); font-size: 14px;
+  color: var(--text); background: transparent; border: none;
+  border-bottom: 1px solid var(--accent); outline: none; padding: 0; min-width: 0;
+}
+
+/* Add game */
+.add-row { margin-top: 18px; }
+.add-game {
+  font-family: var(--label-font); font-size: 11px; letter-spacing: 0.25em;
+  text-transform: uppercase; color: var(--text-muted); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 0; background: none; border: none; transition: color 0.2s;
+}
+.add-game:hover { color: var(--accent); }
+.add-game-input {
+  background: transparent; border: none; border-bottom: 1px solid var(--accent);
+  color: var(--text); font-size: 14px; font-family: var(--body-font);
+  outline: none; padding: 4px 0; width: 220px;
+}
+
+/* Hidden section */
+.hidden-toggle {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.25em;
+  text-transform: uppercase; color: var(--text-faint); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 0; margin-top: 10px;
+  background: none; border: none; transition: color 0.2s;
+}
+.hidden-toggle:hover { color: var(--accent); }
+.hidden-toggle .caret {
+  display: inline-block; transition: transform 0.2s;
+  font-family: var(--display-font); font-size: 12px; line-height: 1;
+}
+.hidden-toggle.open .caret { transform: rotate(90deg); }
+
+.hidden-list {
+  margin-top: 8px; padding-left: 12px;
+  border-left: 1px dashed var(--line-strong);
+}
+.hidden-list-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; opacity: 0.7;
+}
+.hidden-list-name {
+  flex: 1; font-size: 13px; color: var(--text-muted);
+  font-style: italic;
+}
+
+.hidden-action {
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--text-faint); cursor: pointer;
+  padding: 3px 8px; border-radius: 999px; transition: color 0.2s, background-color 0.2s;
+  user-select: none;
+}
+.hidden-action:hover { color: var(--accent); background-color: var(--accent-faint); }
+.hidden-action.danger:hover { color: #a13a2a; background-color: transparent; }
+
+/* Heatmap */
+.heatmap-container { margin-top: 12px; }
+.heatmap {
+  display: grid; grid-template-columns: auto repeat(12, 14px);
+  grid-auto-rows: 14px; gap: 3px; align-items: center;
+}
+.heatmap-row-label {
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-faint); padding-right: 6px;
+  text-align: right; line-height: 14px; min-width: 20px;
+}
+.heatmap-cell { width: 14px; height: 14px; border-radius: 2px; cursor: pointer; transition: outline 0.15s ease; position: relative; }
+.heatmap-cell[data-intensity="0"] { background-color: rgba(184, 118, 62, 0.05); }
+.heatmap-cell[data-intensity="1"] { background-color: rgba(184, 118, 62, 0.25); }
+.heatmap-cell[data-intensity="2"] { background-color: rgba(184, 118, 62, 0.5); }
+.heatmap-cell[data-intensity="3"] { background-color: rgba(184, 118, 62, 0.75); }
+.heatmap-cell[data-intensity="4"] { background-color: var(--accent); }
+.heatmap-cell:hover { outline: 1px solid var(--text-muted); outline-offset: 1px; }
+.heatmap-cell.today { outline: 1.5px solid var(--text); outline-offset: 1px; }
+.heatmap-cell.viewing { outline: 1.5px solid var(--accent); outline-offset: 1px; }
+.heatmap-cell.future { background-color: transparent; cursor: default; }
+.heatmap-cell.future:hover { outline: none; }
+
+.heatmap-footer {
+  font-family: var(--label-font); margin-top: 18px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-faint);
+}
+.heatmap-legend { display: flex; align-items: center; gap: 4px; }
+.heatmap-legend .heatmap-cell { width: 10px; height: 10px; cursor: default; }
+.heatmap-legend .heatmap-cell:hover { outline: none; }
+
+/* Footer */
+.app-footer {
+  font-family: var(--label-font); margin-top: 80px; padding-top: 24px;
+  border-top: 1px solid var(--line); font-size: 9px; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--text-faint); text-align: center;
+}
+.app-footer .user-email {
+  display: block; margin-bottom: 8px; color: var(--text-muted);
+  text-transform: none; letter-spacing: 0.05em; font-size: 10px; font-style: italic;
+}
+.app-footer a { color: var(--text-faint); text-decoration: none; cursor: pointer; margin: 0 8px; }
+.app-footer a:hover { color: var(--accent); }
+
+/* Tooltip */
+.tooltip {
+  position: fixed; font-family: var(--label-font);
+  background-color: var(--text); color: var(--bg);
+  font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+  padding: 6px 10px; border-radius: 3px; pointer-events: none;
+  opacity: 0; transition: opacity 0.15s; z-index: 100; white-space: nowrap;
+}
+.tooltip.visible { opacity: 1; }
+
+/* Drag ghost */
+.drag-ghost {
+  position: fixed; pointer-events: none; z-index: 1000;
+  background-color: var(--bg); border: 1px solid var(--line-strong);
+  border-radius: 6px; padding: 8px 12px;
+  font-family: var(--body-font); font-size: 14px; color: var(--text);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12); opacity: 0.95;
+  white-space: nowrap; max-width: 280px; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Save indicator */
+.save-indicator {
+  position: fixed; bottom: 18px; right: 18px;
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.25em;
+  text-transform: uppercase; padding: 7px 13px; border-radius: 4px;
+  z-index: 90; display: none; align-items: center; gap: 8px;
+  background-color: var(--bg); border: 1px solid var(--line-strong);
+  color: var(--text-muted); animation: fadeIn 0.3s;
+}
+.save-indicator.visible { display: flex; }
+.save-indicator.error { color: var(--accent); border-color: var(--accent-soft); }
+.save-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background-color: currentColor; animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 520px) {
+  body { padding: 32px 18px 60px; }
+  .section { margin-bottom: 48px; }
+  .header { margin-bottom: 48px; }
+  .subtasks-row { margin-left: 28px; }
+  .streak { min-width: 28px; }
+  .drag-handle { opacity: 0.6; }
+  .game-row { gap: 8px; }
+  .roster-item { gap: 8px; }
+  .status-pill.empty { opacity: 0.4; pointer-events: auto; }
+  .subtask-manage-link { opacity: 0.6; }
+}
+</style>
+</head>
+<body>
+
+<div class="container" id="root">
+  <div class="loading-screen"><div class="loading-dots">···</div></div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+<div class="save-indicator" id="save-indicator">
+  <span class="save-dot"></span>
+  <span id="save-text">Saving</span>
+</div>
+
+<script>
+// ============================================================
+// Supabase configuration
+// ============================================================
+const SUPABASE_URL = 'https://qhcjddtxvktuowoaemnc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_tRpF5o9qWkIdAjwhPatp1A_igucPgGB';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ============================================================
+// Default config
+// ============================================================
+const DEFAULT_CONFIG = {
+  tier1: [
+    { id: 'arknights', name: '明日方舟', subtasks: [] },
+    { id: 'baijing', name: '白荆回廊', subtasks: [] },
+    { id: 'pokopia', name: 'Pokémon Pokopia', subtasks: [
+      { id: 'stamp', name: '盖章' },
+      { id: 'materials', name: '买材料单' }
+    ]},
+    { id: 'tomodachi', name: 'Tomodachi Life', subtasks: [
+      { id: 'morning', name: '早市' },
+      { id: 'noon', name: '午市' },
+      { id: 'night', name: '晚市' },
+      { id: 'news', name: '新闻' },
+      { id: 'income', name: '每日收入' },
+      { id: 'food', name: '新食物' },
+      { id: 'clothes', name: '新衣服' }
+    ]}
+  ],
+  tier2: [
+    { id: 'mistonia', name: '米斯托尼亚的翅望' }
+  ],
+  tier3: [
+    { id: 'lis_double', name: '奇异人生本色', status: 'considering' },
+    { id: 'inkonbini', name: 'inKONBINI', status: 'considering' },
+    { id: 'redsand', name: '红色沙漠', status: 'considering' },
+    { id: 'cupid', name: '共生丘比特', status: 'considering' },
+    { id: 'yakuza3', name: '人中之龙极3', status: 'considering' },
+    { id: 'immortality', name: 'Immortality', status: 'considering' }
+  ]
+};
+
+function makeDefault() {
+  return { config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)), history: {} };
+}
+
+// ============================================================
+// Migration: old data shape → new
+// ============================================================
+function migrate(state) {
+  if (!state.config) state.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  if (!state.history) state.history = {};
+
+  // Tier 3 status mapping: old → new
+  const oldToNewStatus = {
+    'playing': 'considering',
+    'paused': 'backlog',
+    'done': 'backlog'
+  };
+  state.config.tier3 = (state.config.tier3 || []).map(g => {
+    const newStatus = oldToNewStatus[g.status] || g.status || 'considering';
+    return { ...g, status: newStatus };
+  });
+
+  // Ensure tier1/2/3 have defaults
+  ['tier1', 'tier2', 'tier3'].forEach(tier => {
+    state.config[tier] = (state.config[tier] || []).map(g => {
+      const base = { ...g };
+      if (tier === 'tier1' && !Array.isArray(base.subtasks)) base.subtasks = [];
+      if (typeof base.hidden !== 'boolean') base.hidden = false;
+      if (typeof base.note !== 'string') base.note = '';
+      // Tier 2: optional completion status
+      if (tier === 'tier2' && typeof base.completion !== 'string') base.completion = '';
+      // Tier 1 subtasks: ensure hidden field
+      if (tier === 'tier1') {
+        base.subtasks = base.subtasks.map(st => ({
+          ...st,
+          hidden: typeof st.hidden === 'boolean' ? st.hidden : false
+        }));
+      }
+      return base;
+    });
+  });
+
+  return state;
+}
+
+// ============================================================
+// Helpers
+// ============================================================
+function pad(n) { return String(n).padStart(2, '0'); }
+function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function todayKey() { return dateKey(new Date()); }
+function parseDateKey(s) { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+
+// ============================================================
+// App state
+// ============================================================
+let state = null;
+let session = null;
+let viewDate = todayKey();
+let addMode = null;
+let addSubtaskGameId = null;
+let editingGameId = null;
+let editingSubtaskInfo = null;
+let editingNoteFor = null;       // { tier, id }
+let hiddenSectionOpen = { tier1: false, tier2: false, tier3: false };
+let manageSubtasksFor = null;    // gameId
+let addingNoteFor = null;        // { tier, id }
+
+// ============================================================
+// Save
+// ============================================================
+let saveTimeout = null;
+let pendingSave = false;
+let saving = false;
+let consecutiveFailures = 0;
+
+function scheduleSave() {
+  pendingSave = true;
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(performSave, 500);
+}
+
+async function performSave() {
+  if (saving || !pendingSave || !session) return;
+  saving = true; pendingSave = false; showSaveIndicator('saving');
+  const stateToSave = JSON.parse(JSON.stringify(state));
+  try {
+    const { error } = await supabaseClient.from('tracker_data').upsert({
+      user_id: session.user.id,
+      data: stateToSave,
+      updated_at: new Date().toISOString()
+    });
+    if (error) throw error;
+    consecutiveFailures = 0;
+    saving = false;
+    hideSaveIndicator();
+    if (pendingSave) scheduleSave();
+  } catch (e) {
+    console.error('Save failed:', e);
+    consecutiveFailures++;
+    saving = false;
+    pendingSave = true;
+    showSaveIndicator('error');
+    const delay = Math.min(1000 * Math.pow(2, consecutiveFailures - 1), 30000);
+    setTimeout(performSave, delay);
+  }
+}
+
+function showSaveIndicator(mode) {
+  const el = document.getElementById('save-indicator');
+  const textEl = document.getElementById('save-text');
+  el.classList.add('visible');
+  if (mode === 'error') { el.classList.add('error'); textEl.textContent = 'Save failed · retrying'; }
+  else { el.classList.remove('error'); textEl.textContent = 'Saving'; }
+}
+function hideSaveIndicator() {
+  const el = document.getElementById('save-indicator');
+  el.classList.remove('visible'); el.classList.remove('error');
+}
+
+// ============================================================
+// Data accessors
+// ============================================================
+function getDay(date) {
+  if (!state.history[date]) state.history[date] = { tier1: {}, tier2: {}, tier3: {} };
+  return state.history[date];
+}
+function getTier1Game(date, gameId) {
+  const day = getDay(date);
+  if (!day.tier1[gameId]) day.tier1[gameId] = { checkedIn: false, subtasks: {}, extra: false };
+  return day.tier1[gameId];
+}
+
+// ============================================================
+// Toggles
+// ============================================================
+function toggleTier1(gameId) {
+  const g = getTier1Game(viewDate, gameId);
+  g.checkedIn = !g.checkedIn;
+  scheduleSave(); render();
+}
+function toggleSubtask(gameId, subtaskId) {
+  const g = getTier1Game(viewDate, gameId);
+  g.subtasks[subtaskId] = !g.subtasks[subtaskId];
+  const cfg = state.config.tier1.find(x => x.id === gameId);
+  if (cfg && cfg.subtasks.length > 0) {
+    const visible = cfg.subtasks.filter(t => !t.hidden);
+    if (visible.length > 0) {
+      const allDone = visible.every(t => g.subtasks[t.id]);
+      if (allDone && !g.checkedIn) g.checkedIn = true;
+    }
+  }
+  scheduleSave(); render();
+}
+function toggleExtra(gameId) {
+  const g = getTier1Game(viewDate, gameId);
+  g.extra = !g.extra;
+  scheduleSave(); render();
+}
+function toggleTier2(gameId) {
+  const day = getDay(viewDate);
+  day.tier2[gameId] = !day.tier2[gameId];
+  scheduleSave(); render();
+}
+function toggleTier3(gameId) {
+  const day = getDay(viewDate);
+  day.tier3[gameId] = !day.tier3[gameId];
+  scheduleSave(); render();
+}
+
+// ============================================================
+// Status cycling
+// ============================================================
+const TIER2_COMPLETION_SEQ = ['', 'beaten', 'completed', 'sated', 'abandoned'];
+const TIER3_STATUS_SEQ = ['considering', 'up_next', 'backlog'];
+
+function cycleTier2Completion(gameId) {
+  const g = state.config.tier2.find(x => x.id === gameId);
+  if (!g) return;
+  const current = g.completion || '';
+  const next = TIER2_COMPLETION_SEQ[(TIER2_COMPLETION_SEQ.indexOf(current) + 1) % TIER2_COMPLETION_SEQ.length];
+  g.completion = next;
+  scheduleSave(); render();
+}
+function cycleTier3Status(gameId) {
+  const g = state.config.tier3.find(x => x.id === gameId);
+  if (!g) return;
+  const current = g.status || 'considering';
+  const idx = TIER3_STATUS_SEQ.indexOf(current);
+  g.status = TIER3_STATUS_SEQ[(idx + 1) % TIER3_STATUS_SEQ.length];
+  scheduleSave(); render();
+}
+
+// ============================================================
+// Add / Rename
+// ============================================================
+function addGame(tier, name) {
+  const id = 'game_' + Date.now();
+  if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [], hidden: false, note: '' });
+  else if (tier === 'tier2') state.config.tier2.push({ id, name, hidden: false, note: '', completion: '' });
+  else state.config.tier3.push({ id, name, status: 'considering', hidden: false, note: '' });
+  scheduleSave(); render();
+}
+function renameGame(tier, gameId, newName) {
+  const game = state.config[tier].find(g => g.id === gameId);
+  if (game && newName.trim()) { game.name = newName.trim(); scheduleSave(); }
+}
+function setGameNote(tier, gameId, newNote) {
+  const game = state.config[tier].find(g => g.id === gameId);
+  if (game) { game.note = (newNote || '').trim(); scheduleSave(); }
+}
+function addSubtask(gameId, name) {
+  const game = state.config.tier1.find(g => g.id === gameId);
+  if (game) game.subtasks.push({ id: 'st_' + Date.now(), name, hidden: false });
+  scheduleSave(); render();
+}
+function renameSubtask(gameId, subtaskId, newName) {
+  const game = state.config.tier1.find(g => g.id === gameId);
+  if (game) {
+    const st = game.subtasks.find(s => s.id === subtaskId);
+    if (st && newName.trim()) { st.name = newName.trim(); scheduleSave(); }
+  }
+}
+
+// ============================================================
+// Hide / Restore / Delete
+// ============================================================
+function hideGame(tier, gameId) {
+  const game = state.config[tier].find(g => g.id === gameId);
+  if (game) { game.hidden = true; scheduleSave(); render(); }
+}
+function restoreGame(tier, gameId) {
+  const game = state.config[tier].find(g => g.id === gameId);
+  if (game) { game.hidden = false; scheduleSave(); render(); }
+}
+function deleteGameForever(tier, gameId) {
+  const game = state.config[tier].find(g => g.id === gameId);
+  if (!game) return;
+  if (!confirm(`永久删除 "${game.name}"?\n\n所有历史check-in数据都会丢失，无法恢复。\n\n如只是暂时不想看到，用 hide 而不是 delete forever。`)) return;
+  if (!confirm(`再次确认: 真的永久删除 "${game.name}" 吗?`)) return;
+  state.config[tier] = state.config[tier].filter(g => g.id !== gameId);
+  scheduleSave(); render();
+}
+
+function hideSubtask(gameId, subtaskId) {
+  const game = state.config.tier1.find(g => g.id === gameId);
+  if (!game) return;
+  const st = game.subtasks.find(s => s.id === subtaskId);
+  if (st) { st.hidden = true; scheduleSave(); render(); }
+}
+function restoreSubtask(gameId, subtaskId) {
+  const game = state.config.tier1.find(g => g.id === gameId);
+  if (!game) return;
+  const st = game.subtasks.find(s => s.id === subtaskId);
+  if (st) { st.hidden = false; scheduleSave(); render(); }
+}
+function deleteSubtaskForever(gameId, subtaskId) {
+  const game = state.config.tier1.find(g => g.id === gameId);
+  if (!game) return;
+  const st = game.subtasks.find(s => s.id === subtaskId);
+  if (!st) return;
+  if (!confirm(`永久删除 sub-task "${st.name}"?\n\n所有历史数据将丢失，无法恢复。`)) return;
+  game.subtasks = game.subtasks.filter(s => s.id !== subtaskId);
+  scheduleSave(); render();
+}
+
+// ============================================================
+// Drag & Drop
+// ============================================================
+const drag = {
+  active: false, type: null, sourceTier: null, sourceId: null,
+  ghost: null, threshold: 5, pending: null, currentDropTarget: null
+};
+
+function startDragPotential(type, sourceTier, sourceId, displayName, e) {
+  const pt = e.touches ? e.touches[0] : e;
+  drag.pending = { type, sourceTier, sourceId, displayName, startX: pt.clientX, startY: pt.clientY };
+  e.preventDefault();
+  const moveHandler = (ev) => handleDragMove(ev);
+  const endHandler = (ev) => handleDragEnd(ev, moveHandler, endHandler);
+  document.addEventListener('mousemove', moveHandler, { passive: false });
+  document.addEventListener('mouseup', endHandler);
+  document.addEventListener('touchmove', moveHandler, { passive: false });
+  document.addEventListener('touchend', endHandler);
+  document.addEventListener('touchcancel', endHandler);
+}
+
+function handleDragMove(e) {
+  if (!drag.pending && !drag.active) return;
+  const pt = e.touches ? e.touches[0] : e;
+  if (drag.pending && !drag.active) {
+    const dx = pt.clientX - drag.pending.startX;
+    const dy = pt.clientY - drag.pending.startY;
+    if (Math.sqrt(dx*dx + dy*dy) < drag.threshold) return;
+    drag.active = true;
+    drag.type = drag.pending.type;
+    drag.sourceTier = drag.pending.sourceTier;
+    drag.sourceId = drag.pending.sourceId;
+    drag.pending = null;
+    document.body.classList.add('dragging');
+    drag.ghost = document.createElement('div');
+    drag.ghost.className = 'drag-ghost';
+    drag.ghost.textContent = drag.type === 'game'
+      ? (state.config[drag.sourceTier].find(g => g.id === drag.sourceId)?.name || '')
+      : (state.config.tier1.find(g => g.id === drag.sourceTier)?.subtasks.find(s => s.id === drag.sourceId)?.name || '');
+    document.body.appendChild(drag.ghost);
+    markSourceAsDragging(true);
+  }
+  if (!drag.active) return;
+  e.preventDefault();
+  if (drag.ghost) {
+    drag.ghost.style.left = (pt.clientX + 12) + 'px';
+    drag.ghost.style.top = (pt.clientY + 12) + 'px';
+  }
+  updateDropIndicator(pt.clientX, pt.clientY);
+}
+
+function markSourceAsDragging(on) {
+  if (drag.type === 'game') {
+    const el = document.querySelector(`[data-game-id="${drag.sourceId}"]`);
+    if (el) el.classList.toggle('dragging', on);
+  } else if (drag.type === 'subtask') {
+    const el = document.querySelector(`[data-subtask-id="${drag.sourceId}"]`);
+    if (el) el.classList.toggle('dragging', on);
+  }
+}
+
+function clearDropIndicators() {
+  document.querySelectorAll('.drop-line, .subtask-drop-marker').forEach(el => el.remove());
+  document.querySelectorAll('.section.drop-target').forEach(el => el.classList.remove('drop-target'));
+  drag.currentDropTarget = null;
+}
+
+function updateDropIndicator(clientX, clientY) {
+  clearDropIndicators();
+  if (drag.type === 'game') updateGameDropIndicator(clientX, clientY);
+  else updateSubtaskDropIndicator(clientX, clientY);
+}
+
+function updateGameDropIndicator(clientX, clientY) {
+  const sections = ['tier1', 'tier2', 'tier3'];
+  let targetTier = null, targetSection = null;
+  for (const tier of sections) {
+    const sec = document.getElementById(`section-${tier}`);
+    if (!sec) continue;
+    const rect = sec.getBoundingClientRect();
+    if (clientY >= rect.top && clientY <= rect.bottom) {
+      targetTier = tier; targetSection = sec; break;
+    }
+  }
+  if (!targetTier) return;
+  if (targetTier !== drag.sourceTier) targetSection.classList.add('drop-target');
+  const list = document.getElementById(`${targetTier}-list`);
+  if (!list) return;
+  const items = Array.from(list.querySelectorAll(`[data-game-id]`)).filter(el => !el.classList.contains('dragging'));
+  let dropIndex = items.length;
+  for (let i = 0; i < items.length; i++) {
+    const rect = items[i].getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) { dropIndex = i; break; }
+  }
+  const line = document.createElement('div');
+  line.className = 'drop-line';
+  if (dropIndex === items.length) {
+    if (items.length > 0) items[items.length - 1].after(line);
+    else list.appendChild(line);
+  } else items[dropIndex].before(line);
+  drag.currentDropTarget = { tier: targetTier, index: dropIndex };
+}
+
+function updateSubtaskDropIndicator(clientX, clientY) {
+  const gameEl = document.querySelector(`[data-game-id="${drag.sourceTier}"]`);
+  if (!gameEl) return;
+  const subRow = gameEl.querySelector('.subtasks-row');
+  if (!subRow) return;
+  const pills = Array.from(subRow.querySelectorAll('[data-subtask-id]')).filter(el => !el.classList.contains('dragging'));
+  let dropIndex = pills.length;
+  for (let i = 0; i < pills.length; i++) {
+    const rect = pills[i].getBoundingClientRect();
+    if (clientX < rect.left + rect.width / 2 && clientY < rect.bottom && clientY > rect.top - 12) {
+      dropIndex = i; break;
+    }
+  }
+  const marker = document.createElement('div');
+  marker.className = 'subtask-drop-marker';
+  if (dropIndex === pills.length) {
+    if (pills.length > 0) pills[pills.length - 1].after(marker);
+    else subRow.insertBefore(marker, subRow.firstChild);
+  } else pills[dropIndex].before(marker);
+  drag.currentDropTarget = { gameId: drag.sourceTier, index: dropIndex };
+}
+
+function handleDragEnd(e, moveHandler, endHandler) {
+  document.removeEventListener('mousemove', moveHandler);
+  document.removeEventListener('mouseup', endHandler);
+  document.removeEventListener('touchmove', moveHandler);
+  document.removeEventListener('touchend', endHandler);
+  document.removeEventListener('touchcancel', endHandler);
+  if (!drag.active) { drag.pending = null; return; }
+  if (drag.currentDropTarget) {
+    if (drag.type === 'game') commitGameMove(drag.sourceTier, drag.sourceId, drag.currentDropTarget.tier, drag.currentDropTarget.index);
+    else commitSubtaskMove(drag.sourceTier, drag.sourceId, drag.currentDropTarget.index);
+  }
+  markSourceAsDragging(false);
+  clearDropIndicators();
+  if (drag.ghost) { drag.ghost.remove(); drag.ghost = null; }
+  document.body.classList.remove('dragging');
+  drag.active = false; drag.type = null; drag.sourceTier = null;
+  drag.sourceId = null; drag.pending = null; drag.currentDropTarget = null;
+  render();
+}
+
+function commitGameMove(fromTier, gameId, toTier, toIndex) {
+  const fromList = state.config[fromTier];
+  const fromIndex = fromList.findIndex(g => g.id === gameId);
+  if (fromIndex === -1) return;
+  const game = fromList[fromIndex];
+
+  // Cross-tier subtask warning
+  if (fromTier !== toTier && fromTier === 'tier1' && game.subtasks && game.subtasks.length > 0) {
+    if (!confirm(`将 "${game.name}" 移到其他section，sub-tasks (${game.subtasks.length}个) 会被删除。继续?`)) return;
+  }
+
+  fromList.splice(fromIndex, 1);
+
+  // Transform game shape for target tier
+  let movedGame;
+  if (toTier === 'tier1') {
+    movedGame = {
+      id: game.id, name: game.name,
+      subtasks: game.subtasks || [],
+      hidden: game.hidden || false,
+      note: game.note || ''
+    };
+  } else if (toTier === 'tier2') {
+    movedGame = {
+      id: game.id, name: game.name,
+      hidden: game.hidden || false,
+      note: game.note || '',
+      completion: game.completion || ''
+    };
+  } else {
+    movedGame = {
+      id: game.id, name: game.name,
+      status: game.status || 'considering',
+      hidden: game.hidden || false,
+      note: game.note || ''
+    };
+  }
+
+  let adjustedIndex = toIndex;
+  if (fromTier === toTier && fromIndex < toIndex) adjustedIndex = toIndex - 1;
+  state.config[toTier].splice(adjustedIndex, 0, movedGame);
+  scheduleSave();
+}
+
+function commitSubtaskMove(gameId, subtaskId, toIndex) {
+  const game = state.config.tier1.find(g => g.id === gameId);
+  if (!game) return;
+  const fromIndex = game.subtasks.findIndex(s => s.id === subtaskId);
+  if (fromIndex === -1) return;
+  const [moved] = game.subtasks.splice(fromIndex, 1);
+  let adjustedIndex = toIndex;
+  if (fromIndex < toIndex) adjustedIndex = toIndex - 1;
+  game.subtasks.splice(adjustedIndex, 0, moved);
+  scheduleSave();
+}
+
+// ============================================================
+// Computed
+// ============================================================
+function getStreak(gameId, tier) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const key = dateKey(d);
+    const day = state.history[key];
+    let checked = false;
+    if (day) {
+      if (tier === 'tier1') checked = day.tier1 && day.tier1[gameId] && day.tier1[gameId].checkedIn === true;
+      else if (tier === 'tier2') checked = day.tier2 && day.tier2[gameId] === true;
+      else checked = day.tier3 && day.tier3[gameId] === true;
+    }
+    if (checked) streak++;
+    else if (i === 0) continue;
+    else break;
+  }
+  return streak;
+}
+
+function getDayProgress(dateStr) {
+  const day = state.history[dateStr];
+  if (!day) return 0;
+  const visibleTier1 = state.config.tier1.filter(g => !g.hidden);
+  const total = visibleTier1.length;
+  if (total === 0) return 0;
+  let checked = 0;
+  visibleTier1.forEach(g => {
+    if (day.tier1 && day.tier1[g.id] && day.tier1[g.id].checkedIn) checked++;
+  });
+  return Math.round((checked / total) * 100);
+}
+
+function getDayIntensity(dateStr) {
+  const day = state.history[dateStr];
+  if (!day) return 0;
+  const tier1Count = state.config.tier1.filter(g => !g.hidden).length;
+  let checked = 0, extra = 0;
+  state.config.tier1.forEach(g => {
+    if (day.tier1 && day.tier1[g.id]) {
+      if (day.tier1[g.id].checkedIn) checked++;
+      if (day.tier1[g.id].extra) extra++;
+    }
+  });
+  state.config.tier2.forEach(g => { if (day.tier2 && day.tier2[g.id]) extra++; });
+  state.config.tier3.forEach(g => { if (day.tier3 && day.tier3[g.id]) extra++; });
+  if (checked === 0 && extra === 0) return 0;
+  const base = tier1Count > 0 ? checked / tier1Count : 0;
+  const score = base + extra * 0.12;
+  if (score < 0.15) return 1;
+  if (score < 0.5) return 2;
+  if (score < 0.85) return 3;
+  return 4;
+}
+
+// ============================================================
+// Date nav
+// ============================================================
+function isViewingToday() { return viewDate === todayKey(); }
+function goToPrevDay() { const d = parseDateKey(viewDate); d.setDate(d.getDate() - 1); viewDate = dateKey(d); render(); }
+function goToNextDay() { if (isViewingToday()) return; const d = parseDateKey(viewDate); d.setDate(d.getDate() + 1); viewDate = dateKey(d); render(); }
+function goToToday() { viewDate = todayKey(); render(); }
+
+// ============================================================
+// Drag handle helper
+// ============================================================
+function makeDragHandle(type, sourceTier, sourceId, displayName) {
+  const handle = document.createElement('div');
+  handle.className = type === 'subtask' ? 'subtask-drag-handle' : 'drag-handle';
+  handle.innerHTML = '⋮⋮';
+  handle.title = 'Drag to reorder';
+  const handler = (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    startDragPotential(type, sourceTier, sourceId, displayName, e);
+  };
+  handle.addEventListener('mousedown', handler);
+  handle.addEventListener('touchstart', handler, { passive: false });
+  return handle;
+}
+
+// ============================================================
+// Status labels
+// ============================================================
+const TIER2_COMPLETION_LABELS = {
+  '': '',
+  'beaten': 'Beaten',
+  'completed': 'Completed',
+  'sated': 'Sated',
+  'abandoned': 'Abandoned'
+};
+const TIER3_STATUS_LABELS = {
+  'considering': 'Considering',
+  'up_next': 'Up next',
+  'backlog': 'Backlog'
+};
+
+// ============================================================
+// Render
+// ============================================================
+function render() {
+  if (!session) { renderSignIn(); return; }
+  if (!state) { renderLoading(); return; }
+  renderApp();
+}
+
+function renderSignIn() {
+  const root = document.getElementById('root');
+  root.innerHTML = '';
+  const screen = document.createElement('div');
+  screen.className = 'signin-screen';
+  screen.innerHTML = `
+    <div class="signin-title">Daily Ritual</div>
+    <div class="signin-subtitle">登录以同步你的进度</div>
+    <button class="signin-btn" id="signin-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+      </svg>
+      Sign in with Google
+    </button>
+  `;
+  root.appendChild(screen);
+  document.getElementById('signin-btn').onclick = signIn;
+}
+
+function renderLoading() {
+  document.getElementById('root').innerHTML = '<div class="loading-screen"><div class="loading-dots">···</div></div>';
+}
+
+function renderApp() {
+  const root = document.getElementById('root');
+  root.innerHTML = `
+    <header class="header">
+      <div class="date-nav">
+        <div class="date-arrow" id="prev-day" title="Previous day">‹</div>
+        <div class="date" id="date"></div>
+        <div class="date-arrow" id="next-day" title="Next day">›</div>
+        <div class="today-link" id="today-link" style="display:none">↩ Today</div>
+      </div>
+      <div class="progress-label-row">
+        <div class="progress-label">完成度</div>
+        <div class="display-font progress-percentage" id="progress-pct">0%</div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width: 0%"></div></div>
+    </header>
+
+    <section class="section" id="section-tier1">
+      <div class="section-header"><div class="section-title">Daily</div><div class="section-line"></div></div>
+      <div id="tier1-list"></div>
+      <div class="add-row" id="add-tier1-container"></div>
+      <div id="hidden-tier1"></div>
+    </section>
+
+    <section class="section" id="section-tier2">
+      <div class="section-header"><div class="section-title">Playing</div><div class="section-line"></div></div>
+      <div id="tier2-list"></div>
+      <div class="add-row" id="add-tier2-container"></div>
+      <div id="hidden-tier2"></div>
+    </section>
+
+    <section class="section" id="section-tier3">
+      <div class="section-header"><div class="section-title">Roster</div><div class="section-line"></div></div>
+      <div id="tier3-list"></div>
+      <div class="add-row" id="add-tier3-container"></div>
+      <div id="hidden-tier3"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header"><div class="section-title">History</div><div class="section-line"></div></div>
+      <div class="heatmap-container">
+        <div class="heatmap" id="heatmap"></div>
+        <div class="heatmap-footer">
+          <div>12w · click cell to edit · dbl-click name to rename</div>
+          <div class="heatmap-legend">
+            <span>Less</span>
+            <span class="heatmap-cell" data-intensity="0"></span>
+            <span class="heatmap-cell" data-intensity="1"></span>
+            <span class="heatmap-cell" data-intensity="2"></span>
+            <span class="heatmap-cell" data-intensity="3"></span>
+            <span class="heatmap-cell" data-intensity="4"></span>
+            <span>More</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <span class="user-email" id="user-email"></span>
+      <a id="export-btn">Export</a>·<a id="import-btn">Import</a>·<a id="signout-btn">Sign out</a>
+    </footer>
+  `;
+
+  renderHeader();
+  renderTier1();
+  renderTier2();
+  renderTier3();
+  renderHeatmap();
+
+  if (manageSubtasksFor) renderManageModal();
+
+  document.getElementById('user-email').textContent = session.user.email;
+  document.getElementById('prev-day').onclick = goToPrevDay;
+  document.getElementById('next-day').onclick = () => { if (!isViewingToday()) goToNextDay(); };
+  document.getElementById('today-link').onclick = goToToday;
+  document.getElementById('export-btn').onclick = exportData;
+  document.getElementById('import-btn').onclick = importData;
+  document.getElementById('signout-btn').onclick = signOut;
+}
+
+function renderHeader() {
+  const d = parseDateKey(viewDate);
+  const wd = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  const mo = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  document.getElementById('date').textContent =
+    wd[d.getDay()] + ' · ' + mo[d.getMonth()] + ' ' + d.getDate() + ' · ' + d.getFullYear();
+  document.getElementById('date').className = 'date' + (isViewingToday() ? '' : ' past');
+  document.getElementById('next-day').className = 'date-arrow' + (isViewingToday() ? ' disabled' : '');
+  document.getElementById('today-link').style.display = isViewingToday() ? 'none' : '';
+  const pct = getDayProgress(viewDate);
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+// === Build editable name + note column ===
+function buildNameWrap(tier, game, isChecked) {
+  const wrap = document.createElement('div');
+  wrap.className = 'name-wrap';
+
+  // Name (or edit input)
+  const editingName = editingGameId && editingGameId.tier === tier && editingGameId.id === game.id;
+  if (editingName) {
+    const input = document.createElement('input');
+    input.className = 'game-name-edit';
+    input.type = 'text';
+    input.value = game.name;
+    let committed = false;
+    const commit = () => {
+      if (committed) return; committed = true;
+      renameGame(tier, game.id, input.value);
+      editingGameId = null; render();
+    };
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') commit();
+      else if (e.key === 'Escape') { committed = true; editingGameId = null; render(); }
+    };
+    input.onblur = commit;
+    wrap.appendChild(input);
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+  } else {
+    const nameEl = document.createElement('div');
+    let cls = 'game-name';
+    if (tier === 'tier2') {
+      if (game.completion === 'sated') cls += ' dimmed';
+      if (game.completion === 'abandoned') cls += ' struck';
+    }
+    if (tier !== 'tier3' && isChecked) cls += ' checked';
+    nameEl.className = cls;
+
+    // Name text
+    const nameText = document.createElement('span');
+    nameText.textContent = game.name;
+    nameEl.appendChild(nameText);
+
+    // Completion mark (Beaten / Completed)
+    if (tier === 'tier2' && (game.completion === 'beaten' || game.completion === 'completed')) {
+      const mark = document.createElement('span');
+      mark.className = 'completion-mark';
+      mark.textContent = game.completion === 'completed' ? '✓✓' : '✓';
+      nameEl.appendChild(mark);
+    }
+
+    nameEl.onclick = () => {
+      if (tier === 'tier1') toggleTier1(game.id);
+      else if (tier === 'tier2') toggleTier2(game.id);
+      else toggleTier3(game.id);
+    };
+    nameEl.ondblclick = (e) => {
+      e.preventDefault();
+      editingGameId = { tier, id: game.id };
+      render();
+    };
+    wrap.appendChild(nameEl);
+  }
+
+  // Note (or edit input)
+  const editingNote = editingNoteFor && editingNoteFor.tier === tier && editingNoteFor.id === game.id;
+  const hasNote = game.note && game.note.length > 0;
+  const isAdding = addingNoteFor && addingNoteFor.tier === tier && addingNoteFor.id === game.id;
+
+  if (editingNote || isAdding) {
+    const input = document.createElement('input');
+    input.className = 'note-edit';
+    input.type = 'text';
+    input.value = game.note || '';
+    input.placeholder = '备注...';
+    let committed = false;
+    const commit = () => {
+      if (committed) return; committed = true;
+      setGameNote(tier, game.id, input.value);
+      editingNoteFor = null; addingNoteFor = null;
+      render();
+    };
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') commit();
+      else if (e.key === 'Escape') { committed = true; editingNoteFor = null; addingNoteFor = null; render(); }
+    };
+    input.onblur = commit;
+    wrap.appendChild(input);
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+  } else if (hasNote) {
+    const noteEl = document.createElement('div');
+    noteEl.className = 'game-note';
+    noteEl.textContent = game.note;
+    noteEl.title = 'Click to edit · empty to remove';
+    noteEl.onclick = () => { editingNoteFor = { tier, id: game.id }; render(); };
+    wrap.appendChild(noteEl);
+  }
+
+  return wrap;
+}
+
+function buildNoteToggleButton(tier, game) {
+  const hasNote = game.note && game.note.length > 0;
+  const btn = document.createElement('div');
+  btn.className = 'row-action' + (hasNote ? ' active' : '');
+  btn.innerHTML = '✎';
+  btn.title = hasNote ? '编辑备注' : '添加备注';
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    if (hasNote) editingNoteFor = { tier, id: game.id };
+    else addingNoteFor = { tier, id: game.id };
+    render();
+  };
+  return btn;
+}
+
+function buildHideButton(tier, game) {
+  const btn = document.createElement('div');
+  btn.className = 'row-action';
+  btn.innerHTML = '⊘';
+  btn.title = 'Hide';
+  btn.onclick = (e) => { e.stopPropagation(); hideGame(tier, game.id); };
+  return btn;
+}
+
+function renderTier1() {
+  const day = getDay(viewDate);
+  const container = document.getElementById('tier1-list');
+  container.innerHTML = '';
+
+  const visible = state.config.tier1.filter(g => !g.hidden);
+  visible.forEach(game => {
+    const gd = day.tier1[game.id] || { checkedIn: false, subtasks: {}, extra: false };
+    const streak = getStreak(game.id, 'tier1');
+    const visibleSubs = game.subtasks.filter(st => !st.hidden);
+    const hiddenSubsCount = game.subtasks.length - visibleSubs.length;
+    const hasSubtasks = visibleSubs.length > 0;
+    const isAddingSub = addSubtaskGameId === game.id;
+
+    const item = document.createElement('div');
+    item.className = 'game-item';
+    item.dataset.gameId = game.id;
+
+    const row = document.createElement('div');
+    row.className = 'game-row';
+
+    row.appendChild(makeDragHandle('game', 'tier1', game.id, game.name));
+
+    const cb = document.createElement('div');
+    cb.className = 'checkbox' + (gd.checkedIn ? ' checked' : '');
+    cb.onclick = () => toggleTier1(game.id);
+    row.appendChild(cb);
+
+    row.appendChild(buildNameWrap('tier1', game, gd.checkedIn));
+
+    const extra = document.createElement('div');
+    extra.className = 'extra-toggle' + (gd.extra ? ' active' : '');
+    extra.innerHTML = gd.extra ? '✦' : '✧';
+    extra.title = '今天多玩了一下';
+    extra.onclick = () => toggleExtra(game.id);
+    row.appendChild(extra);
+
+    const streakEl = document.createElement('div');
+    streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
+    streakEl.textContent = streak > 0 ? streak + 'd' : '·';
+    row.appendChild(streakEl);
+
+    row.appendChild(buildNoteToggleButton('tier1', game));
+    row.appendChild(buildHideButton('tier1', game));
+
+    item.appendChild(row);
+
+    const subRow = document.createElement('div');
+    subRow.className = 'subtasks-row' + (hasSubtasks || isAddingSub ? '' : ' empty');
+
+    visibleSubs.forEach(st => {
+      const isEditingThis = editingSubtaskInfo && editingSubtaskInfo.gameId === game.id && editingSubtaskInfo.subtaskId === st.id;
+      const sub = document.createElement('div');
+      sub.className = 'subtask' + (gd.subtasks[st.id] ? ' checked' : '');
+      sub.dataset.subtaskId = st.id;
+
+      if (isEditingThis) {
+        const input = document.createElement('input');
+        input.className = 'subtask-edit';
+        input.type = 'text';
+        input.value = st.name;
+        let committed = false;
+        const commit = () => {
+          if (committed) return; committed = true;
+          renameSubtask(game.id, st.id, input.value);
+          editingSubtaskInfo = null; render();
+        };
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter') commit();
+          else if (e.key === 'Escape') { committed = true; editingSubtaskInfo = null; render(); }
+        };
+        input.onblur = commit;
+        sub.appendChild(input);
+        setTimeout(() => { input.focus(); input.select(); }, 0);
+      } else {
+        sub.appendChild(makeDragHandle('subtask', game.id, st.id, st.name));
+        const subLabel = document.createElement('span');
+        subLabel.className = 'subtask-label';
+        subLabel.textContent = st.name;
+        subLabel.onclick = () => toggleSubtask(game.id, st.id);
+        subLabel.ondblclick = (e) => { e.preventDefault(); editingSubtaskInfo = { gameId: game.id, subtaskId: st.id }; render(); };
+        const subHide = document.createElement('span');
+        subHide.className = 'subtask-hide';
+        subHide.innerHTML = '⊘';
+        subHide.title = 'Hide sub-task';
+        subHide.onclick = (e) => { e.stopPropagation(); hideSubtask(game.id, st.id); };
+        sub.appendChild(subLabel);
+        sub.appendChild(subHide);
+      }
+      subRow.appendChild(sub);
+    });
+
+    if (isAddingSub) {
+      const input = document.createElement('input');
+      input.className = 'add-subtask-input';
+      input.type = 'text';
+      input.placeholder = 'Sub-task';
+      let committed = false;
+      const commit = () => {
+        if (committed) return; committed = true;
+        const v = input.value.trim();
+        if (v) addSubtask(game.id, v);
+        addSubtaskGameId = null; render();
+      };
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') commit();
+        else if (e.key === 'Escape') { committed = true; addSubtaskGameId = null; render(); }
+      };
+      input.onblur = commit;
+      subRow.appendChild(input);
+      setTimeout(() => input.focus(), 0);
+    } else {
+      const addBtn = document.createElement('button');
+      addBtn.className = 'add-subtask';
+      addBtn.textContent = '+ Add task';
+      addBtn.onclick = () => { addSubtaskGameId = game.id; render(); };
+      subRow.appendChild(addBtn);
+
+      // Manage hidden subtasks link, only when hidden subs exist
+      if (hiddenSubsCount > 0) {
+        const manageLink = document.createElement('button');
+        manageLink.className = 'subtask-manage-link';
+        manageLink.textContent = `manage (${hiddenSubsCount} hidden)`;
+        manageLink.onclick = () => { manageSubtasksFor = game.id; render(); };
+        subRow.appendChild(manageLink);
+      } else {
+        // Show a subtle manage link only on hover (handled via CSS opacity)
+        const manageLink = document.createElement('button');
+        manageLink.className = 'subtask-manage-link';
+        manageLink.textContent = 'manage';
+        manageLink.onclick = () => { manageSubtasksFor = game.id; render(); };
+        subRow.appendChild(manageLink);
+      }
+    }
+
+    item.appendChild(subRow);
+    container.appendChild(item);
+  });
+
+  renderAddRow('tier1');
+  renderHiddenSection('tier1');
+}
+
+function renderTier2() {
+  const day = getDay(viewDate);
+  const container = document.getElementById('tier2-list');
+  container.innerHTML = '';
+
+  const visible = state.config.tier2.filter(g => !g.hidden);
+  visible.forEach(game => {
+    const checked = day.tier2[game.id] === true;
+    const streak = getStreak(game.id, 'tier2');
+
+    const item = document.createElement('div');
+    item.className = 'game-item';
+    item.dataset.gameId = game.id;
+
+    const row = document.createElement('div');
+    row.className = 'game-row';
+
+    row.appendChild(makeDragHandle('game', 'tier2', game.id, game.name));
+
+    const cb = document.createElement('div');
+    cb.className = 'checkbox' + (checked ? ' checked' : '');
+    cb.onclick = () => toggleTier2(game.id);
+    row.appendChild(cb);
+
+    row.appendChild(buildNameWrap('tier2', game, checked));
+
+    // Completion status pill
+    const completion = game.completion || '';
+    const pill = document.createElement('div');
+    pill.className = 'status-pill' + (completion === '' ? ' empty' : '');
+    if (completion) pill.dataset.status = completion;
+    pill.textContent = TIER2_COMPLETION_LABELS[completion] || '';
+    pill.title = 'Click to cycle status';
+    pill.onclick = (e) => { e.stopPropagation(); cycleTier2Completion(game.id); };
+    row.appendChild(pill);
+
+    const streakEl = document.createElement('div');
+    streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
+    streakEl.textContent = streak > 0 ? streak + 'd' : '·';
+    row.appendChild(streakEl);
+
+    row.appendChild(buildNoteToggleButton('tier2', game));
+    row.appendChild(buildHideButton('tier2', game));
+
+    item.appendChild(row);
+    container.appendChild(item);
+  });
+
+  renderAddRow('tier2');
+  renderHiddenSection('tier2');
+}
+
+function renderTier3() {
+  const day = getDay(viewDate);
+  const container = document.getElementById('tier3-list');
+  container.innerHTML = '';
+
+  const visible = state.config.tier3.filter(g => !g.hidden);
+  visible.forEach(game => {
+    const playedToday = day.tier3[game.id] === true;
+
+    const item = document.createElement('div');
+    item.className = 'roster-item';
+    item.dataset.gameId = game.id;
+
+    item.appendChild(makeDragHandle('game', 'tier3', game.id, game.name));
+
+    const check = document.createElement('div');
+    check.className = 'roster-check' + (playedToday ? ' checked' : '');
+    check.onclick = () => toggleTier3(game.id);
+    item.appendChild(check);
+
+    item.appendChild(buildNameWrap('tier3', game, playedToday));
+
+    // Status pill
+    const status = game.status || 'considering';
+    const pill = document.createElement('div');
+    pill.className = 'status-pill';
+    pill.dataset.status = status;
+    pill.textContent = TIER3_STATUS_LABELS[status] || '';
+    pill.title = 'Click to cycle status';
+    pill.onclick = (e) => { e.stopPropagation(); cycleTier3Status(game.id); };
+    item.appendChild(pill);
+
+    item.appendChild(buildNoteToggleButton('tier3', game));
+    item.appendChild(buildHideButton('tier3', game));
+
+    container.appendChild(item);
+  });
+
+  renderAddRow('tier3');
+  renderHiddenSection('tier3');
+}
+
+function renderAddRow(tier) {
+  const container = document.getElementById('add-' + tier + '-container');
+  container.innerHTML = '';
+  if (addMode === tier) {
+    const input = document.createElement('input');
+    input.className = 'add-game-input';
+    input.type = 'text';
+    input.placeholder = 'Game name';
+    let committed = false;
+    const commit = () => {
+      if (committed) return; committed = true;
+      const v = input.value.trim();
+      if (v) addGame(tier, v);
+      addMode = null; render();
+    };
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') commit();
+      else if (e.key === 'Escape') { committed = true; addMode = null; render(); }
+    };
+    input.onblur = commit;
+    container.appendChild(input);
+    setTimeout(() => input.focus(), 0);
+  } else {
+    const btn = document.createElement('button');
+    btn.className = 'add-game';
+    btn.textContent = '+ Add game';
+    btn.onclick = () => { addMode = tier; render(); };
+    container.appendChild(btn);
+  }
+}
+
+function renderHiddenSection(tier) {
+  const container = document.getElementById('hidden-' + tier);
+  container.innerHTML = '';
+  const hidden = state.config[tier].filter(g => g.hidden);
+  if (hidden.length === 0) return;
+
+  const isOpen = hiddenSectionOpen[tier];
+
+  const toggle = document.createElement('button');
+  toggle.className = 'hidden-toggle' + (isOpen ? ' open' : '');
+  toggle.innerHTML = `<span class="caret">›</span> Hidden (${hidden.length})`;
+  toggle.onclick = () => {
+    hiddenSectionOpen[tier] = !isOpen;
+    render();
+  };
+  container.appendChild(toggle);
+
+  if (!isOpen) return;
+
+  const list = document.createElement('div');
+  list.className = 'hidden-list';
+
+  hidden.forEach(game => {
+    const item = document.createElement('div');
+    item.className = 'hidden-list-item';
+
+    const name = document.createElement('div');
+    name.className = 'hidden-list-name';
+    name.textContent = game.name;
+    item.appendChild(name);
+
+    const restore = document.createElement('div');
+    restore.className = 'hidden-action';
+    restore.textContent = '↑ Restore';
+    restore.onclick = () => restoreGame(tier, game.id);
+    item.appendChild(restore);
+
+    const del = document.createElement('div');
+    del.className = 'hidden-action danger';
+    del.textContent = '× Delete forever';
+    del.onclick = () => deleteGameForever(tier, game.id);
+    item.appendChild(del);
+
+    list.appendChild(item);
+  });
+
+  container.appendChild(list);
+}
+
+function renderManageModal() {
+  // Remove any existing
+  document.querySelectorAll('.manage-popup, .manage-overlay').forEach(el => el.remove());
+
+  const gameId = manageSubtasksFor;
+  const game = state.config.tier1.find(g => g.id === gameId);
+  if (!game) { manageSubtasksFor = null; return; }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'manage-overlay';
+  overlay.onclick = () => { manageSubtasksFor = null; render(); };
+  document.body.appendChild(overlay);
+
+  const popup = document.createElement('div');
+  popup.className = 'manage-popup';
+
+  const title = document.createElement('div');
+  title.className = 'manage-title';
+  title.textContent = `Manage sub-tasks · ${game.name}`;
+  popup.appendChild(title);
+
+  const visibleSubs = game.subtasks.filter(st => !st.hidden);
+  const hiddenSubs = game.subtasks.filter(st => st.hidden);
+
+  // Visible section
+  const vSec = document.createElement('div');
+  vSec.className = 'manage-section';
+  const vLabel = document.createElement('div');
+  vLabel.className = 'manage-section-label';
+  vLabel.textContent = 'Visible';
+  vSec.appendChild(vLabel);
+  const vPills = document.createElement('div');
+  vPills.className = 'manage-pills';
+  if (visibleSubs.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'manage-empty';
+    empty.textContent = '（无）';
+    vPills.appendChild(empty);
+  }
+  visibleSubs.forEach(st => {
+    const pill = document.createElement('div');
+    pill.className = 'manage-pill';
+    pill.innerHTML = `<span>${escapeHtml(st.name)}</span>`;
+    const hideBtn = document.createElement('span');
+    hideBtn.className = 'manage-pill-delete';
+    hideBtn.innerHTML = '⊘';
+    hideBtn.title = 'Hide';
+    hideBtn.onclick = () => hideSubtask(gameId, st.id);
+    pill.appendChild(hideBtn);
+    vPills.appendChild(pill);
+  });
+  vSec.appendChild(vPills);
+  popup.appendChild(vSec);
+
+  // Hidden section
+  const hSec = document.createElement('div');
+  hSec.className = 'manage-section';
+  const hLabel = document.createElement('div');
+  hLabel.className = 'manage-section-label';
+  hLabel.textContent = `Hidden (${hiddenSubs.length})`;
+  hSec.appendChild(hLabel);
+  const hPills = document.createElement('div');
+  hPills.className = 'manage-pills';
+  if (hiddenSubs.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'manage-empty';
+    empty.textContent = '（无）';
+    hPills.appendChild(empty);
+  }
+  hiddenSubs.forEach(st => {
+    const pill = document.createElement('div');
+    pill.className = 'manage-pill hidden-pill';
+    pill.innerHTML = `<span>${escapeHtml(st.name)}</span>`;
+    const restoreBtn = document.createElement('span');
+    restoreBtn.className = 'manage-pill-restore';
+    restoreBtn.innerHTML = '↑';
+    restoreBtn.title = 'Restore';
+    restoreBtn.onclick = () => restoreSubtask(gameId, st.id);
+    pill.appendChild(restoreBtn);
+    const delBtn = document.createElement('span');
+    delBtn.className = 'manage-pill-delete';
+    delBtn.innerHTML = '×';
+    delBtn.title = 'Delete forever';
+    delBtn.onclick = () => deleteSubtaskForever(gameId, st.id);
+    pill.appendChild(delBtn);
+    hPills.appendChild(pill);
+  });
+  hSec.appendChild(hPills);
+  popup.appendChild(hSec);
+
+  const close = document.createElement('button');
+  close.className = 'manage-close';
+  close.textContent = '× Close';
+  close.onclick = () => { manageSubtasksFor = null; render(); };
+  popup.appendChild(close);
+
+  document.body.appendChild(popup);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderHeatmap() {
+  const container = document.getElementById('heatmap');
+  container.innerHTML = '';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const numWeeks = 12;
+  const dayOfWeek = (today.getDay() + 6) % 7;
+  const startDate = new Date(today); startDate.setDate(today.getDate() - dayOfWeek - (numWeeks - 1) * 7);
+  const showLabel = [true, false, true, false, true, false, false];
+  const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+  for (let row = 0; row < 7; row++) {
+    const label = document.createElement('div');
+    label.className = 'heatmap-row-label';
+    label.textContent = showLabel[row] ? dayLetters[row] : '';
+    container.appendChild(label);
+    for (let col = 0; col < numWeeks; col++) {
+      const cellDate = new Date(startDate);
+      cellDate.setDate(startDate.getDate() + col * 7 + row);
+      const key = dateKey(cellDate);
+      const isToday = key === todayKey();
+      const isViewing = key === viewDate;
+      const isFuture = cellDate > today;
+      const cell = document.createElement('div');
+      let cls = 'heatmap-cell';
+      if (isFuture) cls += ' future';
+      if (isToday && !isViewing) cls += ' today';
+      if (isViewing) cls += ' viewing';
+      cell.className = cls;
+      if (!isFuture) {
+        cell.dataset.intensity = getDayIntensity(key);
+        cell.onclick = () => { viewDate = key; render(); };
+        cell.addEventListener('mouseenter', () => {
+          const tt = document.getElementById('tooltip');
+          const dd = state.history[key];
+          let label = key;
+          if (dd) {
+            let c = 0;
+            const visible = state.config.tier1.filter(g => !g.hidden);
+            visible.forEach(g => { if (dd.tier1 && dd.tier1[g.id] && dd.tier1[g.id].checkedIn) c++; });
+            label += ' · ' + c + '/' + visible.length;
+          } else label += ' · —';
+          tt.textContent = label;
+          tt.classList.add('visible');
+        });
+        cell.addEventListener('mousemove', (e) => {
+          const tt = document.getElementById('tooltip');
+          tt.style.left = (e.clientX + 14) + 'px';
+          tt.style.top = (e.clientY - 32) + 'px';
+        });
+        cell.addEventListener('mouseleave', () => {
+          document.getElementById('tooltip').classList.remove('visible');
+        });
+      }
+      container.appendChild(cell);
+    }
+  }
+}
+
+// ============================================================
+// Auth
+// ============================================================
+async function signIn() {
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href.split('#')[0].split('?')[0] }
+  });
+  if (error) { console.error(error); alert('Sign-in failed: ' + error.message); }
+}
+
+async function signOut() {
+  await supabaseClient.auth.signOut();
+  session = null; state = null; viewDate = todayKey(); render();
+}
+
+// ============================================================
+// Data load
+// ============================================================
+async function loadStateFromCloud() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('tracker_data')
+      .select('data').eq('user_id', session.user.id).maybeSingle();
+    if (error) throw error;
+    if (data && data.data) {
+      state = migrate(data.data);
+      // Save back if migration changed shape
+      scheduleSave();
+    } else {
+      state = makeDefault();
+      scheduleSave();
+    }
+    render();
+  } catch (e) {
+    console.error('Load failed:', e);
+    alert('加载数据失败: ' + e.message);
+  }
+}
+
+// ============================================================
+// Export / Import
+// ============================================================
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'daily-ritual-' + todayKey() + '.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json,application/json';
+  input.onchange = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (imported.config && imported.history) {
+          if (!confirm('Import会覆盖当前所有云端数据。确认继续吗?')) return;
+          state = migrate(imported);
+          scheduleSave(); render();
+        } else alert('Import失败: JSON结构不对');
+      } catch (err) { alert('Import失败: ' + err.message); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ============================================================
+// Init
+// ============================================================
+async function init() {
+  const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
+  session = currentSession;
+  supabaseClient.auth.onAuthStateChange((event, newSession) => {
+    session = newSession;
+    if (session && !state) loadStateFromCloud();
+    else if (!session) { state = null; render(); }
+  });
+  if (session) await loadStateFromCloud();
+  else render();
+}
+
+init();
+</script>
+</body>
+</html>
