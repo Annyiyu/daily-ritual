@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Ritual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Noto+Serif+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ecebe1;
+  --text: #2a241c;
+  --text-muted: #6b5e4a;
+  --text-faint: #9c8f78;
+  --accent: #b8763e;
+  --accent-soft: rgba(184, 118, 62, 0.2);
+  --accent-faint: rgba(184, 118, 62, 0.08);
+  --line: rgba(42, 36, 28, 0.1);
+  --line-strong: rgba(42, 36, 28, 0.18);
+
+  --body-font: 'Fraunces', 'Noto Serif SC', 'Songti SC', 'Songti TC', serif;
+  --display-font: 'Fraunces', 'Noto Serif SC', Georgia, serif;
+  --label-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--body-font);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 48px 24px 80px;
+  display: flex;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+}
+
+.display-font {
+  font-family: var(--display-font);
+  font-feature-settings: 'tnum';
+  letter-spacing: -0.02em;
+}
+
+.container { width: 100%; max-width: 540px; }
+
+/* Header */
+.header { margin-bottom: 64px; animation: fadeIn 0.6s ease-out; }
+
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 28px;
+}
+
+.date-arrow {
+  font-family: var(--display-font);
+  font-size: 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  user-select: none;
+  transition: color 0.2s;
+  line-height: 1;
+}
+
+.date-arrow:hover { color: var(--accent); }
+.date-arrow.disabled { color: var(--text-faint); cursor: default; opacity: 0.3; }
+.date-arrow.disabled:hover { color: var(--text-faint); }
+
+.date {
+  font-family: var(--label-font);
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex: 1;
+  text-align: center;
+}
+
+.date.past { color: var(--accent); }
+
+.today-link {
+  font-family: var(--label-font);
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 4px 8px;
+  user-select: none;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.today-link:hover { opacity: 0.6; }
+
+.progress-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.progress-label {
+  font-family: var(--label-font);
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.progress-percentage { font-size: 2rem; font-weight: 300; color: var(--text); }
+
+.progress-track {
+  height: 1px;
+  width: 100%;
+  background-color: var(--accent-soft);
+}
+
+.progress-fill {
+  height: 1px;
+  background-color: var(--accent);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sections */
+.section { margin-bottom: 56px; animation: fadeIn 0.8s ease-out backwards; }
+.section:nth-of-type(1) { animation-delay: 0.1s; }
+.section:nth-of-type(2) { animation-delay: 0.2s; }
+.section:nth-of-type(3) { animation-delay: 0.3s; }
+.section:nth-of-type(4) { animation-delay: 0.4s; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.section-title {
+  font-family: var(--label-font);
+  font-size: 10px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.section-line { flex: 1; height: 1px; background-color: var(--line); }
+
+/* Game item */
+.game-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.game-item:last-child { border-bottom: none; }
+
+.game-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+}
+
+.checkbox {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-muted);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  background-color: transparent;
+}
+
+.checkbox.checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.checkbox.checked::after {
+  content: '';
+  width: 5px; height: 8px;
+  border: solid var(--bg);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg) translate(0, -1px);
+  animation: checkPop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes checkPop {
+  0% { opacity: 0; transform: rotate(45deg) translate(0, -1px) scale(0.5); }
+  100% { opacity: 1; transform: rotate(45deg) translate(0, -1px) scale(1); }
+}
+
+.game-name {
+  flex: 1;
+  font-size: 15px;
+  color: var(--text);
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: color 0.25s ease;
+  min-width: 0;
+}
+
+.game-name.checked { color: var(--text-muted); }
+
+.game-name-edit {
+  flex: 1;
+  font-family: var(--body-font);
+  font-size: 15px;
+  color: var(--text);
+  letter-spacing: -0.005em;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  outline: none;
+  padding: 0;
+  min-width: 0;
+}
+
+.extra-toggle {
+  width: 24px; height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-faint);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.extra-toggle:hover { color: var(--accent); }
+.extra-toggle.active { color: var(--accent); }
+
+.streak {
+  font-family: var(--display-font);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: right;
+}
+
+.streak.active { color: var(--accent); }
+
+.remove {
+  font-size: 16px;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.2s, opacity 0.2s;
+  user-select: none;
+  line-height: 1;
+  opacity: 0.4;
+}
+
+.remove:hover { color: var(--accent); opacity: 1; }
+
+/* Subtasks */
+.subtasks-row {
+  margin-top: 12px;
+  margin-left: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.subtasks-row.empty {
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.game-item:hover .subtasks-row.empty { opacity: 0.6; }
+
+.subtask {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--text-muted);
+  user-select: none;
+  transition: all 0.2s ease;
+  background-color: transparent;
+}
+
+.subtask-label { cursor: pointer; }
+.subtask:hover .subtask-label { color: var(--text); }
+
+.subtask.checked {
+  background-color: var(--accent-faint);
+  border-color: transparent;
+  color: var(--accent);
+}
+
+.subtask-edit {
+  font-family: var(--body-font);
+  font-size: 12px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  outline: none;
+  padding: 0;
+  width: 80px;
+}
+
+.subtask-remove {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0;
+  cursor: pointer;
+  color: inherit;
+  transition: opacity 0.15s;
+  margin-right: -3px;
+  margin-left: 1px;
+}
+
+.subtask:hover .subtask-remove { opacity: 0.7; }
+.subtask-remove:hover { opacity: 1 !important; color: var(--accent) !important; }
+
+.add-subtask {
+  font-family: var(--label-font);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 4px 8px;
+  background: none;
+  border: none;
+  transition: color 0.2s;
+}
+
+.add-subtask:hover { color: var(--accent); }
+
+.add-subtask-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--body-font);
+  outline: none;
+  padding: 3px 4px;
+  width: 130px;
+}
+
+/* Roster */
+.roster-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.roster-item:last-of-type { border-bottom: none; }
+
+.roster-check {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid var(--text-muted);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+}
+
+.roster-check.checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.roster-check.checked::after {
+  content: '';
+  width: 4px; height: 7px;
+  border: solid var(--bg);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg) translate(0, -1px);
+}
+
+.roster-name {
+  flex: 1;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text);
+  min-width: 0;
+}
+
+.roster-name.dimmed {
+  color: var(--text-faint);
+  text-decoration: line-through;
+  text-decoration-color: var(--line-strong);
+}
+
+.roster-name-edit {
+  flex: 1;
+  font-family: var(--body-font);
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  outline: none;
+  padding: 0;
+  min-width: 0;
+}
+
+.roster-status {
+  font-family: var(--label-font);
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px 9px;
+  border-radius: 999px;
+  transition: all 0.2s;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.roster-status[data-status="playing"] {
+  color: var(--accent);
+  background-color: var(--accent-faint);
+}
+
+.roster-status[data-status="paused"] {
+  color: var(--text-faint);
+  background-color: transparent;
+  border: 1px dashed var(--line-strong);
+  padding: 2px 8px;
+}
+
+.roster-status[data-status="done"] {
+  color: var(--text-muted);
+  background-color: transparent;
+}
+
+/* Add game */
+.add-row { margin-top: 18px; }
+
+.add-game {
+  font-family: var(--label-font);
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  transition: color 0.2s;
+}
+
+.add-game:hover { color: var(--accent); }
+
+.add-game-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--body-font);
+  outline: none;
+  padding: 4px 0;
+  width: 220px;
+}
+
+/* Heatmap */
+.heatmap-container { margin-top: 12px; }
+
+.heatmap {
+  display: grid;
+  grid-template-columns: auto repeat(12, 14px);
+  grid-auto-rows: 14px;
+  gap: 3px;
+  align-items: center;
+}
+
+.heatmap-row-label {
+  font-family: var(--label-font);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding-right: 6px;
+  text-align: right;
+  line-height: 14px;
+  min-width: 20px;
+}
+
+.heatmap-cell {
+  width: 14px; height: 14px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: outline 0.15s ease;
+  position: relative;
+}
+
+.heatmap-cell[data-intensity="0"] { background-color: rgba(184, 118, 62, 0.05); }
+.heatmap-cell[data-intensity="1"] { background-color: rgba(184, 118, 62, 0.25); }
+.heatmap-cell[data-intensity="2"] { background-color: rgba(184, 118, 62, 0.5); }
+.heatmap-cell[data-intensity="3"] { background-color: rgba(184, 118, 62, 0.75); }
+.heatmap-cell[data-intensity="4"] { background-color: var(--accent); }
+
+.heatmap-cell:hover {
+  outline: 1px solid var(--text-muted);
+  outline-offset: 1px;
+}
+
+.heatmap-cell.today {
+  outline: 1.5px solid var(--text);
+  outline-offset: 1px;
+}
+
+.heatmap-cell.viewing {
+  outline: 1.5px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.heatmap-cell.future {
+  background-color: transparent;
+  cursor: default;
+}
+
+.heatmap-cell.future:hover { outline: none; }
+
+.heatmap-footer {
+  font-family: var(--label-font);
+  margin-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.heatmap-legend { display: flex; align-items: center; gap: 4px; }
+
+.heatmap-legend .heatmap-cell {
+  width: 10px; height: 10px;
+  cursor: default;
+}
+
+.heatmap-legend .heatmap-cell:hover { outline: none; }
+
+/* Footer */
+.app-footer {
+  font-family: var(--label-font);
+  margin-top: 80px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.app-footer a {
+  color: var(--text-faint);
+  text-decoration: none;
+  cursor: pointer;
+  margin: 0 8px;
+}
+
+.app-footer a:hover { color: var(--accent); }
+
+/* Tooltip */
+.tooltip {
+  position: fixed;
+  font-family: var(--label-font);
+  background-color: var(--text);
+  color: var(--bg);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 3px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 100;
+  white-space: nowrap;
+}
+
+.tooltip.visible { opacity: 1; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 520px) {
+  body { padding: 32px 18px 60px; }
+  .section { margin-bottom: 48px; }
+  .header { margin-bottom: 48px; }
+  .subtasks-row { margin-left: 28px; }
+  .streak { min-width: 34px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="header">
+    <div class="date-nav">
+      <div class="date-arrow" id="prev-day" title="Previous day">‹</div>
+      <div class="date" id="date"></div>
+      <div class="date-arrow" id="next-day" title="Next day">›</div>
+      <div class="today-link" id="today-link" style="display:none">↩ Today</div>
+    </div>
+    <div class="progress-label-row">
+      <div class="progress-label">完成度</div>
+      <div class="display-font progress-percentage" id="progress-pct">0%</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+    </div>
+  </header>
+
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">Daily</div>
+      <div class="section-line"></div>
+    </div>
+    <div id="tier1-list"></div>
+    <div class="add-row" id="add-tier1-container"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">Opt-in</div>
+      <div class="section-line"></div>
+    </div>
+    <div id="tier2-list"></div>
+    <div class="add-row" id="add-tier2-container"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">Current Roster</div>
+      <div class="section-line"></div>
+    </div>
+    <div id="tier3-list"></div>
+    <div class="add-row" id="add-tier3-container"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">History</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="heatmap-container">
+      <div class="heatmap" id="heatmap"></div>
+      <div class="heatmap-footer">
+        <div>12 weeks · click to edit · dbl-click name to rename</div>
+        <div class="heatmap-legend">
+          <span>Less</span>
+          <span class="heatmap-cell" data-intensity="0"></span>
+          <span class="heatmap-cell" data-intensity="1"></span>
+          <span class="heatmap-cell" data-intensity="2"></span>
+          <span class="heatmap-cell" data-intensity="3"></span>
+          <span class="heatmap-cell" data-intensity="4"></span>
+          <span>More</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="app-footer">
+    <a id="export-btn">Export</a>·<a id="import-btn">Import</a>·<a id="reset-btn">Reset</a>
+  </footer>
+
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const STORAGE_KEY = 'dailyGameTracker_v3';
+
+const DEFAULT_CONFIG = {
+  tier1: [
+    { id: 'arknights', name: '明日方舟', subtasks: [] },
+    { id: 'baijing', name: '白荆回廊', subtasks: [] },
+    { id: 'pokopia', name: 'Pokémon Pokopia', subtasks: [
+      { id: 'stamp', name: '盖章' },
+      { id: 'materials', name: '买材料单' }
+    ]},
+    { id: 'tomodachi', name: 'Tomodachi Life', subtasks: [
+      { id: 'morning', name: '早市' },
+      { id: 'noon', name: '午市' },
+      { id: 'night', name: '晚市' },
+      { id: 'news', name: '新闻' },
+      { id: 'income', name: '每日收入' },
+      { id: 'food', name: '新食物' },
+      { id: 'clothes', name: '新衣服' }
+    ]}
+  ],
+  tier2: [
+    { id: 'mistonia', name: '米斯托尼亚的翅望' }
+  ],
+  tier3: [
+    { id: 'lis_double', name: '奇异人生本色', status: 'playing' },
+    { id: 'inkonbini', name: 'inKONBINI', status: 'playing' },
+    { id: 'redsand', name: '红色沙漠', status: 'playing' },
+    { id: 'cupid', name: '共生丘比特', status: 'playing' },
+    { id: 'yakuza3', name: '人中之龙极3', status: 'playing' },
+    { id: 'immortality', name: 'Immortality', status: 'playing' }
+  ]
+};
+
+function makeDefault() {
+  return { config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)), history: {} };
+}
+
+function pad(n) { return String(n).padStart(2, '0'); }
+function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function todayKey() { return dateKey(new Date()); }
+function parseDateKey(s) {
+  const p = s.split('-').map(Number);
+  return new Date(p[0], p[1] - 1, p[2]);
+}
+
+function loadState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return makeDefault();
+  try {
+    const s = JSON.parse(raw);
+    if (!s.config) s.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    if (!s.history) s.history = {};
+    return s;
+  } catch (e) {
+    return makeDefault();
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+let state = loadState();
+let viewDate = todayKey();
+let addMode = null;
+let addSubtaskGameId = null;
+let editingGameId = null;  // { tier, id } | null
+let editingSubtaskInfo = null;  // { gameId, subtaskId } | null
+
+function getDay(date) {
+  if (!state.history[date]) state.history[date] = { tier1: {}, tier2: {}, tier3: {} };
+  return state.history[date];
+}
+
+function getTier1Game(date, gameId) {
+  const day = getDay(date);
+  if (!day.tier1[gameId]) day.tier1[gameId] = { checkedIn: false, subtasks: {}, extra: false };
+  return day.tier1[gameId];
+}
+
+// === Toggles ===
+function toggleTier1(gameId) {
+  const g = getTier1Game(viewDate, gameId);
+  g.checkedIn = !g.checkedIn;
+  saveState();
+  render();
+}
+
+function toggleSubtask(gameId, subtaskId) {
+  const g = getTier1Game(viewDate, gameId);
+  g.subtasks[subtaskId] = !g.subtasks[subtaskId];
+  const cfg = state.config.tier1.find(x => x.id === gameId);
+  if (cfg && cfg.subtasks.length > 0) {
+    const allDone = cfg.subtasks.every(t => g.subtasks[t.id]);
+    if (allDone && !g.checkedIn) g.checkedIn = true;
+  }
+  saveState();
+  render();
+}
+
+function toggleExtra(gameId) {
+  const g = getTier1Game(viewDate, gameId);
+  g.extra = !g.extra;
+  saveState();
+  render();
+}
+
+function toggleTier2(gameId) {
+  const day = getDay(viewDate);
+  day.tier2[gameId] = !day.tier2[gameId];
+  saveState();
+  render();
+}
+
+function toggleTier3(gameId) {
+  const day = getDay(viewDate);
+  day.tier3[gameId] = !day.tier3[gameId];
+  saveState();
+  render();
+}
+
+function cycleTier3Status(gameId) {
+  const g = state.config.tier3.find(x => x.id === gameId);
+  const statuses = ['playing', 'paused', 'done'];
+  g.status = statuses[(statuses.indexOf(g.status) + 1) % statuses.length];
+  saveState();
+  render();
+}
+
+// === Add/Remove/Rename ===
+function addGame(tier, name) {
+  const id = 'game_' + Date.now();
+  if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [] });
+  else if (tier === 'tier2') state.config.tier2.push({ id, name });
+  else state.config.tier3.push({ id, name, status: 'playing' });
+  saveState();
+  render();
+}
+
+function removeGame(tier, gameId) {
+  if (tier === 'tier1') state.config.tier1 = state.config.tier1.filter(g => g.id !== gameId);
+  else if (tier === 'tier2') state.config.tier2 = state.config.tier2.filter(g => g.id !== gameId);
+  else state.config.tier3 = state.config.tier3.filter(g => g.id !== gameId);
+  saveState();
+  render();
+}
+
+function renameGame(tier, gameId, newName) {
+  const game = state.config[tier].find(g => g.id === gameId);
+  if (game && newName.trim()) {
+    game.name = newName.trim();
+    saveState();
+  }
+}
+
+function addSubtask(gameId, name) {
+  const game = state.config.tier1.find(g => g.id === gameId);
+  if (game) game.subtasks.push({ id: 'st_' + Date.now(), name });
+  saveState();
+  render();
+}
+
+function removeSubtask(gameId, subtaskId) {
+  const game = state.config.tier1.find(g => g.id === gameId);
+  if (game) game.subtasks = game.subtasks.filter(st => st.id !== subtaskId);
+  saveState();
+  render();
+}
+
+function renameSubtask(gameId, subtaskId, newName) {
+  const game = state.config.tier1.find(g => g.id === gameId);
+  if (game) {
+    const st = game.subtasks.find(s => s.id === subtaskId);
+    if (st && newName.trim()) {
+      st.name = newName.trim();
+      saveState();
+    }
+  }
+}
+
+// === Computed ===
+function getStreak(gameId, tier) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = dateKey(d);
+    const day = state.history[key];
+    let checked = false;
+    if (day) {
+      if (tier === 'tier1') checked = day.tier1 && day.tier1[gameId] && day.tier1[gameId].checkedIn === true;
+      else if (tier === 'tier2') checked = day.tier2 && day.tier2[gameId] === true;
+      else checked = day.tier3 && day.tier3[gameId] === true;
+    }
+    if (checked) streak++;
+    else if (i === 0) continue;
+    else break;
+  }
+  return streak;
+}
+
+function getDayProgress(dateStr) {
+  const day = state.history[dateStr];
+  if (!day) return 0;
+  const total = state.config.tier1.length;
+  if (total === 0) return 0;
+  let checked = 0;
+  state.config.tier1.forEach(g => {
+    if (day.tier1 && day.tier1[g.id] && day.tier1[g.id].checkedIn) checked++;
+  });
+  return Math.round((checked / total) * 100);
+}
+
+function getDayIntensity(dateStr) {
+  const day = state.history[dateStr];
+  if (!day) return 0;
+  const tier1Count = state.config.tier1.length;
+  let checked = 0, extra = 0;
+  state.config.tier1.forEach(g => {
+    if (day.tier1 && day.tier1[g.id]) {
+      if (day.tier1[g.id].checkedIn) checked++;
+      if (day.tier1[g.id].extra) extra++;
+    }
+  });
+  state.config.tier2.forEach(g => { if (day.tier2 && day.tier2[g.id]) extra++; });
+  state.config.tier3.forEach(g => { if (day.tier3 && day.tier3[g.id]) extra++; });
+  if (checked === 0 && extra === 0) return 0;
+  const base = tier1Count > 0 ? checked / tier1Count : 0;
+  const score = base + extra * 0.12;
+  if (score < 0.15) return 1;
+  if (score < 0.5) return 2;
+  if (score < 0.85) return 3;
+  return 4;
+}
+
+// === Date nav ===
+function isViewingToday() { return viewDate === todayKey(); }
+
+function goToPrevDay() {
+  const d = parseDateKey(viewDate);
+  d.setDate(d.getDate() - 1);
+  viewDate = dateKey(d);
+  render();
+}
+
+function goToNextDay() {
+  if (isViewingToday()) return;
+  const d = parseDateKey(viewDate);
+  d.setDate(d.getDate() + 1);
+  viewDate = dateKey(d);
+  render();
+}
+
+function goToToday() {
+  viewDate = todayKey();
+  render();
+}
+
+// === Helpers for editable name ===
+function makeEditableName(tier, game, isChecked) {
+  const editing = editingGameId && editingGameId.tier === tier && editingGameId.id === game.id;
+  if (editing) {
+    const input = document.createElement('input');
+    input.className = tier === 'tier3' ? 'roster-name-edit' : 'game-name-edit';
+    input.type = 'text';
+    input.value = game.name;
+    let committed = false;
+    const commit = () => {
+      if (committed) return;
+      committed = true;
+      renameGame(tier, game.id, input.value);
+      editingGameId = null;
+      render();
+    };
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') commit();
+      else if (e.key === 'Escape') { committed = true; editingGameId = null; render(); }
+    };
+    input.onblur = commit;
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+    return input;
+  } else {
+    const name = document.createElement('div');
+    const baseClass = tier === 'tier3' ? 'roster-name' : 'game-name';
+    let modifiers = '';
+    if (tier === 'tier3' && game.status === 'done') modifiers = ' dimmed';
+    else if (tier !== 'tier3' && isChecked) modifiers = ' checked';
+    name.className = baseClass + modifiers;
+    name.textContent = game.name;
+    return name;
+  }
+}
+
+// === Render ===
+function render() {
+  renderHeader();
+  renderTier1();
+  renderTier2();
+  renderTier3();
+  renderHeatmap();
+}
+
+function renderHeader() {
+  const d = parseDateKey(viewDate);
+  const wd = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  const mo = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  document.getElementById('date').textContent =
+    wd[d.getDay()] + ' · ' + mo[d.getMonth()] + ' ' + d.getDate() + ' · ' + d.getFullYear();
+  document.getElementById('date').className = 'date' + (isViewingToday() ? '' : ' past');
+
+  const nextBtn = document.getElementById('next-day');
+  nextBtn.className = 'date-arrow' + (isViewingToday() ? ' disabled' : '');
+
+  const todayLink = document.getElementById('today-link');
+  todayLink.style.display = isViewingToday() ? 'none' : '';
+
+  const pct = getDayProgress(viewDate);
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function renderTier1() {
+  const day = getDay(viewDate);
+  const container = document.getElementById('tier1-list');
+  container.innerHTML = '';
+
+  state.config.tier1.forEach(game => {
+    const gd = day.tier1[game.id] || { checkedIn: false, subtasks: {}, extra: false };
+    const streak = getStreak(game.id, 'tier1');
+    const hasSubtasks = game.subtasks.length > 0;
+    const isAddingSub = addSubtaskGameId === game.id;
+
+    const item = document.createElement('div');
+    item.className = 'game-item';
+
+    const row = document.createElement('div');
+    row.className = 'game-row';
+
+    const cb = document.createElement('div');
+    cb.className = 'checkbox' + (gd.checkedIn ? ' checked' : '');
+    cb.onclick = () => toggleTier1(game.id);
+
+    const name = makeEditableName('tier1', game, gd.checkedIn);
+    if (!editingGameId || editingGameId.id !== game.id) {
+      name.onclick = () => toggleTier1(game.id);
+      name.ondblclick = (e) => {
+        e.preventDefault();
+        editingGameId = { tier: 'tier1', id: game.id };
+        render();
+      };
+    }
+
+    const extra = document.createElement('div');
+    extra.className = 'extra-toggle' + (gd.extra ? ' active' : '');
+    extra.innerHTML = gd.extra ? '✦' : '✧';
+    extra.title = '今天多玩了一下';
+    extra.onclick = () => toggleExtra(game.id);
+
+    const streakEl = document.createElement('div');
+    streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
+    streakEl.textContent = streak > 0 ? streak + 'd' : '·';
+
+    const remove = document.createElement('div');
+    remove.className = 'remove';
+    remove.innerHTML = '×';
+    remove.title = 'Remove game';
+    remove.onclick = (e) => {
+      e.stopPropagation();
+      if (confirm('移除 "' + game.name + '"? 历史数据将无法访问。')) removeGame('tier1', game.id);
+    };
+
+    row.appendChild(cb);
+    row.appendChild(name);
+    row.appendChild(extra);
+    row.appendChild(streakEl);
+    row.appendChild(remove);
+    item.appendChild(row);
+
+    const subRow = document.createElement('div');
+    subRow.className = 'subtasks-row' + (hasSubtasks || isAddingSub ? '' : ' empty');
+
+    game.subtasks.forEach(st => {
+      const isEditingThis = editingSubtaskInfo && editingSubtaskInfo.gameId === game.id && editingSubtaskInfo.subtaskId === st.id;
+
+      const sub = document.createElement('div');
+      sub.className = 'subtask' + (gd.subtasks[st.id] ? ' checked' : '');
+
+      if (isEditingThis) {
+        const input = document.createElement('input');
+        input.className = 'subtask-edit';
+        input.type = 'text';
+        input.value = st.name;
+        let committed = false;
+        const commit = () => {
+          if (committed) return;
+          committed = true;
+          renameSubtask(game.id, st.id, input.value);
+          editingSubtaskInfo = null;
+          render();
+        };
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter') commit();
+          else if (e.key === 'Escape') { committed = true; editingSubtaskInfo = null; render(); }
+        };
+        input.onblur = commit;
+        sub.appendChild(input);
+        setTimeout(() => { input.focus(); input.select(); }, 0);
+      } else {
+        const subLabel = document.createElement('span');
+        subLabel.className = 'subtask-label';
+        subLabel.textContent = st.name;
+        subLabel.onclick = () => toggleSubtask(game.id, st.id);
+        subLabel.ondblclick = (e) => {
+          e.preventDefault();
+          editingSubtaskInfo = { gameId: game.id, subtaskId: st.id };
+          render();
+        };
+
+        const subRemove = document.createElement('span');
+        subRemove.className = 'subtask-remove';
+        subRemove.innerHTML = '×';
+        subRemove.title = 'Remove sub-task';
+        subRemove.onclick = (e) => {
+          e.stopPropagation();
+          removeSubtask(game.id, st.id);
+        };
+
+        sub.appendChild(subLabel);
+        sub.appendChild(subRemove);
+      }
+      subRow.appendChild(sub);
+    });
+
+    if (isAddingSub) {
+      const input = document.createElement('input');
+      input.className = 'add-subtask-input';
+      input.type = 'text';
+      input.placeholder = 'Sub-task';
+      let committed = false;
+      const commit = () => {
+        if (committed) return;
+        committed = true;
+        const v = input.value.trim();
+        if (v) addSubtask(game.id, v);
+        addSubtaskGameId = null;
+        render();
+      };
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') commit();
+        else if (e.key === 'Escape') { committed = true; addSubtaskGameId = null; render(); }
+      };
+      input.onblur = commit;
+      subRow.appendChild(input);
+      setTimeout(() => input.focus(), 0);
+    } else {
+      const addBtn = document.createElement('button');
+      addBtn.className = 'add-subtask';
+      addBtn.textContent = '+ Add task';
+      addBtn.onclick = () => { addSubtaskGameId = game.id; render(); };
+      subRow.appendChild(addBtn);
+    }
+
+    item.appendChild(subRow);
+    container.appendChild(item);
+  });
+
+  renderAddRow('tier1');
+}
+
+function renderTier2() {
+  const day = getDay(viewDate);
+  const container = document.getElementById('tier2-list');
+  container.innerHTML = '';
+
+  state.config.tier2.forEach(game => {
+    const checked = day.tier2[game.id] === true;
+    const streak = getStreak(game.id, 'tier2');
+
+    const item = document.createElement('div');
+    item.className = 'game-item';
+
+    const row = document.createElement('div');
+    row.className = 'game-row';
+
+    const cb = document.createElement('div');
+    cb.className = 'checkbox' + (checked ? ' checked' : '');
+    cb.onclick = () => toggleTier2(game.id);
+
+    const name = makeEditableName('tier2', game, checked);
+    if (!editingGameId || editingGameId.id !== game.id) {
+      name.onclick = () => toggleTier2(game.id);
+      name.ondblclick = (e) => {
+        e.preventDefault();
+        editingGameId = { tier: 'tier2', id: game.id };
+        render();
+      };
+    }
+
+    const streakEl = document.createElement('div');
+    streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
+    streakEl.textContent = streak > 0 ? streak + 'd' : '·';
+
+    const remove = document.createElement('div');
+    remove.className = 'remove';
+    remove.innerHTML = '×';
+    remove.title = 'Remove game';
+    remove.onclick = (e) => {
+      e.stopPropagation();
+      if (confirm('移除 "' + game.name + '"? 历史数据将无法访问。')) removeGame('tier2', game.id);
+    };
+
+    row.appendChild(cb);
+    row.appendChild(name);
+    row.appendChild(streakEl);
+    row.appendChild(remove);
+    item.appendChild(row);
+    container.appendChild(item);
+  });
+
+  renderAddRow('tier2');
+}
+
+function renderTier3() {
+  const day = getDay(viewDate);
+  const container = document.getElementById('tier3-list');
+  container.innerHTML = '';
+
+  state.config.tier3.forEach(game => {
+    const playedToday = day.tier3[game.id] === true;
+    const labels = { playing: 'In play', paused: 'Paused', done: 'Done' };
+
+    const item = document.createElement('div');
+    item.className = 'roster-item';
+
+    const check = document.createElement('div');
+    check.className = 'roster-check' + (playedToday ? ' checked' : '');
+    check.onclick = () => toggleTier3(game.id);
+
+    const name = makeEditableName('tier3', game, playedToday);
+    if (!editingGameId || editingGameId.id !== game.id) {
+      name.onclick = () => toggleTier3(game.id);
+      name.ondblclick = (e) => {
+        e.preventDefault();
+        editingGameId = { tier: 'tier3', id: game.id };
+        render();
+      };
+    }
+
+    const status = document.createElement('div');
+    status.className = 'roster-status';
+    status.dataset.status = game.status;
+    status.textContent = labels[game.status];
+    status.onclick = () => cycleTier3Status(game.id);
+
+    const remove = document.createElement('div');
+    remove.className = 'remove';
+    remove.innerHTML = '×';
+    remove.title = 'Remove from roster';
+    remove.onclick = (e) => {
+      e.stopPropagation();
+      if (confirm('移出 roster: "' + game.name + '"?')) removeGame('tier3', game.id);
+    };
+
+    item.appendChild(check);
+    item.appendChild(name);
+    item.appendChild(status);
+    item.appendChild(remove);
+    container.appendChild(item);
+  });
+
+  renderAddRow('tier3');
+}
+
+function renderAddRow(tier) {
+  const container = document.getElementById('add-' + tier + '-container');
+  container.innerHTML = '';
+
+  if (addMode === tier) {
+    const input = document.createElement('input');
+    input.className = 'add-game-input';
+    input.type = 'text';
+    input.placeholder = 'Game name';
+    let committed = false;
+    const commit = () => {
+      if (committed) return;
+      committed = true;
+      const v = input.value.trim();
+      if (v) addGame(tier, v);
+      addMode = null;
+      render();
+    };
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') commit();
+      else if (e.key === 'Escape') { committed = true; addMode = null; render(); }
+    };
+    input.onblur = commit;
+    container.appendChild(input);
+    setTimeout(() => input.focus(), 0);
+  } else {
+    const btn = document.createElement('button');
+    btn.className = 'add-game';
+    btn.textContent = '+ Add game';
+    btn.onclick = () => { addMode = tier; render(); };
+    container.appendChild(btn);
+  }
+}
+
+function renderHeatmap() {
+  const container = document.getElementById('heatmap');
+  container.innerHTML = '';
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const numWeeks = 12;
+  const dayOfWeek = (today.getDay() + 6) % 7;
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - dayOfWeek - (numWeeks - 1) * 7);
+
+  const showLabel = [true, false, true, false, true, false, false];
+  const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+  for (let row = 0; row < 7; row++) {
+    const label = document.createElement('div');
+    label.className = 'heatmap-row-label';
+    label.textContent = showLabel[row] ? dayLetters[row] : '';
+    container.appendChild(label);
+
+    for (let col = 0; col < numWeeks; col++) {
+      const cellDate = new Date(startDate);
+      cellDate.setDate(startDate.getDate() + col * 7 + row);
+      const key = dateKey(cellDate);
+      const isToday = key === todayKey();
+      const isViewing = key === viewDate;
+      const isFuture = cellDate > today;
+
+      const cell = document.createElement('div');
+      let cls = 'heatmap-cell';
+      if (isFuture) cls += ' future';
+      if (isToday && !isViewing) cls += ' today';
+      if (isViewing) cls += ' viewing';
+      cell.className = cls;
+
+      if (!isFuture) {
+        cell.dataset.intensity = getDayIntensity(key);
+        cell.onclick = () => { viewDate = key; render(); };
+
+        cell.addEventListener('mouseenter', () => {
+          const tt = document.getElementById('tooltip');
+          const dd = state.history[key];
+          let label = key;
+          if (dd) {
+            let c = 0;
+            state.config.tier1.forEach(g => {
+              if (dd.tier1 && dd.tier1[g.id] && dd.tier1[g.id].checkedIn) c++;
+            });
+            label += ' · ' + c + '/' + state.config.tier1.length;
+          } else {
+            label += ' · —';
+          }
+          tt.textContent = label;
+          tt.classList.add('visible');
+        });
+        cell.addEventListener('mousemove', (e) => {
+          const tt = document.getElementById('tooltip');
+          tt.style.left = (e.clientX + 14) + 'px';
+          tt.style.top = (e.clientY - 32) + 'px';
+        });
+        cell.addEventListener('mouseleave', () => {
+          document.getElementById('tooltip').classList.remove('visible');
+        });
+      }
+      container.appendChild(cell);
+    }
+  }
+}
+
+// === Footer actions ===
+document.getElementById('prev-day').onclick = goToPrevDay;
+document.getElementById('next-day').onclick = () => { if (!isViewingToday()) goToNextDay(); };
+document.getElementById('today-link').onclick = goToToday;
+
+document.getElementById('export-btn').onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'daily-ritual-' + todayKey() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+document.getElementById('import-btn').onclick = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (imported.config && imported.history) {
+          state = imported;
+          saveState();
+          render();
+        } else {
+          alert('Import失败: JSON结构不对');
+        }
+      } catch (err) {
+        alert('Import失败: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+};
+
+document.getElementById('reset-btn').onclick = () => {
+  if (confirm('清空所有数据 (config + history)? 这个操作不可逆。')) {
+    localStorage.removeItem(STORAGE_KEY);
+    state = loadState();
+    viewDate = todayKey();
+    render();
+  }
+};
+
+render();
+</script>
+</body>
+</html>
