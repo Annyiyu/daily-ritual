@@ -1176,6 +1176,8 @@ const TIER3_STATUS_LABELS = {
 // Render
 // ============================================================
 function render() {
+  // Clean any stale modals (they live in body, not root)
+  document.querySelectorAll('.manage-popup, .manage-overlay').forEach(el => el.remove());
   if (!session) { renderSignIn(); return; }
   if (!state) { renderLoading(); return; }
   renderApp();
