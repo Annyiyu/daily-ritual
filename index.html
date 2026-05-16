@@ -632,7 +632,7 @@ function migrate(state) {
   // Setting to 1970-01-01 means "treat as existing for all history".
   const GENESIS = '1970-01-01';
 
-  // Ensure tier1/2/3 have defaults
+  // Ensure tier1/2/3 have defaults, and backfill tierResidence based on current tier membership.
   ['tier1', 'tier2', 'tier3'].forEach(tier => {
     state.config[tier] = (state.config[tier] || []).map(g => {
       const base = { ...g };
@@ -640,17 +640,22 @@ function migrate(state) {
       if (typeof base.hidden !== 'boolean') base.hidden = false;
       if (typeof base.note !== 'string') base.note = '';
       if (typeof base.createdAt !== 'string') base.createdAt = GENESIS;
-      // hiddenAt only relevant when hidden is true; clear it if not hidden
       if (!base.hidden) base.hiddenAt = null;
       else if (typeof base.hiddenAt !== 'string') base.hiddenAt = todayKey();
-      // Tier 2: optional completion status
-      if (tier === 'tier2' && typeof base.completion !== 'string') base.completion = '';
+      // Tier 2: optional completion status (preserved across tier moves)
+      if (typeof base.completion !== 'string') base.completion = '';
+      // Tier 3: roster status (preserved but only displayed when currently in Tier 3)
+      if (typeof base.status !== 'string') base.status = 'considering';
       // Tier 1 subtasks: ensure hidden field
       if (tier === 'tier1') {
         base.subtasks = base.subtasks.map(st => ({
           ...st,
           hidden: typeof st.hidden === 'boolean' ? st.hidden : false
         }));
+      }
+      // Backfill tierResidence: a single open-ended residence in current tier from GENESIS
+      if (!Array.isArray(base.tierResidence) || base.tierResidence.length === 0) {
+        base.tierResidence = [{ tier, from: base.createdAt || GENESIS, to: null }];
       }
       return base;
     });
@@ -813,9 +818,10 @@ function cycleTier3Status(gameId) {
 function addGame(tier, name) {
   const id = 'game_' + Date.now();
   const today = todayKey();
-  if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [], hidden: false, hiddenAt: null, note: '', createdAt: today });
-  else if (tier === 'tier2') state.config.tier2.push({ id, name, hidden: false, hiddenAt: null, note: '', completion: '', createdAt: today });
-  else state.config.tier3.push({ id, name, status: 'considering', hidden: false, hiddenAt: null, note: '', createdAt: today });
+  const residence = [{ tier, from: today, to: null }];
+  if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [], hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence });
+  else if (tier === 'tier2') state.config.tier2.push({ id, name, hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence });
+  else state.config.tier3.push({ id, name, status: 'considering', hidden: false, hiddenAt: null, note: '', completion: '', createdAt: today, tierResidence: residence });
   scheduleSave(); render();
 }
 function renameGame(tier, gameId, newName) {
@@ -1032,41 +1038,53 @@ function commitGameMove(fromTier, gameId, toTier, toIndex) {
   if (fromIndex === -1) return;
   const game = fromList[fromIndex];
 
-  // Cross-tier subtask warning
-  if (fromTier !== toTier && fromTier === 'tier1' && game.subtasks && game.subtasks.length > 0) {
-    if (!confirm(`将 "${game.name}" 移到其他section，sub-tasks (${game.subtasks.length}个) 会被删除。继续?`)) return;
+  // === Same-tier reorder: no residence change ===
+  if (fromTier === toTier) {
+    fromList.splice(fromIndex, 1);
+    let adjustedIndex = toIndex;
+    if (fromIndex < toIndex) adjustedIndex = toIndex - 1;
+    state.config[toTier].splice(adjustedIndex, 0, game);
+    scheduleSave();
+    return;
   }
 
+  // === Cross-tier move ===
+  // Warn if Tier 1 → other tier and game has subtasks
+  if (fromTier === 'tier1' && game.subtasks && game.subtasks.length > 0) {
+    if (!confirm(`将 "${game.name}" 移到其他section，sub-tasks (${game.subtasks.length}个) 会被删除。继续?\n\n（历史check-in数据会保留）`)) return;
+    game.subtasks = [];
+  }
+
+  // Update tierResidence: close current residence today, open new one tomorrow
+  const today = todayKey();
+  if (!Array.isArray(game.tierResidence)) game.tierResidence = [];
+  // Find current open residence
+  const current = game.tierResidence.find(r => r.to === null);
+  if (current) {
+    // Edge case: if current residence started today, just rewrite it instead of creating a one-day stub
+    if (current.from === today) {
+      // Replace with new tier residence starting today
+      current.tier = toTier;
+    } else {
+      // Close current at yesterday, open new from today
+      const d = parseDateKey(today); d.setDate(d.getDate() - 1);
+      current.to = dateKey(d);
+      game.tierResidence.push({ tier: toTier, from: today, to: null });
+    }
+  } else {
+    // No open residence (shouldn't happen with proper migration), just open one
+    game.tierResidence.push({ tier: toTier, from: today, to: null });
+  }
+
+  // Move in config arrays (for UI rendering convenience — current tier residence lives in current tier array)
   fromList.splice(fromIndex, 1);
 
-  // Transform game shape for target tier
-  let movedGame;
-  if (toTier === 'tier1') {
-    movedGame = {
-      id: game.id, name: game.name,
-      subtasks: game.subtasks || [],
-      hidden: game.hidden || false,
-      note: game.note || ''
-    };
-  } else if (toTier === 'tier2') {
-    movedGame = {
-      id: game.id, name: game.name,
-      hidden: game.hidden || false,
-      note: game.note || '',
-      completion: game.completion || ''
-    };
-  } else {
-    movedGame = {
-      id: game.id, name: game.name,
-      status: game.status || 'considering',
-      hidden: game.hidden || false,
-      note: game.note || ''
-    };
-  }
+  // Ensure game has fields needed for new tier
+  if (toTier === 'tier1' && !Array.isArray(game.subtasks)) game.subtasks = [];
+  if (toTier === 'tier2' && typeof game.completion !== 'string') game.completion = '';
+  if (toTier === 'tier3' && typeof game.status !== 'string') game.status = 'considering';
 
-  let adjustedIndex = toIndex;
-  if (fromTier === toTier && fromIndex < toIndex) adjustedIndex = toIndex - 1;
-  state.config[toTier].splice(adjustedIndex, 0, movedGame);
+  state.config[toTier].splice(toIndex, 0, game);
   scheduleSave();
 }
 
@@ -1085,18 +1103,29 @@ function commitSubtaskMove(gameId, subtaskId, toIndex) {
 // ============================================================
 // Computed
 // ============================================================
-function getStreak(gameId, tier) {
+function getStreak(gameId, currentTierKey) {
+  // Find the game across all tier arrays
+  let game = null;
+  ['tier1', 'tier2', 'tier3'].forEach(t => {
+    if (!game) {
+      const found = state.config[t].find(g => g.id === gameId);
+      if (found) game = found;
+    }
+  });
+  if (!game) return 0;
+
   const today = new Date(); today.setHours(0, 0, 0, 0);
   let streak = 0;
   for (let i = 0; i < 365; i++) {
     const d = new Date(today); d.setDate(today.getDate() - i);
     const key = dateKey(d);
+    const tierThatDay = tierOnDate(game, key);
     const day = state.history[key];
     let checked = false;
-    if (day) {
-      if (tier === 'tier1') checked = day.tier1 && day.tier1[gameId] && day.tier1[gameId].checkedIn === true;
-      else if (tier === 'tier2') checked = day.tier2 && day.tier2[gameId] === true;
-      else checked = day.tier3 && day.tier3[gameId] === true;
+    if (day && tierThatDay) {
+      if (tierThatDay === 'tier1') checked = day.tier1 && day.tier1[gameId] && day.tier1[gameId].checkedIn === true;
+      else if (tierThatDay === 'tier2') checked = day.tier2 && day.tier2[gameId] === true;
+      else if (tierThatDay === 'tier3') checked = day.tier3 && day.tier3[gameId] === true;
     }
     if (checked) streak++;
     else if (i === 0) continue;
@@ -1115,10 +1144,37 @@ function existsOnDate(game, dateStr) {
   return true;
 }
 
+// Which tier did this game belong to on a given date? null if not in any tier yet.
+function tierOnDate(game, dateStr) {
+  if (!Array.isArray(game.tierResidence)) return null;
+  for (const r of game.tierResidence) {
+    if (r.from <= dateStr && (r.to === null || dateStr <= r.to)) return r.tier;
+  }
+  return null;
+}
+
+// All games that, on the given date, belonged to the given tier.
+// Looks across all tier arrays in config since residence history may differ from current tier.
+function gamesInTierOnDate(tier, dateStr) {
+  const results = [];
+  ['tier1', 'tier2', 'tier3'].forEach(t => {
+    (state.config[t] || []).forEach(g => {
+      if (!existsOnDate(g, dateStr)) return;
+      if (tierOnDate(g, dateStr) === tier) results.push(g);
+    });
+  });
+  return results;
+}
+
+// Which tier is the game currently in (today's tier)?
+function currentTier(game) {
+  return tierOnDate(game, todayKey());
+}
+
 function getDayProgress(dateStr) {
   const day = state.history[dateStr];
   if (!day) return 0;
-  const relevant = state.config.tier1.filter(g => existsOnDate(g, dateStr));
+  const relevant = gamesInTierOnDate('tier1', dateStr);
   const total = relevant.length;
   if (total === 0) return 0;
   let checked = 0;
@@ -1131,21 +1187,19 @@ function getDayProgress(dateStr) {
 function getDayIntensity(dateStr) {
   const day = state.history[dateStr];
   if (!day) return 0;
-  const relevantTier1 = state.config.tier1.filter(g => existsOnDate(g, dateStr));
-  const tier1Count = relevantTier1.length;
+  const tier1Games = gamesInTierOnDate('tier1', dateStr);
+  const tier2Games = gamesInTierOnDate('tier2', dateStr);
+  const tier3Games = gamesInTierOnDate('tier3', dateStr);
+  const tier1Count = tier1Games.length;
   let checked = 0, extra = 0;
-  relevantTier1.forEach(g => {
+  tier1Games.forEach(g => {
     if (day.tier1 && day.tier1[g.id]) {
       if (day.tier1[g.id].checkedIn) checked++;
       if (day.tier1[g.id].extra) extra++;
     }
   });
-  state.config.tier2.forEach(g => {
-    if (existsOnDate(g, dateStr) && day.tier2 && day.tier2[g.id]) extra++;
-  });
-  state.config.tier3.forEach(g => {
-    if (existsOnDate(g, dateStr) && day.tier3 && day.tier3[g.id]) extra++;
-  });
+  tier2Games.forEach(g => { if (day.tier2 && day.tier2[g.id]) extra++; });
+  tier3Games.forEach(g => { if (day.tier3 && day.tier3[g.id]) extra++; });
   if (checked === 0 && extra === 0) return 0;
   const base = tier1Count > 0 ? checked / tier1Count : 0;
   const score = base + extra * 0.12;
@@ -1904,7 +1958,7 @@ function renderHeatmap() {
           const tt = document.getElementById('tooltip');
           const dd = state.history[key];
           let label = key;
-          const relevant = state.config.tier1.filter(g => existsOnDate(g, key));
+          const relevant = gamesInTierOnDate('tier1', key);
           if (dd) {
             let c = 0;
             relevant.forEach(g => { if (dd.tier1 && dd.tier1[g.id] && dd.tier1[g.id].checkedIn) c++; });
