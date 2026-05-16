@@ -628,6 +628,10 @@ function migrate(state) {
     return { ...g, status: newStatus };
   });
 
+  // "Genesis date" — used for existing games that pre-date the createdAt field.
+  // Setting to 1970-01-01 means "treat as existing for all history".
+  const GENESIS = '1970-01-01';
+
   // Ensure tier1/2/3 have defaults
   ['tier1', 'tier2', 'tier3'].forEach(tier => {
     state.config[tier] = (state.config[tier] || []).map(g => {
@@ -635,6 +639,10 @@ function migrate(state) {
       if (tier === 'tier1' && !Array.isArray(base.subtasks)) base.subtasks = [];
       if (typeof base.hidden !== 'boolean') base.hidden = false;
       if (typeof base.note !== 'string') base.note = '';
+      if (typeof base.createdAt !== 'string') base.createdAt = GENESIS;
+      // hiddenAt only relevant when hidden is true; clear it if not hidden
+      if (!base.hidden) base.hiddenAt = null;
+      else if (typeof base.hiddenAt !== 'string') base.hiddenAt = todayKey();
       // Tier 2: optional completion status
       if (tier === 'tier2' && typeof base.completion !== 'string') base.completion = '';
       // Tier 1 subtasks: ensure hidden field
@@ -804,9 +812,10 @@ function cycleTier3Status(gameId) {
 // ============================================================
 function addGame(tier, name) {
   const id = 'game_' + Date.now();
-  if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [], hidden: false, note: '' });
-  else if (tier === 'tier2') state.config.tier2.push({ id, name, hidden: false, note: '', completion: '' });
-  else state.config.tier3.push({ id, name, status: 'considering', hidden: false, note: '' });
+  const today = todayKey();
+  if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [], hidden: false, hiddenAt: null, note: '', createdAt: today });
+  else if (tier === 'tier2') state.config.tier2.push({ id, name, hidden: false, hiddenAt: null, note: '', completion: '', createdAt: today });
+  else state.config.tier3.push({ id, name, status: 'considering', hidden: false, hiddenAt: null, note: '', createdAt: today });
   scheduleSave(); render();
 }
 function renameGame(tier, gameId, newName) {
@@ -835,11 +844,11 @@ function renameSubtask(gameId, subtaskId, newName) {
 // ============================================================
 function hideGame(tier, gameId) {
   const game = state.config[tier].find(g => g.id === gameId);
-  if (game) { game.hidden = true; scheduleSave(); render(); }
+  if (game) { game.hidden = true; game.hiddenAt = todayKey(); scheduleSave(); render(); }
 }
 function restoreGame(tier, gameId) {
   const game = state.config[tier].find(g => g.id === gameId);
-  if (game) { game.hidden = false; scheduleSave(); render(); }
+  if (game) { game.hidden = false; game.hiddenAt = null; scheduleSave(); render(); }
 }
 function deleteGameForever(tier, gameId) {
   const game = state.config[tier].find(g => g.id === gameId);
@@ -1096,14 +1105,24 @@ function getStreak(gameId, tier) {
   return streak;
 }
 
+function existsOnDate(game, dateStr) {
+  // A game "exists" on a given date if:
+  //   - its createdAt is on or before that date
+  //   - AND (it's not hidden, OR it was hidden after that date)
+  const createdAt = game.createdAt || '1970-01-01';
+  if (createdAt > dateStr) return false;
+  if (game.hidden && game.hiddenAt && game.hiddenAt <= dateStr) return false;
+  return true;
+}
+
 function getDayProgress(dateStr) {
   const day = state.history[dateStr];
   if (!day) return 0;
-  const visibleTier1 = state.config.tier1.filter(g => !g.hidden);
-  const total = visibleTier1.length;
+  const relevant = state.config.tier1.filter(g => existsOnDate(g, dateStr));
+  const total = relevant.length;
   if (total === 0) return 0;
   let checked = 0;
-  visibleTier1.forEach(g => {
+  relevant.forEach(g => {
     if (day.tier1 && day.tier1[g.id] && day.tier1[g.id].checkedIn) checked++;
   });
   return Math.round((checked / total) * 100);
@@ -1112,16 +1131,21 @@ function getDayProgress(dateStr) {
 function getDayIntensity(dateStr) {
   const day = state.history[dateStr];
   if (!day) return 0;
-  const tier1Count = state.config.tier1.filter(g => !g.hidden).length;
+  const relevantTier1 = state.config.tier1.filter(g => existsOnDate(g, dateStr));
+  const tier1Count = relevantTier1.length;
   let checked = 0, extra = 0;
-  state.config.tier1.forEach(g => {
+  relevantTier1.forEach(g => {
     if (day.tier1 && day.tier1[g.id]) {
       if (day.tier1[g.id].checkedIn) checked++;
       if (day.tier1[g.id].extra) extra++;
     }
   });
-  state.config.tier2.forEach(g => { if (day.tier2 && day.tier2[g.id]) extra++; });
-  state.config.tier3.forEach(g => { if (day.tier3 && day.tier3[g.id]) extra++; });
+  state.config.tier2.forEach(g => {
+    if (existsOnDate(g, dateStr) && day.tier2 && day.tier2[g.id]) extra++;
+  });
+  state.config.tier3.forEach(g => {
+    if (existsOnDate(g, dateStr) && day.tier3 && day.tier3[g.id]) extra++;
+  });
   if (checked === 0 && extra === 0) return 0;
   const base = tier1Count > 0 ? checked / tier1Count : 0;
   const score = base + extra * 0.12;
@@ -1880,11 +1904,11 @@ function renderHeatmap() {
           const tt = document.getElementById('tooltip');
           const dd = state.history[key];
           let label = key;
+          const relevant = state.config.tier1.filter(g => existsOnDate(g, key));
           if (dd) {
             let c = 0;
-            const visible = state.config.tier1.filter(g => !g.hidden);
-            visible.forEach(g => { if (dd.tier1 && dd.tier1[g.id] && dd.tier1[g.id].checkedIn) c++; });
-            label += ' · ' + c + '/' + visible.length;
+            relevant.forEach(g => { if (dd.tier1 && dd.tier1[g.id] && dd.tier1[g.id].checkedIn) c++; });
+            label += ' · ' + c + '/' + relevant.length;
           } else label += ' · —';
           tt.textContent = label;
           tt.classList.add('visible');
