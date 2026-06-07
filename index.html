@@ -26,16 +26,16 @@
   --display-font: 'Quicksand', 'LXGW WenKai', 'Songti SC', 'Songti TC', STSong, sans-serif;
   --label-font: 'Quicksand', 'LXGW WenKai', -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif;
 
-  /* Roster group palette — soft macaron: peach ▸ pink ▸ pistachio (priority heat) */
-  --up-tint:  rgba(248, 206, 160, 0.30);
-  --up-line:  #e8b787;
-  --up-name:  #b9794a;
-  --con-tint: rgba(245, 201, 211, 0.32);
-  --con-line: #ecb6c3;
-  --con-name: #b4738a;
-  --back-tint: rgba(206, 222, 182, 0.28);
-  --back-line: #bdcd92;
-  --back-name: #7c9159;
+  /* Roster group palette — 语义交通灯（柔和）: 绿=up next(positive) ▸ 琥珀=considering(中间) ▸ 砖红=backlog(暂存收起) */
+  --up-tint:  rgba(196, 222, 172, 0.30);
+  --up-line:  #aecb8e;
+  --up-name:  #6f9a55;
+  --con-tint: rgba(244, 220, 166, 0.34);
+  --con-line: #e4c486;
+  --con-name: #ad8638;
+  --back-tint: rgba(202, 166, 156, 0.30);
+  --back-line: #cda394;
+  --back-name: #9c5f52;
 
   /* Warm paper grain — swap this var for an external texture later, no markup change */
   --paper-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.45  0 0 0 0 0.34  0 0 0 0 0.2  0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -241,9 +241,9 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 }
 
 /* Tier 3 roster status — soft macaron palette */
-.status-pill[data-status="up_next"] { color: var(--up-name); background-color: rgba(248,206,160,0.42); border-color: transparent; font-weight: 500; }
-.status-pill[data-status="considering"] { color: var(--con-name); background-color: rgba(245,201,211,0.44); border-color: transparent; }
-.status-pill[data-status="backlog"] { color: var(--back-name); background-color: rgba(206,222,182,0.42); border-color: transparent; }
+.status-pill[data-status="up_next"] { color: var(--up-name); background-color: rgba(196,222,172,0.44); border-color: transparent; font-weight: 500; }
+.status-pill[data-status="considering"] { color: var(--con-name); background-color: rgba(244,220,166,0.48); border-color: transparent; }
+.status-pill[data-status="backlog"] { color: var(--back-name); background-color: rgba(202,166,156,0.42); border-color: transparent; }
 
 /* Hide / Note buttons */
 .row-action {
