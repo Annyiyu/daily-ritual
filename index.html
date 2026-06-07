@@ -137,7 +137,7 @@ body.first-load .header { animation: fadeIn 0.6s ease-out; }
 .progress-label { font-family: var(--label-font); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-muted); }
 .progress-percentage { font-family: var(--label-font); font-size: 2.6rem; font-weight: 400; color: var(--accent); letter-spacing: 0.02em; line-height: 1; }
 .progress-track { height: 10px; width: 100%; background-color: rgba(210,133,107,0.10); border-radius: 999px; overflow: hidden; }
-.progress-fill { height: 100%; background: linear-gradient(90deg, #f1d2b3, #e3ab90); border-radius: 999px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.progress-fill { height: 100%; background: var(--accent-grad, linear-gradient(90deg, #f1d2b3, #e3ab90)); border-radius: 999px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* Sections */
 .section { margin-bottom: 56px; }
@@ -2259,6 +2259,7 @@ function goToToday() { viewDate = todayKey(); refreshDayView(); }
 // Refresh check-states / streaks / progress / heatmap viewing — no structural rebuild
 function refreshDayView() {
   if (!state) return;
+  applyWeekTheme();
   renderHeader();
   const day = getDay(viewDate);
   document.querySelectorAll('#tier1-list .daily-card').forEach(item => {
@@ -2347,6 +2348,7 @@ function render() {
   closePicker();
   if (!session) { renderSignIn(); return; }
   if (!state) { renderLoading(); return; }
+  applyWeekTheme();
   if (reviewOpen) { renderReview(); return; }
   // First time the app proper renders → enable section entry animation
   if (_firstAppRender) {
@@ -3550,8 +3552,8 @@ const RV_HUE_OFFSET = 0.33;  // rotate the ring (0..1) — 0.33 lands "now" on c
 const RV_MACARON = [
   [226, 150, 128], // 珊瑚 coral
   [242, 196, 150], // 蜜桃 peach
-  [238, 220, 156], // 奶油 butter
-  [198, 216, 162], // 开心果 pistachio
+  [240, 200, 132], // 蜂蜜金 honey (去土黄)
+  [182, 212, 168], // 鼠尾草 sage (去橄榄)
   [176, 202, 224], // 粉蓝 powder blue
   [208, 192, 228], // 薰衣草 lavender
   [242, 196, 212], // 玫瑰 rose
@@ -3567,6 +3569,21 @@ function rvHeat(d, i) {
   let [r, g, b] = rvMacaron(rvWeekT(d));
   const deep = [1, 1, 0.95, 0.88, 0.82][i], A = [0.13, 0.45, 0.64, 0.80, 0.95][i];
   return `rgba(${Math.round(r * deep)},${Math.round(g * deep)},${Math.round(b * deep)},${A})`;
+}
+
+// Main view wears the VIEWED day's week macaron as its primary accent (tier1/2
+// "ritual" chrome only). Tier3 status colours have their own vars and are
+// untouched. The warm material (panels/track/bg) is hard-coded and stays warm.
+function applyWeekTheme() {
+  const base = (typeof viewDate === 'string' && viewDate) ? parseDateKey(viewDate) : new Date();
+  const m = rvMacaron(rvWeekT(base));
+  const r = Math.round(m[0]), g = Math.round(m[1]), b = Math.round(m[2]);
+  const dr = Math.round(m[0] * 0.88), dg = Math.round(m[1] * 0.88), db = Math.round(m[2] * 0.88);
+  const rs = document.documentElement.style;
+  rs.setProperty('--accent', `rgb(${dr},${dg},${db})`);
+  rs.setProperty('--accent-soft', `rgba(${r},${g},${b},0.22)`);
+  rs.setProperty('--accent-faint', `rgba(${r},${g},${b},0.10)`);
+  rs.setProperty('--accent-grad', `linear-gradient(90deg, rgba(${r},${g},${b},0.42), rgb(${dr},${dg},${db}))`);
 }
 
 function gameById(id) {
