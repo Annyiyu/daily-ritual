@@ -768,6 +768,139 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .heatmap-legend .heatmap-cell { width: 10px; height: 10px; cursor: default; }
 .heatmap-legend .heatmap-cell:hover { outline: none; }
 
+/* ===== Review (回顾) ===== */
+.review-entry-row { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+.review-entry {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--text-faint); background: transparent; border: none; cursor: pointer;
+  padding: 6px 2px; transition: color 0.2s;
+}
+.review-entry:hover { color: var(--accent); }
+.review-entry svg { display: block; flex-shrink: 0; }
+
+.review-view { animation: fadeIn 0.45s ease-out; }
+.rv-header { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; }
+.rv-back {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--text-muted); background: transparent; border: none; cursor: pointer;
+  padding: 6px 8px 6px 0; transition: color 0.2s; white-space: nowrap;
+}
+.rv-back:hover { color: var(--accent); }
+.rv-title { font-family: var(--label-font); font-size: 11px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--text-muted); flex: 1; }
+.rv-span-toggle { display: flex; gap: 2px; background: rgba(210,133,107,0.08); border-radius: 999px; padding: 3px; }
+.rv-span-toggle button {
+  font-family: var(--label-font); font-size: 12px; letter-spacing: 0.08em; color: var(--text-muted);
+  background: transparent; border: none; cursor: pointer; padding: 5px 15px; border-radius: 999px; transition: all 0.2s;
+}
+.rv-span-toggle button:hover { color: var(--accent); }
+.rv-span-toggle button.active { background: var(--bg); color: var(--accent); box-shadow: 0 1px 3px rgba(42,36,28,0.07); }
+
+.rv-summary {
+  font-family: var(--label-font); font-size: 11px; letter-spacing: 0.04em; color: var(--text-faint);
+  margin-bottom: 26px; display: flex; flex-wrap: wrap; gap: 5px 12px; line-height: 1.5;
+}
+.rv-summary b { color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; }
+.rv-summary .sum-sep { color: var(--line-strong); }
+
+.rv-field-wrap { background: rgba(166,150,130,0.08); border-radius: 16px; padding: 22px 24px 24px; margin-bottom: 30px; }
+.rv-field-head { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 20px; }
+.rv-field-head button {
+  font-family: var(--display-font); font-size: 18px; color: var(--text-muted); background: transparent;
+  border: none; cursor: pointer; padding: 2px 10px; line-height: 1; transition: color 0.2s;
+}
+.rv-field-head button:hover { color: var(--accent); }
+.rv-field-head button.disabled { opacity: 0.22; cursor: default; pointer-events: none; }
+.rv-range-label {
+  font-family: var(--label-font); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--text-muted); min-width: 150px; text-align: center;
+}
+
+.rv-field { overflow-x: auto; display: flex; justify-content: center; }
+.rv-grid { display: grid; }
+.rv-cell { border-radius: 3px; background: rgba(210,133,107,0.07); cursor: pointer; transition: outline 0.12s; }
+.rv-cell[data-i="1"] { background: rgba(210,133,107,0.22); }
+.rv-cell[data-i="2"] { background: rgba(210,133,107,0.42); }
+.rv-cell[data-i="3"] { background: rgba(210,133,107,0.66); }
+.rv-cell[data-i="4"] { background: var(--accent); }
+.rv-cell:hover { outline: 1.5px solid var(--text-muted); outline-offset: 1px; }
+.rv-cell.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rv-cell.today { box-shadow: inset 0 0 0 1.5px rgba(42,36,28,0.32); }
+.rv-cell.future, .rv-cell.blank { background: transparent; cursor: default; pointer-events: none; }
+.rv-rowlabel, .rv-collabel {
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--text-faint); display: flex; align-items: center;
+}
+.rv-rowlabel { justify-content: flex-end; padding-right: 8px; }
+.rv-collabel { justify-content: flex-start; padding-bottom: 5px; align-items: flex-end; }
+
+/* Month calendar variant */
+.rv-month { width: 100%; }
+.rv-month-head { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; margin-bottom: 8px; }
+.rv-month-head div { font-family: var(--label-font); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); text-align: center; }
+.rv-mgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; width: 100%; }
+.rv-mcell {
+  min-height: 56px; border-radius: 8px; background: rgba(210,133,107,0.06); cursor: pointer;
+  padding: 7px 9px; transition: outline 0.12s;
+}
+.rv-mcell[data-i="1"] { background: rgba(210,133,107,0.18); }
+.rv-mcell[data-i="2"] { background: rgba(210,133,107,0.34); }
+.rv-mcell[data-i="3"] { background: rgba(210,133,107,0.56); }
+.rv-mcell[data-i="4"] { background: var(--accent); }
+.rv-mcell .d { font-family: var(--label-font); font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.rv-mcell[data-i="3"] .d, .rv-mcell[data-i="4"] .d { color: #fff; opacity: 0.92; }
+.rv-mcell:hover { outline: 1.5px solid var(--text-muted); outline-offset: 1px; }
+.rv-mcell.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rv-mcell.today .d { font-weight: 700; color: var(--accent); }
+.rv-mcell.today[data-i="3"] .d, .rv-mcell.today[data-i="4"] .d { color: #fff; }
+.rv-mcell.future { background: transparent; cursor: default; pointer-events: none; }
+.rv-mcell.future .d { color: var(--text-faint); opacity: 0.45; }
+.rv-mcell.blank { background: transparent; pointer-events: none; min-height: 0; }
+
+.rv-legend { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: 18px; font-family: var(--label-font); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-faint); }
+.rv-legend .lg { width: 11px; height: 11px; border-radius: 2px; }
+
+/* Day detail */
+.rv-section-title { font-family: var(--label-font); font-size: 10px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 18px; }
+.rv-detail-empty { font-family: var(--body-font); font-size: 13px; color: var(--text-faint); text-align: center; padding: 26px 0; }
+.rv-dt-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+.rv-dt-date { font-family: var(--label-font); font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--rv-day, var(--text)); }
+.rv-dt-pct { font-family: var(--label-font); font-size: 11px; letter-spacing: 0.04em; color: var(--rv-day, var(--accent)); }
+.rv-dt-jump { margin-left: auto; font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint); background: none; border: none; cursor: pointer; transition: color 0.2s; }
+.rv-dt-jump:hover { color: var(--rv-day, var(--accent)); }
+.rv-dt-list { display: flex; flex-direction: column; gap: 13px; }
+.rv-dt-row { display: flex; align-items: flex-start; gap: 12px; }
+.rv-dt-check { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+.rv-dt-check.on { background: var(--rv-day-solid, var(--accent)); color: #fff; }
+.rv-dt-check.off { border: 1.5px solid var(--line-strong); }
+.rv-dt-main { flex: 1; min-width: 0; }
+.rv-dt-name { font-family: var(--body-font); font-size: 14px; color: var(--text); }
+.rv-dt-name.off { color: var(--text-faint); }
+.rv-dt-plat { font-family: var(--label-font); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; margin-left: 8px; white-space: nowrap; }
+.rv-dt-extra { color: var(--accent); margin-left: 6px; font-size: 12px; }
+.rv-dt-subs { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.rv-dt-sub { font-family: var(--label-font); font-size: 10px; letter-spacing: 0.02em; color: var(--rv-day, var(--accent)); background: var(--rv-day-soft, var(--accent-faint)); border-radius: 5px; padding: 2px 8px; }
+.rv-dt-also { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.rv-dt-also-label { font-family: var(--label-font); font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 11px; }
+.rv-dt-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.rv-dt-chip { font-family: var(--body-font); font-size: 12px; color: var(--text-muted); background: rgba(210,133,107,0.09); border-radius: 6px; padding: 3px 11px; }
+.rv-dt-chip .ct { font-family: var(--label-font); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-right: 6px; }
+
+/* A+B combo — white detail card · seasonal field · categorical chips */
+.rv-detail-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; }
+.rv-dt-finishes { display: flex; flex-direction: column; gap: 9px; margin-bottom: 20px; padding: 14px 16px; background: rgba(210,133,107,0.05); border-radius: 10px; }
+.rv-dt-finishes-label { font-family: var(--label-font); font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-faint); }
+.rv-dt-finish-row { display: flex; align-items: center; gap: 11px; }
+.rv-dt-finish-row .rv-dt-fname { font-family: var(--body-font); font-size: 13.5px; color: var(--text); }
+.rv-dt-chip.pl, .rv-dt-chip.ro { background: var(--rv-day-soft, rgba(210,133,107,0.10)); color: var(--rv-day, var(--text-muted)); }
+.rv-dt-chip.pl .ct, .rv-dt-chip.ro .ct { color: inherit; opacity: 0.62; }
+
+@media (max-width: 600px) {
+  .rv-field-wrap { padding: 18px 14px 20px; }
+  .rv-header { gap: 10px; }
+  .rv-span-toggle button { padding: 5px 12px; }
+}
+
 /* Footer */
 .app-footer {
   font-family: var(--label-font); margin-top: 80px; padding-top: 24px;
@@ -1536,9 +1669,18 @@ function setTier2Completion(gameId, value) {
   smoothRender();
 }
 function setTier3Status(gameId, value) {
-  const g = state.config.tier3.find(x => x.id === gameId);
-  if (!g) return;
-  g.status = value || 'considering';
+  const arr = state.config.tier3;
+  const idx = arr.findIndex(x => x.id === gameId);
+  if (idx === -1) return;
+  const g = arr[idx];
+  const newStatus = value || 'considering';
+  g.status = newStatus;
+  // Surface a freshly (re)classified game at the TOP of its new group: pull it out
+  // and re-insert just before the first existing member of that status. (Manual sort
+  // only — 'added'/'name' sorts re-order anyway, so the splice is harmless there.)
+  arr.splice(idx, 1);
+  const insertAt = arr.findIndex(x => (x.status || 'considering') === newStatus);
+  if (insertAt === -1) arr.unshift(g); else arr.splice(insertAt, 0, g);
   scheduleSave();
   // Status is the grouping key — re-render so the card animates into its new group.
   smoothRender();
@@ -2064,22 +2206,38 @@ function getDayIntensity(dateStr) {
   const tier1Games = gamesInTierOnDate('tier1', dateStr);
   const tier2Games = gamesInTierOnDate('tier2', dateStr);
   const tier3Games = gamesInTierOnDate('tier3', dateStr);
-  const tier1Count = tier1Games.length;
-  let checked = 0, extra = 0;
+  // Daily ritual: 主勾 + 子任务深度 + ✦多玩
+  const dailyCount = tier1Games.length;
+  let dailyChecked = 0, extra = 0, subDone = 0, subTotal = 0;
   tier1Games.forEach(g => {
-    if (day.tier1 && day.tier1[g.id]) {
-      if (day.tier1[g.id].checkedIn) checked++;
-      if (day.tier1[g.id].extra) extra++;
+    const gd = day.tier1 && day.tier1[g.id];
+    if (gd) {
+      if (gd.checkedIn) dailyChecked++;
+      if (gd.extra) extra++;
     }
+    (g.subtasks || []).forEach(st => {
+      if (st.hidden) return;
+      subTotal++;
+      if (gd && gd.subtasks && gd.subtasks[st.id]) subDone++;
+    });
   });
-  tier2Games.forEach(g => { if (day.tier2 && day.tier2[g.id]) extra++; });
-  tier3Games.forEach(g => { if (day.tier3 && day.tier3[g.id]) extra++; });
-  if (checked === 0 && extra === 0) return 0;
-  const base = tier1Count > 0 ? checked / tier1Count : 0;
-  const score = base + extra * 0.12;
-  if (score < 0.15) return 1;
-  if (score < 0.5) return 2;
-  if (score < 0.85) return 3;
+  // 额外广度:Playing 在玩 + Roster 摸了 + Daily ✦多玩
+  let touches = extra;
+  tier2Games.forEach(g => { if (day.tier2 && day.tier2[g.id]) touches++; });
+  tier3Games.forEach(g => { if (day.tier3 && day.tier3[g.id]) touches++; });
+
+  if (dailyChecked === 0 && subDone === 0 && touches === 0) return 0;
+
+  // Intensity = 整体活动量。Daily 主勾是最重的单项(0.40,你的"权重高"),
+  // 但满勾≠顶格 —— 真正拉开梯度的是「额外活动量 touches」(0→很多,占 0.40,
+  // 8 次才封顶)和「子任务深度」(0.20)。这样一天玩得多/少能直接看出来。
+  const dailyRatio = dailyCount > 0 ? dailyChecked / dailyCount : 0;
+  const subRatio   = subTotal  > 0 ? subDone / subTotal       : 0;
+  const score = dailyRatio * 0.40 + subRatio * 0.20 + Math.min(touches / 8, 1) * 0.40;
+
+  if (score < 0.30) return 1;
+  if (score < 0.52) return 2;
+  if (score < 0.74) return 3;
   return 4;
 }
 
@@ -2189,6 +2347,7 @@ function render() {
   closePicker();
   if (!session) { renderSignIn(); return; }
   if (!state) { renderLoading(); return; }
+  if (reviewOpen) { renderReview(); return; }
   // First time the app proper renders → enable section entry animation
   if (_firstAppRender) {
     document.body.classList.add('first-load');
@@ -2228,6 +2387,17 @@ function renderApp() {
   const root = document.getElementById('root');
   root.innerHTML = `
     <header class="header narrow">
+      <div class="review-entry-row">
+        <button class="review-entry" id="review-entry" title="回顾打卡足迹">
+          <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true">
+            <rect x="0" y="0" width="5.4" height="5.4" rx="1.3" fill="rgba(210,133,107,0.30)"></rect>
+            <rect x="7.6" y="0" width="5.4" height="5.4" rx="1.3" fill="rgba(210,133,107,0.58)"></rect>
+            <rect x="0" y="7.6" width="5.4" height="5.4" rx="1.3" fill="var(--accent)"></rect>
+            <rect x="7.6" y="7.6" width="5.4" height="5.4" rx="1.3" fill="rgba(210,133,107,0.16)"></rect>
+          </svg>
+          回顾
+        </button>
+      </div>
       <div class="date-nav">
         <div class="date-arrow" id="prev-day" title="Previous day">‹</div>
         <div class="date" id="date"></div>
@@ -2288,6 +2458,7 @@ function renderApp() {
   document.getElementById('export-btn').onclick = exportData;
   document.getElementById('import-btn').onclick = importData;
   document.getElementById('signout-btn').onclick = signOut;
+  document.getElementById('review-entry').onclick = openReview;
 }
 
 function renderHeader() {
@@ -3358,6 +3529,344 @@ function renderManageModal() {
 
 function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ============================================================
+// Review (回顾) — history overview + day drill-down
+// ============================================================
+let reviewOpen = false;
+let reviewSpan = 'quarter';     // 'month' | 'quarter' | 'year'
+let reviewAnchor = null;        // dateKey — reference date for the visible window
+let reviewSelectedDay = null;   // dateKey — currently inspected day
+
+const RV_MONTH = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const RV_WK = ['周日','周一','周二','周三','周四','周五','周六']; // by getDay()
+
+// Hue carries TIME (weekly), cycling once per ~quarter so the 季 view is a full
+// loop — but only through a curated MACARON ring, never a raw rainbow. Adjacent
+// weeks interpolate softly. Intensity carries AMOUNT (深浅).
+const RV_HUE_PERIOD = 91;   // days per full loop
+const RV_HUE_OFFSET = 0.33;  // rotate the ring (0..1) — 0.33 lands "now" on coral/rose
+const RV_MACARON = [
+  [226, 150, 128], // 珊瑚 coral
+  [242, 196, 150], // 蜜桃 peach
+  [238, 220, 156], // 奶油 butter
+  [198, 216, 162], // 开心果 pistachio
+  [176, 202, 224], // 粉蓝 powder blue
+  [208, 192, 228], // 薰衣草 lavender
+  [242, 196, 212], // 玫瑰 rose
+];
+function rvDoy(d) { const s = new Date(d.getFullYear(), 0, 0); return Math.floor((d - s) / 86400000); }
+function rvWeekT(d) { const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return (((rvDoy(mon) % RV_HUE_PERIOD) / RV_HUE_PERIOD) + RV_HUE_OFFSET) % 1; }
+function rvMacaron(t) {
+  const n = RV_MACARON.length, x = ((t % 1) + 1) % 1 * n, i = Math.floor(x) % n, j = (i + 1) % n, f = x - Math.floor(x);
+  const a = RV_MACARON[i], b = RV_MACARON[j];
+  return [0, 1, 2].map(k => a[k] + (b[k] - a[k]) * f);
+}
+function rvHeat(d, i) {
+  let [r, g, b] = rvMacaron(rvWeekT(d));
+  const deep = [1, 1, 0.95, 0.88, 0.82][i], A = [0.13, 0.45, 0.64, 0.80, 0.95][i];
+  return `rgba(${Math.round(r * deep)},${Math.round(g * deep)},${Math.round(b * deep)},${A})`;
+}
+
+function gameById(id) {
+  for (const t of ['tier1', 'tier2', 'tier3']) {
+    const g = (state.config[t] || []).find(x => x.id === id);
+    if (g) return g;
+  }
+  return null;
+}
+
+function openReview() {
+  reviewOpen = true;
+  reviewSpan = 'quarter';
+  reviewAnchor = todayKey();
+  reviewSelectedDay = todayKey();
+  render();
+}
+function closeReview() { reviewOpen = false; render(); }
+
+// Visible window [start, end] (inclusive) for the current span + anchor.
+function reviewWindow() {
+  const a = parseDateKey(reviewAnchor); a.setHours(0, 0, 0, 0);
+  if (reviewSpan === 'month') {
+    return { start: new Date(a.getFullYear(), a.getMonth(), 1), end: new Date(a.getFullYear(), a.getMonth() + 1, 0) };
+  }
+  if (reviewSpan === 'year') {
+    return { start: new Date(a.getFullYear(), 0, 1), end: new Date(a.getFullYear(), 11, 31) };
+  }
+  // quarter: 13 weeks ending on the Sunday of the anchor's week
+  const dow = (a.getDay() + 6) % 7;            // Mon=0
+  const end = new Date(a); end.setDate(a.getDate() + (6 - dow));
+  const start = new Date(end); start.setDate(end.getDate() - (13 * 7 - 1));
+  return { start, end };
+}
+
+function canPageNext() {
+  const a = parseDateKey(reviewAnchor);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  if (reviewSpan === 'month') return !(a.getFullYear() === t.getFullYear() && a.getMonth() === t.getMonth());
+  if (reviewSpan === 'year') return a.getFullYear() < t.getFullYear();
+  return reviewWindow().end < t; // quarter: more recent weeks exist
+}
+
+function pageReview(dir) {
+  if (dir > 0 && !canPageNext()) return;
+  const a = parseDateKey(reviewAnchor);
+  if (reviewSpan === 'month') a.setMonth(a.getMonth() + dir);
+  else if (reviewSpan === 'year') a.setFullYear(a.getFullYear() + dir);
+  else a.setDate(a.getDate() + dir * 7 * 13);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  if (a > t) { reviewAnchor = todayKey(); } else { reviewAnchor = dateKey(a); }
+  fillReview();
+}
+
+function renderReview() {
+  const root = document.getElementById('root');
+  root.innerHTML = `
+    <div class="review-view">
+      <div class="rv-header narrow">
+        <button class="rv-back" id="rv-back">↩ 返回</button>
+        <div class="rv-title">回顾</div>
+        <div class="rv-span-toggle">
+          <button data-span="month">月</button>
+          <button data-span="quarter">季</button>
+          <button data-span="year">年</button>
+        </div>
+      </div>
+      <div class="rv-summary narrow" id="rv-summary"></div>
+      <div class="rv-field-wrap narrow">
+        <div class="rv-field-head">
+          <button id="rv-prev">‹</button>
+          <div class="rv-range-label" id="rv-range-label"></div>
+          <button id="rv-next">›</button>
+        </div>
+        <div class="rv-field" id="rv-field"></div>
+        <div class="rv-legend">
+          <span>少</span>
+          <span class="lg" style="background:rgba(150,130,110,0.10)"></span>
+          <span class="lg" style="background:rgba(150,130,110,0.28)"></span>
+          <span class="lg" style="background:rgba(150,130,110,0.50)"></span>
+          <span class="lg" style="background:rgba(150,130,110,0.72)"></span>
+          <span class="lg" style="background:rgba(150,130,110,0.92)"></span>
+          <span>多</span>
+        </div>
+      </div>
+      <div class="rv-detail narrow">
+        <div class="rv-section-title">那天的仪式</div>
+        <div id="rv-detail" class="rv-detail-card"></div>
+      </div>
+    </div>`;
+  document.getElementById('rv-back').onclick = closeReview;
+  document.getElementById('rv-prev').onclick = () => pageReview(-1);
+  document.getElementById('rv-next').onclick = () => pageReview(1);
+  document.querySelectorAll('.rv-span-toggle button').forEach(b => {
+    b.onclick = () => { reviewSpan = b.dataset.span; fillReview(); };
+  });
+  fillReview();
+}
+
+function fillReview() {
+  document.querySelectorAll('.rv-span-toggle button').forEach(b => b.classList.toggle('active', b.dataset.span === reviewSpan));
+  const { start, end } = reviewWindow();
+  document.getElementById('rv-range-label').textContent = reviewRangeLabel(start, end);
+  document.getElementById('rv-next').classList.toggle('disabled', !canPageNext());
+  const field = document.getElementById('rv-field');
+  field.innerHTML = '';
+  field.appendChild(reviewSpan === 'month' ? buildMonthField() : buildWeekField());
+  renderReviewSummary(start, end);
+  renderReviewDetail();
+}
+
+function reviewRangeLabel(start, end) {
+  if (reviewSpan === 'month') { const a = parseDateKey(reviewAnchor); return a.getFullYear() + ' · ' + RV_MONTH[a.getMonth()]; }
+  if (reviewSpan === 'year') return String(parseDateKey(reviewAnchor).getFullYear());
+  return RV_MONTH[start.getMonth()] + start.getDate() + '日 – ' + RV_MONTH[end.getMonth()] + end.getDate() + '日';
+}
+
+function rvDayCell(d, today, px) {
+  const key = dateKey(d);
+  const cell = document.createElement('div');
+  cell.className = 'rv-cell';
+  cell.style.width = px + 'px'; cell.style.height = px + 'px';
+  if (d > today) { cell.classList.add('future'); return cell; }
+  const i = getDayIntensity(key);
+  cell.dataset.i = i;
+  cell.style.background = rvHeat(d, i);
+  if (key === todayKey()) cell.classList.add('today');
+  if (key === reviewSelectedDay) cell.classList.add('sel');
+  cell.title = key;
+  cell.onclick = () => { reviewSelectedDay = key; fillReview(); };
+  return cell;
+}
+
+// Quarter / Year — week columns × 7 day rows (GitHub-style rhythm field)
+function buildWeekField() {
+  const { start, end } = reviewWindow();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const px = reviewSpan === 'year' ? 10 : 22;
+  const gap = reviewSpan === 'year' ? 2 : 4;
+  const s = new Date(start); s.setDate(s.getDate() - ((s.getDay() + 6) % 7));   // back to Monday
+  const e = new Date(end);   e.setDate(e.getDate() + (6 - ((e.getDay() + 6) % 7))); // fwd to Sunday
+  const weeks = Math.round((e - s) / (7 * 86400000)) + 1;
+
+  const grid = document.createElement('div');
+  grid.className = 'rv-grid';
+  grid.style.gridTemplateColumns = `auto repeat(${weeks}, ${px}px)`;
+  grid.style.gap = gap + 'px';
+
+  // Month-label row
+  grid.appendChild(document.createElement('div'));
+  for (let w = 0; w < weeks; w++) {
+    const d = new Date(s); d.setDate(s.getDate() + w * 7);
+    const lab = document.createElement('div'); lab.className = 'rv-collabel';
+    const prev = new Date(s); prev.setDate(s.getDate() + (w - 1) * 7);
+    if (w === 0 || d.getMonth() !== prev.getMonth()) {
+      lab.textContent = RV_MONTH[d.getMonth()];
+      const lc = rvMacaron(rvWeekT(d)).map(v => Math.round(v * 0.55));
+      lab.style.color = `rgb(${lc[0]},${lc[1]},${lc[2]})`;
+      lab.style.fontWeight = '600';
+    }
+    grid.appendChild(lab);
+  }
+  const showRow = [true, false, true, false, true, false, false];
+  const letters = ['一', '二', '三', '四', '五', '六', '日'];
+  for (let r = 0; r < 7; r++) {
+    const rl = document.createElement('div'); rl.className = 'rv-rowlabel';
+    rl.style.height = px + 'px';
+    rl.textContent = showRow[r] ? letters[r] : '';
+    grid.appendChild(rl);
+    for (let w = 0; w < weeks; w++) {
+      const d = new Date(s); d.setDate(s.getDate() + w * 7 + r); d.setHours(0, 0, 0, 0);
+      grid.appendChild(rvDayCell(d, today, px));
+    }
+  }
+  return grid;
+}
+
+// Month — true calendar grid with date numbers (journal feel)
+function buildMonthField() {
+  const a = parseDateKey(reviewAnchor);
+  const y = a.getFullYear(), m = a.getMonth();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const wrap = document.createElement('div');
+  wrap.className = 'rv-month';
+
+  const head = document.createElement('div'); head.className = 'rv-month-head';
+  ['一', '二', '三', '四', '五', '六', '日'].forEach(l => { const d = document.createElement('div'); d.textContent = '周' + l; head.appendChild(d); });
+  wrap.appendChild(head);
+
+  const grid = document.createElement('div'); grid.className = 'rv-mgrid';
+  const first = new Date(y, m, 1);
+  const lead = (first.getDay() + 6) % 7;
+  const days = new Date(y, m + 1, 0).getDate();
+  for (let i = 0; i < lead; i++) { const b = document.createElement('div'); b.className = 'rv-mcell blank'; grid.appendChild(b); }
+  for (let dn = 1; dn <= days; dn++) {
+    const d = new Date(y, m, dn); d.setHours(0, 0, 0, 0);
+    const key = dateKey(d);
+    const c = document.createElement('div'); c.className = 'rv-mcell';
+    const num = document.createElement('div'); num.className = 'd'; num.textContent = dn; c.appendChild(num);
+    if (d > today) { c.classList.add('future'); }
+    else {
+      c.style.background = rvHeat(d, getDayIntensity(key));
+      if (key === todayKey()) c.classList.add('today');
+      if (key === reviewSelectedDay) c.classList.add('sel');
+      c.onclick = () => { reviewSelectedDay = key; fillReview(); };
+    }
+    grid.appendChild(c);
+  }
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+// One quiet line of trend for the visible window
+function renderReviewSummary(start, end) {
+  const el = document.getElementById('rv-summary');
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const s = new Date(start); s.setHours(0, 0, 0, 0);
+  let e = new Date(end); e.setHours(0, 0, 0, 0); if (e > today) e = new Date(today);
+  let elapsed = 0, attended = 0, run = 0, best = 0;
+  const counts = {};
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+    elapsed++;
+    const key = dateKey(d);
+    if (getDayIntensity(key) > 0) { attended++; run++; if (run > best) best = run; } else run = 0;
+    const day = state.history[key];
+    if (day && day.tier1) for (const gid in day.tier1) { if (day.tier1[gid].checkedIn) counts[gid] = (counts[gid] || 0) + 1; }
+  }
+  if (elapsed <= 0 || attended === 0) { el.innerHTML = '<span>这段时间还没有打卡记录</span>'; return; }
+  let topId = null, topN = 0;
+  for (const gid in counts) if (counts[gid] > topN) { topN = counts[gid]; topId = gid; }
+  const topGame = topId ? parsePlatform((gameById(topId) || {}).name || '').base : '—';
+  el.innerHTML =
+    `<span>到场 <b>${attended}</b>/${elapsed} 天</span>` +
+    `<span class="sum-sep">·</span><span>最长连续 <b>${best}</b> 天</span>` +
+    `<span class="sum-sep">·</span><span>最常打卡 <b>${escapeHtml(topGame)}</b></span>`;
+}
+
+// The selected day, in full
+function renderReviewDetail() {
+  const host = document.getElementById('rv-detail');
+  const key = reviewSelectedDay;
+  if (!key) { host.innerHTML = '<div class="rv-detail-empty">点上面任意一天，看看那天打了哪些勾</div>'; return; }
+  const d = parseDateKey(key);
+  // Card wears the colour of this day's week (unify with the field's time-hue)
+  const mb = rvMacaron(rvWeekT(d));
+  host.style.setProperty('--rv-day', `rgb(${Math.round(mb[0]*0.60)},${Math.round(mb[1]*0.60)},${Math.round(mb[2]*0.60)})`);
+  host.style.setProperty('--rv-day-solid', `rgb(${Math.round(mb[0]*0.70)},${Math.round(mb[1]*0.70)},${Math.round(mb[2]*0.70)})`);
+  host.style.setProperty('--rv-day-soft', `rgba(${Math.round(mb[0])},${Math.round(mb[1])},${Math.round(mb[2])},0.30)`);
+  const day = state.history[key];
+  const dailyGames = gamesInTierOnDate('tier1', key);
+  const pct = getDayProgress(key);
+
+  let html = `<div class="rv-dt-head"><div class="rv-dt-date">${d.getFullYear()} · ${RV_MONTH[d.getMonth()]}${d.getDate()}日 · ${RV_WK[d.getDay()]}</div>`;
+  if (dailyGames.length) html += `<div class="rv-dt-pct">完成度 ${pct}%</div>`;
+  html += `<button class="rv-dt-jump" id="rv-dt-jump">在主视图打开 ›</button></div>`;
+
+  // Milestone celebration — a game whose recorded completion lands on this day
+  const finishes = [];
+  ['tier1', 'tier2', 'tier3'].forEach(t => (state.config[t] || []).forEach(g => {
+    if (g.lastMilestone === key && g.completion) finishes.push({ name: parsePlatform(g.name).base, c: g.completion });
+  }));
+  if (finishes.length) {
+    let f = '';
+    finishes.forEach(x => { f += `<div class="rv-dt-finish-row"><span class="status-pill" data-status="${x.c}">${TIER2_COMPLETION_LABELS[x.c] || ''}</span><span class="rv-dt-fname">${escapeHtml(x.name)}</span></div>`; });
+    html += `<div class="rv-dt-finishes"><div class="rv-dt-finishes-label">这天完成了</div>${f}</div>`;
+  }
+
+  let rows = '';
+  dailyGames.forEach(g => {
+    const gd = (day && day.tier1 && day.tier1[g.id]) || { checkedIn: false, subtasks: {}, extra: false };
+    const on = !!gd.checkedIn;
+    const parsed = parsePlatform(g.name);
+    let subs = '';
+    (g.subtasks || []).forEach(st => { if (gd.subtasks && gd.subtasks[st.id]) subs += `<span class="rv-dt-sub">${escapeHtml(st.name || '')}</span>`; });
+    rows += `<div class="rv-dt-row">` +
+      `<div class="rv-dt-check ${on ? 'on' : 'off'}">${on ? '✓' : ''}</div>` +
+      `<div class="rv-dt-main">` +
+        `<span class="rv-dt-name ${on ? '' : 'off'}">${escapeHtml(parsed.base)}</span>` +
+        (parsed.platform ? `<span class="rv-dt-plat">${parsed.platform}</span>` : '') +
+        (gd.extra ? '<span class="rv-dt-extra">✦</span>' : '') +
+        (subs ? `<div class="rv-dt-subs">${subs}</div>` : '') +
+      `</div></div>`;
+  });
+  if (!dailyGames.length) rows = '<div class="rv-detail-empty">这天 Daily 档还没有游戏</div>';
+  html += `<div class="rv-dt-list">${rows}</div>`;
+
+  const also = [];
+  ['tier2', 'tier3'].forEach(t => {
+    gamesInTierOnDate(t, key).forEach(g => {
+      if (day && day[t] && day[t][g.id] === true) also.push({ t, name: parsePlatform(g.name).base });
+    });
+  });
+  if (also.length) {
+    let chips = '';
+    also.forEach(a => { const pl = a.t === 'tier2'; chips += `<span class="rv-dt-chip ${pl ? 'pl' : 'ro'}"><span class="ct">${pl ? '在玩' : '摸了摸'}</span>${escapeHtml(a.name)}</span>`; });
+    html += `<div class="rv-dt-also"><div class="rv-dt-also-label">那天也碰了</div><div class="rv-dt-chips">${chips}</div></div>`;
+  }
+  host.innerHTML = html;
+  const jump = document.getElementById('rv-dt-jump');
+  if (jump) jump.onclick = () => { viewDate = key; reviewOpen = false; render(); };
 }
 
 function renderHeatmap() {
