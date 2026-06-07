@@ -1045,7 +1045,7 @@ const DEFAULT_CONFIG = {
   rosterGrouped: true,
   rosterSort: 'manual',
   rosterGroupFold: { up_next: false, considering: false, backlog: true },
-  finishedFold: { beaten: false, completed: false, sated: true, abandoned: true }
+  finishedFold: { beaten: true, completed: true, sated: true, abandoned: true }
 };
 
 function makeDefault() {
@@ -1121,9 +1121,9 @@ function migrate(state) {
 
   // Finished shelf fold state (Beaten / Completed / Abandoned)
   if (!state.config.finishedFold || typeof state.config.finishedFold !== 'object') {
-    state.config.finishedFold = { beaten: false, completed: false, sated: true, abandoned: true };
+    state.config.finishedFold = { beaten: true, completed: true, sated: true, abandoned: true };
   } else {
-    const ffDefaults = { beaten: false, completed: false, sated: true, abandoned: true };
+    const ffDefaults = { beaten: true, completed: true, sated: true, abandoned: true };
     ['beaten', 'completed', 'sated', 'abandoned'].forEach(k => {
       if (typeof state.config.finishedFold[k] !== 'boolean') state.config.finishedFold[k] = ffDefaults[k];
     });
@@ -2985,7 +2985,7 @@ const FINISHED_GROUP_ORDER = ['beaten', 'completed', 'sated', 'abandoned'];
 let editingMilestoneFor = null; // { id }
 
 function finishedFold() {
-  return Object.assign({ beaten: false, completed: false, sated: true, abandoned: true }, state.config.finishedFold || {});
+  return Object.assign({ beaten: true, completed: true, sated: true, abandoned: true }, state.config.finishedFold || {});
 }
 
 function renderFinished() {
@@ -3021,7 +3021,7 @@ function buildFinishedGroup(status, games, fold) {
     `<span class="rg-count">${games.length}</span>` +
     `<span class="rg-line"></span>`;
   head.onclick = () => {
-    const ff = Object.assign({ beaten: false, completed: false, sated: true, abandoned: true }, state.config.finishedFold || {});
+    const ff = Object.assign({ beaten: true, completed: true, sated: true, abandoned: true }, state.config.finishedFold || {});
     ff[status] = !folded;
     state.config.finishedFold = ff;
     scheduleSave(); smoothRender();
