@@ -6,23 +6,42 @@
 <title>Daily Ritual</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,500i&family=Noto+Serif+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
-  --bg: #ecebe1;
+  --bg: #fbfaf6;
+  --bg-deep: #f3efe6;
   --text: #2a241c;
   --text-muted: #6b5e4a;
   --text-faint: #9c8f78;
-  --accent: #b8763e;
-  --accent-soft: rgba(184, 118, 62, 0.2);
-  --accent-faint: rgba(184, 118, 62, 0.08);
+  --accent: #d2856b;
+  --accent-soft: rgba(210, 133, 107, 0.22);
+  --accent-faint: rgba(210, 133, 107, 0.10);
   --line: rgba(42, 36, 28, 0.1);
   --line-strong: rgba(42, 36, 28, 0.18);
 
-  --body-font: 'Fraunces', 'Noto Serif SC', 'Songti SC', 'Songti TC', STSong, serif;
-  --display-font: 'Fraunces', 'Noto Serif SC', 'Songti SC', 'Songti TC', STSong, Georgia, serif;
-  --label-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  --body-font: 'Quicksand', 'LXGW WenKai', 'Songti SC', 'Songti TC', STSong, sans-serif;
+  --display-font: 'Quicksand', 'LXGW WenKai', 'Songti SC', 'Songti TC', STSong, sans-serif;
+  --label-font: 'Quicksand', 'LXGW WenKai', -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif;
+
+  /* Roster group palette — soft macaron: peach ▸ pink ▸ pistachio (priority heat) */
+  --up-tint:  rgba(248, 206, 160, 0.30);
+  --up-line:  #e8b787;
+  --up-name:  #b9794a;
+  --con-tint: rgba(245, 201, 211, 0.32);
+  --con-line: #ecb6c3;
+  --con-name: #b4738a;
+  --back-tint: rgba(206, 222, 182, 0.28);
+  --back-line: #bdcd92;
+  --back-name: #7c9159;
+
+  /* Warm paper grain — swap this var for an external texture later, no markup change */
+  --paper-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.45  0 0 0 0 0.34  0 0 0 0 0.2  0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Full-bleed background image (user watercolor). CSS glow stays as fallback only. */
+  --bg-image: url('assets/background.png');
+  --paper-opacity: 0;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,12 +61,30 @@ body {
   touch-action: pan-y;
 }
 
+/* Warm paper grain underlay — sits behind all content, never darkens text */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: var(--paper-bg); background-size: 220px 220px;
+  opacity: var(--paper-opacity); mix-blend-mode: multiply;
+}
+/* Full-bleed watercolor background — fixed, covers the viewport behind content.
+   opacity softens the watercolor so the cream page colour shows through (less saturated). */
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: var(--bg-image) center center / cover no-repeat;
+  opacity: 0.58;
+}
+
 body.dragging { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
 body.dragging * { cursor: grabbing !important; }
 
 .display-font { font-family: var(--display-font); font-feature-settings: 'tnum'; letter-spacing: -0.02em; }
 
-.container { width: 100%; max-width: 540px; }
+.container { width: 100%; max-width: 760px; position: relative; z-index: 1; }
+
+/* Unified single-column width — Daily / Playing / Roster / Parked all align,
+   so the whole page reads as one system (no more narrow-top / wide-bottom split). */
+.narrow, .wide { max-width: 100%; margin-left: auto; margin-right: auto; }
 
 /* Sign-in */
 .signin-screen {
@@ -98,9 +135,9 @@ body.first-load .header { animation: fadeIn 0.6s ease-out; }
 .today-link:hover { opacity: 0.6; }
 .progress-label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
 .progress-label { font-family: var(--label-font); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-muted); }
-.progress-percentage { font-size: 2rem; font-weight: 300; color: var(--text); }
-.progress-track { height: 1px; width: 100%; background-color: var(--accent-soft); }
-.progress-fill { height: 1px; background-color: var(--accent); transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.progress-percentage { font-family: var(--label-font); font-size: 2.6rem; font-weight: 400; color: var(--accent); letter-spacing: 0.02em; line-height: 1; }
+.progress-track { height: 10px; width: 100%; background-color: rgba(210,133,107,0.10); border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #f1d2b3, #e3ab90); border-radius: 999px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* Sections */
 .section { margin-bottom: 56px; }
@@ -158,49 +195,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   100% { opacity: 1; transform: rotate(45deg) translate(0, -1px) scale(1); }
 }
 
-.name-wrap {
-  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
-}
-
-.game-name {
-  font-size: 15px; color: var(--text); letter-spacing: -0.005em;
-  cursor: pointer; transition: color 0.25s ease;
-  display: flex; align-items: center; gap: 6px;
-  flex-wrap: wrap;
-}
-.game-name.checked { color: var(--text-muted); }
-.game-name.dimmed { color: var(--text-faint); }
-.game-name.struck { color: var(--text-faint); text-decoration: line-through; text-decoration-color: var(--line-strong); }
-
-.completion-mark {
-  font-family: var(--display-font); font-size: 11px;
-  color: var(--accent); letter-spacing: 0.05em; opacity: 0.75;
-  user-select: none;
-}
-
-.game-note {
-  font-family: var(--body-font); font-size: 12px;
-  color: var(--text-faint); font-style: italic;
-  letter-spacing: -0.005em; line-height: 1.4;
-  cursor: pointer;
-  word-break: break-word;
-}
-.game-note:hover { color: var(--text-muted); }
-
-.game-name-edit {
-  flex: 1; font-family: var(--body-font); font-size: 15px;
-  color: var(--text); letter-spacing: -0.005em;
-  background: transparent; border: none; border-bottom: 1px solid var(--accent);
-  outline: none; padding: 0; min-width: 0;
-}
-
-.note-edit {
-  font-family: var(--body-font); font-size: 12px; font-style: italic;
-  color: var(--text); background: transparent; border: none;
-  border-bottom: 1px solid var(--accent); outline: none;
-  padding: 2px 0; width: 100%;
-}
-
 .extra-toggle {
   width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
   cursor: pointer; font-size: 14px; color: var(--text-faint);
@@ -238,18 +232,18 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .status-pill.empty::before { content: '+ status'; letter-spacing: 0.15em; }
 
 /* Tier 2 completion */
-.status-pill[data-status="beaten"] { color: var(--accent); background-color: var(--accent-faint); }
-.status-pill[data-status="completed"] { color: var(--accent); background-color: var(--accent-faint); font-weight: 500; }
-.status-pill[data-status="sated"] { color: var(--text-muted); background-color: transparent; border-color: var(--line-strong); }
+.status-pill[data-status="beaten"] { color: #9a7d2e; background-color: rgba(232,200,120,0.26); border-color: transparent; }
+.status-pill[data-status="completed"] { color: #7a6aa0; background-color: rgba(206,190,228,0.30); border-color: transparent; font-weight: 500; }
+.status-pill[data-status="sated"] { color: #6a7a98; background-color: rgba(176,196,222,0.26); border-color: transparent; }
 .status-pill[data-status="abandoned"] {
-  color: var(--text-faint); background-color: transparent;
-  border-color: var(--line-strong); border-style: dashed;
+  color: #8c8378; background-color: rgba(150,142,130,0.16);
+  border-color: transparent;
 }
 
-/* Tier 3 roster status */
-.status-pill[data-status="up_next"] { color: var(--accent); background-color: var(--accent-faint); font-weight: 500; }
-.status-pill[data-status="considering"] { color: var(--text-muted); background-color: transparent; border-color: var(--line-strong); }
-.status-pill[data-status="backlog"] { color: var(--text-faint); background-color: transparent; }
+/* Tier 3 roster status — soft macaron palette */
+.status-pill[data-status="up_next"] { color: var(--up-name); background-color: rgba(248,206,160,0.42); border-color: transparent; font-weight: 500; }
+.status-pill[data-status="considering"] { color: var(--con-name); background-color: rgba(245,201,211,0.44); border-color: transparent; }
+.status-pill[data-status="backlog"] { color: var(--back-name); background-color: rgba(206,222,182,0.42); border-color: transparent; }
 
 /* Hide / Note buttons */
 .row-action {
@@ -404,6 +398,290 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   flex: 1; font-family: var(--body-font); font-size: 14px;
   color: var(--text); background: transparent; border: none;
   border-bottom: 1px solid var(--accent); outline: none; padding: 0; min-width: 0;
+}
+
+/* ============================================================
+   Roster (tier3) — grouped card grid
+   ============================================================ */
+.roster-controls {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.roster-ctrl {
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--text-muted); cursor: pointer;
+  padding: 5px 11px; border-radius: 999px; background: transparent;
+  border: 1px solid var(--line-strong); transition: all 0.18s; user-select: none;
+}
+.roster-ctrl:hover { color: var(--accent); border-color: var(--accent-soft); }
+.roster-ctrl.active { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-faint); }
+.roster-ctrl .ctrl-caret { font-family: var(--display-font); font-size: 9px; opacity: 0.6; margin-left: 4px; }
+
+.roster-group { margin-bottom: 18px; }
+.roster-group-head {
+  display: flex; align-items: baseline; gap: 9px; cursor: pointer;
+  padding: 4px 2px 10px; user-select: none;
+}
+.rg-caret {
+  font-family: var(--display-font); font-size: 13px; line-height: 1;
+  color: var(--g-name, var(--text-muted)); transition: transform 0.2s; transform: rotate(90deg);
+  align-self: center;
+}
+.roster-group-head.folded .rg-caret { transform: rotate(0deg); }
+.rg-label {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--g-name, var(--text-muted)); font-weight: 500;
+}
+.rg-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  background: var(--g-line, var(--text-faint)); align-self: center;
+}
+.rg-count {
+  font-family: var(--display-font); font-size: 11px; color: var(--g-line, var(--text-faint));
+  font-variant-numeric: tabular-nums;
+}
+.roster-group-head .rg-line { flex: 1; height: 1px; background: var(--g-line, var(--line)); opacity: 0.3; align-self: center; }
+
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  background: var(--g-tint, transparent);
+  border-radius: 16px;
+  padding: 14px;
+}
+.roster-grid.ungrouped { background: transparent; padding: 0; }
+
+.roster-group[data-group="up_next"]    .roster-grid { --g-tint: var(--up-tint);   --g-line: var(--up-line);   --g-name: var(--up-name); }
+.roster-group[data-group="up_next"]    { --g-line: var(--up-line); --g-name: var(--up-name); }
+.roster-group[data-group="considering"] .roster-grid { --g-tint: var(--con-tint); --g-line: var(--con-line); --g-name: var(--con-name); }
+.roster-group[data-group="considering"] { --g-line: var(--con-line); --g-name: var(--con-name); }
+.roster-group[data-group="backlog"]    .roster-grid { --g-tint: var(--back-tint); --g-line: var(--back-line); --g-name: var(--back-name); }
+.roster-group[data-group="backlog"]    { --g-line: var(--back-line); --g-name: var(--back-name); }
+
+.roster-card {
+  position: relative;
+  background: rgba(255, 253, 247, 0.62);
+  border: 1px solid color-mix(in srgb, var(--g-line, var(--line-strong)) 32%, transparent);
+  border-radius: 12px;
+  padding: 11px 12px 9px;
+  display: flex; flex-direction: column; gap: 6px;
+  min-height: 96px;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s, opacity 0.15s;
+}
+.roster-card:hover {
+  border-color: color-mix(in srgb, var(--g-line, var(--line-strong)) 58%, transparent);
+  box-shadow: 0 3px 14px rgba(42, 36, 28, 0.06);
+}
+.roster-card.dragging { opacity: 0.32; }
+.roster-card.drop-before::before,
+.roster-card.drop-after::after {
+  content: ''; position: absolute; top: 12%; height: 76%; width: 2px;
+  background: var(--accent); border-radius: 2px; animation: lineGlow 0.25s ease-out;
+}
+.roster-card.drop-before::before { left: -7px; }
+.roster-card.drop-after::after { right: -7px; }
+
+.rc-head { display: flex; align-items: center; gap: 6px; }
+.rc-head .rc-spacer { flex: 1; }
+.rc-head .status-pill { flex-shrink: 1; min-width: 0; }
+
+.rc-drag {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 18px; cursor: grab; color: var(--text-faint);
+  opacity: 0; transition: opacity 0.2s, color 0.2s; flex-shrink: 0;
+  user-select: none; touch-action: none; font-size: 12px; line-height: 1;
+  letter-spacing: -1px; border-radius: 3px;
+}
+.roster-card:hover .rc-drag { opacity: 0.5; }
+.rc-drag:hover { opacity: 1 !important; color: var(--accent); }
+.rc-drag:active { cursor: grabbing; }
+
+.rc-menu-btn {
+  width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-faint); font-size: 15px; line-height: 1;
+  border-radius: 5px; transition: all 0.18s; opacity: 0.45; flex-shrink: 0;
+  letter-spacing: -1px;
+}
+.roster-card:hover .rc-menu-btn { opacity: 0.8; }
+.rc-menu-btn:hover { opacity: 1; color: var(--accent); background: var(--accent-faint); }
+
+.rc-name {
+  font-family: var(--body-font); font-size: 14.5px; line-height: 1.3;
+  color: var(--g-name, var(--text)); letter-spacing: -0.005em;
+  cursor: text; word-break: break-word; text-wrap: pretty;
+}
+.rc-name-edit {
+  font-family: var(--body-font); font-size: 14.5px; color: var(--text);
+  background: transparent; border: none; border-bottom: 1px solid var(--accent);
+  outline: none; padding: 0; width: 100%;
+}
+.rc-note {
+  font-family: var(--body-font); font-size: 11.5px; font-style: italic;
+  color: var(--text-faint); line-height: 1.35; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rc-note:hover { color: var(--text-muted); }
+.rc-note-edit {
+  font-family: var(--body-font); font-size: 11.5px; font-style: italic;
+  color: var(--text); background: transparent; border: none;
+  border-bottom: 1px solid var(--accent); outline: none; padding: 1px 0; width: 100%;
+}
+
+.rc-foot { display: flex; align-items: center; gap: 7px; margin-top: auto; padding-top: 3px; justify-content: space-between; }
+.rc-platform {
+  font-family: var(--label-font); font-size: 8px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--g-name, var(--text-faint)); opacity: 0.75;
+  border: 1px solid color-mix(in srgb, var(--g-line, var(--line-strong)) 45%, transparent);
+  padding: 2px 6px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; line-height: 1.4;
+}
+.rc-played {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  opacity: 0.4; transition: opacity 0.2s; user-select: none;
+}
+.roster-card:hover .rc-played, .rc-played.on { opacity: 0.9; }
+.rc-played-box {
+  width: 13px; height: 13px; border-radius: 4px; border: 1.5px solid var(--text-faint);
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;
+}
+.rc-played.on .rc-played-box { background: var(--g-name, var(--accent)); border-color: var(--g-name, var(--accent)); }
+.rc-played.on .rc-played-box::after {
+  content: ''; width: 3.5px; height: 6px; border: solid var(--bg);
+  border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translate(0, -1px);
+}
+.rc-played-label {
+  font-family: var(--label-font); font-size: 8px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.rc-played.on .rc-played-label { color: var(--g-name, var(--accent)); }
+
+.roster-empty {
+  font-family: var(--body-font); font-size: 13px; font-style: italic;
+  color: var(--text-faint); padding: 8px 2px;
+}
+
+/* Finished shelf — Beaten (gold) · Completed (lilac/platinum) · Abandoned (muted) */
+.finished-group[data-fgroup="beaten"] { --g-line: #d8b85e; --g-name: #9a7d2e; }
+.finished-group[data-fgroup="beaten"] .roster-grid { --g-tint: rgba(232,200,120,0.18); --g-line: #d8b85e; --g-name: #9a7d2e; }
+.finished-group[data-fgroup="completed"] { --g-line: #bda9dd; --g-name: #7a6aa0; }
+.finished-group[data-fgroup="completed"] .roster-grid { --g-tint: rgba(206,190,228,0.18); --g-line: #bda9dd; --g-name: #7a6aa0; }
+.finished-group[data-fgroup="sated"] { --g-line: #aebfd6; --g-name: #6a7a98; }
+.finished-group[data-fgroup="sated"] .roster-grid { --g-tint: rgba(176,196,222,0.15); --g-line: #aebfd6; --g-name: #6a7a98; }
+.finished-group[data-fgroup="abandoned"] { --g-line: #bdb4a6; --g-name: #8c8378; }
+.finished-group[data-fgroup="abandoned"] .roster-grid { --g-tint: rgba(150,142,130,0.07); --g-line: #bdb4a6; --g-name: #8c8378; }
+.abandoned-group { opacity: 0.84; }
+
+.finished-card { min-height: 78px; }
+.finished-card .rc-foot { justify-content: flex-end; }
+.rc-milestone {
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.08em;
+  color: var(--text-faint); cursor: pointer; transition: color 0.18s;
+}
+.rc-milestone:hover { color: var(--accent); }
+
+/* Daily — same card material as Playing, but a column card so sub-task chips
+   live inside it. Both "ritual" tiers (Daily + Playing) share the warm panel. */
+#tier1-list {
+  background: rgba(232, 183, 135, 0.13);
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  border-radius: 16px;
+  padding: 12px;
+  backdrop-filter: blur(2px);
+  display: flex; flex-direction: column; gap: 10px;
+}
+#tier1-list:empty { display: none; }
+
+.daily-card {
+  position: relative;
+  display: flex; flex-direction: column; gap: 8px;
+  background: rgba(255, 253, 247, 0.62);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 12px;
+  padding: 13px 15px 11px;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s, opacity 0.15s;
+}
+.daily-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+  box-shadow: 0 4px 16px rgba(42, 36, 28, 0.07);
+  transform: translateY(-1px);
+}
+.daily-card.dragging { opacity: 0.32; }
+.daily-card .rc-drag { opacity: 0; }
+.daily-card:hover .rc-drag { opacity: 0.5; }
+.dc-head { display: flex; align-items: center; gap: 12px; }
+.daily-card .rc-menu-btn { opacity: 0.45; }
+.daily-card:hover .rc-menu-btn { opacity: 0.8; }
+.daily-card .rc-menu-btn:hover { opacity: 1; }
+.daily-card .subtasks-row { margin-top: 0; margin-left: 46px; }
+.daily-card .subtasks-row.empty { opacity: 0; }
+.daily-card:hover .subtasks-row.empty { opacity: 0.6; }
+.daily-card:hover .subtask-manage-link { opacity: 0.6; }
+
+/* Playing — full-width horizontal cards in a soft "now playing" container.
+   White cards pop against a warm accent tint, echoing how Roster cards sit on
+   their colored group panels. */
+#tier2-list {
+  background: rgba(226, 166, 116, 0.16);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 16px;
+  padding: 12px;
+  backdrop-filter: blur(2px);
+  display: flex; flex-direction: column; gap: 10px;
+}
+#tier2-list:empty { display: none; }
+
+.playing-card {
+  position: relative;
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255, 253, 247, 0.62);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 12px;
+  padding: 13px 15px;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s, opacity 0.15s;
+}
+.playing-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+  box-shadow: 0 4px 16px rgba(42, 36, 28, 0.07);
+  transform: translateY(-1px);
+}
+.playing-card.dragging { opacity: 0.32; }
+.playing-card .rc-drag { opacity: 0; }
+.playing-card:hover .rc-drag { opacity: 0.5; }
+
+.pc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pc-name {
+  font-family: var(--body-font); font-size: 15px; line-height: 1.3;
+  color: var(--text); letter-spacing: -0.005em; cursor: text;
+  word-break: break-word; text-wrap: pretty;
+}
+.pc-name.checked { color: var(--text-muted); }
+.pc-name-edit {
+  font-family: var(--body-font); font-size: 15px; color: var(--text);
+  background: transparent; border: none; border-bottom: 1px solid var(--accent);
+  outline: none; padding: 0; width: 100%;
+}
+.pc-note {
+  font-family: var(--body-font); font-size: 11.5px; font-style: italic;
+  color: var(--text-faint); line-height: 1.35; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pc-note:hover { color: var(--text-muted); }
+.pc-note-edit {
+  font-family: var(--body-font); font-size: 11.5px; font-style: italic;
+  color: var(--text); background: transparent; border: none;
+  border-bottom: 1px solid var(--accent); outline: none; padding: 1px 0; width: 100%;
+}
+.pc-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.playing-card .status-pill.empty { opacity: 0; }
+.playing-card:hover .status-pill.empty { opacity: 0.4; pointer-events: auto; }
+.playing-card:hover .status-pill.empty:hover { opacity: 1; }
+.playing-card .rc-menu-btn { opacity: 0.45; }
+.playing-card:hover .rc-menu-btn { opacity: 0.8; }
+.playing-card .rc-menu-btn:hover { opacity: 1; }
+
+@media (max-width: 520px) {
+  .playing-card { gap: 9px; padding: 12px 13px; }
+  .playing-card .rc-drag { opacity: 0.4; }
 }
 
 /* Add game */
@@ -693,6 +971,9 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   .section { margin-bottom: 48px; }
   .header { margin-bottom: 48px; }
   .subtasks-row { margin-left: 28px; }
+  .daily-card .subtasks-row { margin-left: 40px; }
+  .daily-card { padding: 12px 13px 10px; }
+  .daily-card .rc-drag { opacity: 0.4; }
   .streak { min-width: 28px; }
   .drag-handle { opacity: 0.6; width: 22px; height: 28px; }
   .game-row { gap: 8px; }
@@ -759,7 +1040,12 @@ const DEFAULT_CONFIG = {
     { id: 'cupid', name: '共生丘比特', status: 'considering' },
     { id: 'yakuza3', name: '人中之龙极3', status: 'considering' },
     { id: 'immortality', name: 'Immortality', status: 'considering' }
-  ]
+  ],
+  // Roster (tier3) UI preferences — persisted in config, purely presentational
+  rosterGrouped: true,
+  rosterSort: 'manual',
+  rosterGroupFold: { up_next: false, considering: false, backlog: true },
+  finishedFold: { beaten: false, completed: false, sated: true, abandoned: true }
 };
 
 function makeDefault() {
@@ -800,6 +1086,8 @@ function migrate(state) {
       else if (typeof base.hiddenAt !== 'string') base.hiddenAt = todayKey();
       // Tier 2: optional completion status (preserved across tier moves)
       if (typeof base.completion !== 'string') base.completion = '';
+      // Last meaningful milestone date (route ending / overall ending / 100%) — light, optional
+      if (typeof base.lastMilestone !== 'string') base.lastMilestone = '';
       // Tier 3: roster status (preserved but only displayed when currently in Tier 3)
       if (typeof base.status !== 'string') base.status = 'considering';
       // Tier 1 subtasks: ensure hidden field
@@ -817,12 +1105,32 @@ function migrate(state) {
     });
   });
 
+  // Roster (tier3) UI preferences — backward-compatible defaults
+  if (typeof state.config.rosterGrouped !== 'boolean') state.config.rosterGrouped = true;
+  if (state.config.rosterSort !== 'manual' && state.config.rosterSort !== 'added' && state.config.rosterSort !== 'name') {
+    state.config.rosterSort = 'manual';
+  }
+  if (!state.config.rosterGroupFold || typeof state.config.rosterGroupFold !== 'object') {
+    state.config.rosterGroupFold = { up_next: false, considering: false, backlog: true };
+  } else {
+    const foldDefaults = { up_next: false, considering: false, backlog: true };
+    ['up_next', 'considering', 'backlog'].forEach(k => {
+      if (typeof state.config.rosterGroupFold[k] !== 'boolean') state.config.rosterGroupFold[k] = foldDefaults[k];
+    });
+  }
+
+  // Finished shelf fold state (Beaten / Completed / Abandoned)
+  if (!state.config.finishedFold || typeof state.config.finishedFold !== 'object') {
+    state.config.finishedFold = { beaten: false, completed: false, sated: true, abandoned: true };
+  } else {
+    const ffDefaults = { beaten: false, completed: false, sated: true, abandoned: true };
+    ['beaten', 'completed', 'sated', 'abandoned'].forEach(k => {
+      if (typeof state.config.finishedFold[k] !== 'boolean') state.config.finishedFold[k] = ffDefaults[k];
+    });
+  }
+
   return state;
 }
-
-// ============================================================
-// Helpers
-// ============================================================
 function pad(n) { return String(n).padStart(2, '0'); }
 function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 function todayKey() { return dateKey(new Date()); }
@@ -1146,7 +1454,7 @@ function updateTier1Row(gameId) {
   const item = document.querySelector(`#tier1-list [data-game-id="${gameId}"]`);
   if (!item) return;
   item.querySelector('.checkbox').classList.toggle('checked', !!gd.checkedIn);
-  const name = item.querySelector('.game-name');
+  const name = item.querySelector('.pc-name');
   if (name) name.classList.toggle('checked', !!gd.checkedIn);
   item.querySelectorAll('.subtask').forEach(sub => {
     const sid = sub.dataset.subtaskId;
@@ -1162,7 +1470,7 @@ function updateTier2Row(gameId) {
   const item = document.querySelector(`#tier2-list [data-game-id="${gameId}"]`);
   if (!item) return;
   item.querySelector('.checkbox').classList.toggle('checked', checked);
-  const name = item.querySelector('.game-name');
+  const name = item.querySelector('.pc-name');
   if (name) name.classList.toggle('checked', checked);
   updateStreak(item, gameId);
   updateHeatmapCell(viewDate);
@@ -1172,7 +1480,14 @@ function updateTier3Row(gameId) {
   const checked = day.tier3[gameId] === true;
   const item = document.querySelector(`#tier3-list [data-game-id="${gameId}"]`);
   if (!item) return;
-  item.querySelector('.roster-check').classList.toggle('checked', checked);
+  // Roster cards mark "played today" via .rc-played (not the legacy .roster-check)
+  const played = item.querySelector('.rc-played');
+  if (played) {
+    played.classList.toggle('on', checked);
+    const label = played.querySelector('.rc-played-label');
+    if (label) label.textContent = checked ? 'played' : 'today';
+  }
+  item.querySelector('.roster-check')?.classList.toggle('checked', checked);
   updateStreak(item, gameId);
   updateHeatmapCell(viewDate);
 }
@@ -1217,43 +1532,16 @@ function setTier2Completion(gameId, value) {
   if (!g) return;
   g.completion = value || '';
   scheduleSave();
-  // Targeted: pill + name styling + completion mark
-  const item = document.querySelector(`#tier2-list [data-game-id="${gameId}"]`);
-  if (!item) return;
-  const pill = item.querySelector('.status-pill');
-  if (pill) {
-    pill.classList.toggle('empty', !g.completion);
-    if (g.completion) pill.dataset.status = g.completion;
-    else delete pill.dataset.status;
-    pill.textContent = TIER2_COMPLETION_LABELS[g.completion || ''] || '';
-  }
-  const name = item.querySelector('.game-name');
-  if (name) {
-    name.classList.toggle('dimmed', g.completion === 'sated');
-    name.classList.toggle('struck', g.completion === 'abandoned');
-    // Strip and rebuild trailing completion mark
-    const existing = name.querySelector('.completion-mark');
-    if (existing) existing.remove();
-    if (g.completion === 'beaten' || g.completion === 'completed') {
-      const mark = document.createElement('span');
-      mark.className = 'completion-mark';
-      mark.textContent = g.completion === 'completed' ? '✓✓' : '✓';
-      name.appendChild(mark);
-    }
-  }
+  // Completion now decides Playing-vs-Finished placement, so re-render (FLIP animates the move).
+  smoothRender();
 }
 function setTier3Status(gameId, value) {
   const g = state.config.tier3.find(x => x.id === gameId);
   if (!g) return;
   g.status = value || 'considering';
   scheduleSave();
-  const item = document.querySelector(`#tier3-list [data-game-id="${gameId}"]`);
-  if (!item) return;
-  const pill = item.querySelector('.status-pill');
-  if (pill) {
-    pill.dataset.status = g.status;
-    pill.textContent = TIER3_STATUS_LABELS[g.status] || '';
-  }
+  // Status is the grouping key — re-render so the card animates into its new group.
+  smoothRender();
 }
 
 function openTier2CompletionPicker(anchor, gameId) {
@@ -1384,6 +1672,28 @@ const drag = {
   ghost: null, threshold: 5, pending: null, currentDropTarget: null
 };
 
+// Edge auto-scroll while dragging (fixes "can't reach drop spot in long lists")
+let autoScrollRAF = null;
+let lastPointerX = 0;
+let lastPointerY = 0;
+function autoScrollTick() {
+  if (!drag.active) { autoScrollRAF = null; return; }
+  const margin = 90, maxSpeed = 20;
+  const h = window.innerHeight;
+  let dy = 0;
+  if (lastPointerY < margin) dy = -maxSpeed * (1 - lastPointerY / margin);
+  else if (lastPointerY > h - margin) dy = maxSpeed * (1 - (h - lastPointerY) / margin);
+  if (dy !== 0) {
+    window.scrollBy(0, dy);
+    if (drag.ghost) {
+      drag.ghost.style.left = (lastPointerX + 12) + 'px';
+      drag.ghost.style.top = (lastPointerY + 12) + 'px';
+    }
+    updateDropIndicator(lastPointerX, lastPointerY);
+  }
+  autoScrollRAF = requestAnimationFrame(autoScrollTick);
+}
+
 function startDragPotential(type, sourceTier, sourceId, displayName, e) {
   const pt = e.touches ? e.touches[0] : e;
   drag.pending = { type, sourceTier, sourceId, displayName, startX: pt.clientX, startY: pt.clientY };
@@ -1420,11 +1730,14 @@ function handleDragMove(e) {
   }
   if (!drag.active) return;
   e.preventDefault();
+  lastPointerX = pt.clientX;
+  lastPointerY = pt.clientY;
   if (drag.ghost) {
     drag.ghost.style.left = (pt.clientX + 12) + 'px';
     drag.ghost.style.top = (pt.clientY + 12) + 'px';
   }
   updateDropIndicator(pt.clientX, pt.clientY);
+  if (!autoScrollRAF) autoScrollRAF = requestAnimationFrame(autoScrollTick);
 }
 
 function markSourceAsDragging(on) {
@@ -1440,13 +1753,50 @@ function markSourceAsDragging(on) {
 function clearDropIndicators() {
   document.querySelectorAll('.drop-line, .subtask-drop-marker').forEach(el => el.remove());
   document.querySelectorAll('.section.drop-target').forEach(el => el.classList.remove('drop-target'));
+  document.querySelectorAll('.roster-card.drop-before, .roster-card.drop-after').forEach(el => el.classList.remove('drop-before', 'drop-after'));
   drag.currentDropTarget = null;
 }
 
 function updateDropIndicator(clientX, clientY) {
   clearDropIndicators();
-  if (drag.type === 'game') updateGameDropIndicator(clientX, clientY);
-  else updateSubtaskDropIndicator(clientX, clientY);
+  if (drag.type === 'subtask') updateSubtaskDropIndicator(clientX, clientY);
+  else if (drag.sourceTier === 'tier3') updateRosterDropIndicator(clientX, clientY);
+  else updateGameDropIndicator(clientX, clientY);
+}
+
+// Roster grid: within-group 2D reorder. Finds the insertion point in reading
+// (row-major) order using both X and Y, and marks the target card.
+function updateRosterDropIndicator(clientX, clientY) {
+  const game = state.config.tier3.find(g => g.id === drag.sourceId);
+  if (!game) return;
+  const grouped = state.config.rosterGrouped !== false;
+  const status = game.status || 'considering';
+
+  let scope;
+  if (grouped) {
+    scope = document.querySelector(`#tier3-list .roster-group[data-group="${status}"] .roster-grid`);
+  } else {
+    scope = document.querySelector('#tier3-list .roster-grid.ungrouped');
+  }
+  if (!scope) return;
+
+  const cards = Array.from(scope.querySelectorAll('.roster-card')).filter(el => !el.classList.contains('dragging'));
+
+  let insertBeforeId = null;
+  let targetCard = null;
+  for (let i = 0; i < cards.length; i++) {
+    const r = cards[i].getBoundingClientRect();
+    const inRow = clientY >= r.top - 6 && clientY <= r.bottom + 6;
+    if (inRow && clientX < r.left + r.width / 2) { targetCard = cards[i]; insertBeforeId = cards[i].dataset.gameId; break; }
+    if (clientY < r.top - 6) { targetCard = cards[i]; insertBeforeId = cards[i].dataset.gameId; break; }
+  }
+
+  if (targetCard) {
+    targetCard.classList.add('drop-before');
+  } else if (cards.length > 0) {
+    cards[cards.length - 1].classList.add('drop-after'); // append at group end
+  }
+  drag.currentDropTarget = { roster: true, insertBeforeId, grouped };
 }
 
 function updateGameDropIndicator(clientX, clientY) {
@@ -1509,8 +1859,13 @@ function handleDragEnd(e, moveHandler, endHandler) {
   document.removeEventListener('touchcancel', endHandler);
   if (!drag.active) { drag.pending = null; return; }
   if (drag.currentDropTarget) {
-    if (drag.type === 'game') commitGameMove(drag.sourceTier, drag.sourceId, drag.currentDropTarget.tier, drag.currentDropTarget.index);
-    else commitSubtaskMove(drag.sourceTier, drag.sourceId, drag.currentDropTarget.index);
+    if (drag.currentDropTarget.roster) {
+      commitRosterReorder(drag.sourceId, drag.currentDropTarget.insertBeforeId, drag.currentDropTarget.grouped);
+    } else if (drag.type === 'game') {
+      commitGameMove(drag.sourceTier, drag.sourceId, drag.currentDropTarget.tier, drag.currentDropTarget.index);
+    } else {
+      commitSubtaskMove(drag.sourceTier, drag.sourceId, drag.currentDropTarget.index);
+    }
   }
   markSourceAsDragging(false);
   clearDropIndicators();
@@ -1539,11 +1894,9 @@ function commitGameMove(fromTier, gameId, toTier, toIndex) {
 
   // === Cross-tier move ===
   const snap = snapshotState();
-  let lostSubtasks = 0;
-  if (fromTier === 'tier1' && game.subtasks && game.subtasks.length > 0) {
-    lostSubtasks = game.subtasks.length;
-    game.subtasks = [];
-  }
+  // Sub-tasks are PRESERVED across tier moves — they stay dormant on the game while
+  // it lives in Playing / Roster, and reappear intact when it returns to Daily.
+  const lostSubtasks = 0;
 
   // Update tierResidence: close current residence today, open new one tomorrow
   const today = todayKey();
@@ -1593,6 +1946,31 @@ function commitSubtaskMove(gameId, subtaskId, toIndex) {
   let adjustedIndex = toIndex;
   if (fromIndex < toIndex) adjustedIndex = toIndex - 1;
   game.subtasks.splice(adjustedIndex, 0, moved);
+  scheduleSave();
+}
+
+// Roster within-group reorder — never changes status. Insert relative to a
+// concrete sibling id so interleaved group order in the array stays correct.
+function commitRosterReorder(gameId, insertBeforeId, grouped) {
+  const arr = state.config.tier3;
+  const fromIndex = arr.findIndex(g => g.id === gameId);
+  if (fromIndex === -1) return;
+  const [moved] = arr.splice(fromIndex, 1);
+
+  let insertIndex;
+  if (insertBeforeId) {
+    insertIndex = arr.findIndex(g => g.id === insertBeforeId);
+    if (insertIndex === -1) insertIndex = arr.length;
+  } else if (grouped) {
+    // Append at end of this card's status group (after its last sibling).
+    const status = moved.status || 'considering';
+    let lastIdx = -1;
+    arr.forEach((g, i) => { if ((g.status || 'considering') === status) lastIdx = i; });
+    insertIndex = lastIdx + 1;
+  } else {
+    insertIndex = arr.length; // ungrouped: append to flat list
+  }
+  arr.splice(insertIndex, 0, moved);
   scheduleSave();
 }
 
@@ -1725,11 +2103,11 @@ function refreshDayView() {
   if (!state) return;
   renderHeader();
   const day = getDay(viewDate);
-  document.querySelectorAll('#tier1-list .game-item').forEach(item => {
+  document.querySelectorAll('#tier1-list .daily-card').forEach(item => {
     const id = item.dataset.gameId;
     const gd = day.tier1[id] || { checkedIn: false, subtasks: {}, extra: false };
     item.querySelector('.checkbox')?.classList.toggle('checked', !!gd.checkedIn);
-    const name = item.querySelector('.game-name');
+    const name = item.querySelector('.pc-name');
     if (name) name.classList.toggle('checked', !!gd.checkedIn);
     const ex = item.querySelector('.extra-toggle');
     if (ex) {
@@ -1742,18 +2120,23 @@ function refreshDayView() {
     });
     updateStreak(item, id);
   });
-  document.querySelectorAll('#tier2-list .game-item').forEach(item => {
+  document.querySelectorAll('#tier2-list .playing-card').forEach(item => {
     const id = item.dataset.gameId;
     const checked = day.tier2[id] === true;
     item.querySelector('.checkbox')?.classList.toggle('checked', checked);
-    const name = item.querySelector('.game-name');
+    const name = item.querySelector('.pc-name');
     if (name) name.classList.toggle('checked', checked);
     updateStreak(item, id);
   });
-  document.querySelectorAll('#tier3-list .roster-item').forEach(item => {
+  document.querySelectorAll('#tier3-list .roster-card').forEach(item => {
     const id = item.dataset.gameId;
     const checked = day.tier3[id] === true;
-    item.querySelector('.roster-check')?.classList.toggle('checked', checked);
+    const played = item.querySelector('.rc-played');
+    if (played) {
+      played.classList.toggle('on', checked);
+      const label = played.querySelector('.rc-played-label');
+      if (label) label.textContent = checked ? 'played' : 'today';
+    }
     updateStreak(item, id);
   });
   // Heatmap viewing class
@@ -1844,7 +2227,7 @@ function renderLoading() {
 function renderApp() {
   const root = document.getElementById('root');
   root.innerHTML = `
-    <header class="header">
+    <header class="header narrow">
       <div class="date-nav">
         <div class="date-arrow" id="prev-day" title="Previous day">‹</div>
         <div class="date" id="date"></div>
@@ -1858,47 +2241,33 @@ function renderApp() {
       <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width: 0%"></div></div>
     </header>
 
-    <section class="section" id="section-tier1">
+    <section class="section narrow" id="section-tier1">
       <div class="section-header"><div class="section-title">Daily</div><div class="section-line"></div></div>
       <div id="tier1-list"></div>
       <div class="add-row" id="add-tier1-container"></div>
       <div id="hidden-tier1"></div>
     </section>
 
-    <section class="section" id="section-tier2">
+    <section class="section narrow" id="section-tier2">
       <div class="section-header"><div class="section-title">Playing</div><div class="section-line"></div></div>
       <div id="tier2-list"></div>
       <div class="add-row" id="add-tier2-container"></div>
       <div id="hidden-tier2"></div>
     </section>
 
-    <section class="section" id="section-tier3">
+    <section class="section wide" id="section-tier3">
       <div class="section-header"><div class="section-title">Roster</div><div class="section-line"></div></div>
       <div id="tier3-list"></div>
       <div class="add-row" id="add-tier3-container"></div>
       <div id="hidden-tier3"></div>
     </section>
 
-    <section class="section">
-      <div class="section-header"><div class="section-title">History</div><div class="section-line"></div></div>
-      <div class="heatmap-container">
-        <div class="heatmap" id="heatmap"></div>
-        <div class="heatmap-footer">
-          <div>12w · click cell to edit · dbl-click name to rename</div>
-          <div class="heatmap-legend">
-            <span>Less</span>
-            <span class="heatmap-cell" data-intensity="0"></span>
-            <span class="heatmap-cell" data-intensity="1"></span>
-            <span class="heatmap-cell" data-intensity="2"></span>
-            <span class="heatmap-cell" data-intensity="3"></span>
-            <span class="heatmap-cell" data-intensity="4"></span>
-            <span>More</span>
-          </div>
-        </div>
-      </div>
+    <section class="section wide" id="section-finished">
+      <div class="section-header"><div class="section-title">Finished</div><div class="section-line"></div></div>
+      <div id="finished-list"></div>
     </section>
 
-    <footer class="app-footer">
+    <footer class="app-footer narrow">
       <span class="user-email" id="user-email"></span>
       <a id="export-btn">Export</a>·<a id="import-btn">Import</a>·<a id="signout-btn">Sign out</a>
     </footer>
@@ -1908,7 +2277,7 @@ function renderApp() {
   renderTier1();
   renderTier2();
   renderTier3();
-  renderHeatmap();
+  renderFinished();
 
   if (manageSubtasksFor) renderManageModal();
 
@@ -1936,15 +2305,19 @@ function renderHeader() {
 }
 
 // === Build editable name + note column ===
-function buildNameWrap(tier, game, isChecked) {
-  const wrap = document.createElement('div');
-  wrap.className = 'name-wrap';
+// === Shared editable name + note column — used by Daily & Playing cards.
+// (Roster keeps its own builder: its name takes the group colour and the note
+// sits at card level, so it doesn't share this structure.) ===
+function buildPcBody(tier, game, isChecked) {
+  const body = document.createElement('div');
+  body.className = 'pc-body';
+  const parsed = parsePlatform(game.name);
 
-  // Name (or edit input)
+  // --- Name (or edit input) ---
   const editingName = editingGameId && editingGameId.tier === tier && editingGameId.id === game.id;
   if (editingName) {
     const input = document.createElement('input');
-    input.className = 'game-name-edit';
+    input.className = 'pc-name-edit';
     input.type = 'text';
     input.value = game.name;
     let committed = false;
@@ -1958,52 +2331,26 @@ function buildNameWrap(tier, game, isChecked) {
       else if (e.key === 'Escape') { committed = true; editingGameId = null; render(); }
     };
     input.onblur = commit;
-    wrap.appendChild(input);
+    body.appendChild(input);
     setTimeout(() => { input.focus(); input.select(); }, 0);
   } else {
     const nameEl = document.createElement('div');
-    let cls = 'game-name';
-    if (tier === 'tier2') {
-      if (game.completion === 'sated') cls += ' dimmed';
-      if (game.completion === 'abandoned') cls += ' struck';
-    }
-    if (tier !== 'tier3' && isChecked) cls += ' checked';
-    nameEl.className = cls;
-
-    // Name text
-    const nameText = document.createElement('span');
-    nameText.textContent = game.name;
-    nameEl.appendChild(nameText);
-
-    // Completion mark (Beaten / Completed)
-    if (tier === 'tier2' && (game.completion === 'beaten' || game.completion === 'completed')) {
-      const mark = document.createElement('span');
-      mark.className = 'completion-mark';
-      mark.textContent = game.completion === 'completed' ? '✓✓' : '✓';
-      nameEl.appendChild(mark);
-    }
-
-    nameEl.onclick = () => {
-      if (tier === 'tier1') toggleTier1(game.id);
-      else if (tier === 'tier2') toggleTier2(game.id);
-      else toggleTier3(game.id);
-    };
-    nameEl.ondblclick = (e) => {
-      e.preventDefault();
-      editingGameId = { tier, id: game.id };
-      render();
-    };
-    wrap.appendChild(nameEl);
+    // Name single-click no longer toggles check-in (the checkbox owns that) — it's
+    // for reading; double-click renames. Consistent across Daily / Playing / Roster.
+    nameEl.className = 'pc-name' + (isChecked ? ' checked' : '');
+    nameEl.textContent = parsed.base;  // platform suffix lives in a tag; edit keeps full name
+    nameEl.title = game.name + ' · double-click to rename';
+    nameEl.ondblclick = (e) => { e.preventDefault(); editingGameId = { tier, id: game.id }; render(); };
+    body.appendChild(nameEl);
   }
 
-  // Note (or edit input)
+  // --- Note (or edit input) ---
   const editingNote = editingNoteFor && editingNoteFor.tier === tier && editingNoteFor.id === game.id;
-  const hasNote = game.note && game.note.length > 0;
   const isAdding = addingNoteFor && addingNoteFor.tier === tier && addingNoteFor.id === game.id;
-
+  const hasNote = game.note && game.note.length > 0;
   if (editingNote || isAdding) {
     const input = document.createElement('input');
-    input.className = 'note-edit';
+    input.className = 'pc-note-edit';
     input.type = 'text';
     input.value = game.note || '';
     input.placeholder = '备注...';
@@ -2011,50 +2358,25 @@ function buildNameWrap(tier, game, isChecked) {
     const commit = () => {
       if (committed) return; committed = true;
       setGameNote(tier, game.id, input.value);
-      editingNoteFor = null; addingNoteFor = null;
-      render();
+      editingNoteFor = null; addingNoteFor = null; render();
     };
     input.onkeydown = (e) => {
       if (e.key === 'Enter') commit();
       else if (e.key === 'Escape') { committed = true; editingNoteFor = null; addingNoteFor = null; render(); }
     };
     input.onblur = commit;
-    wrap.appendChild(input);
+    body.appendChild(input);
     setTimeout(() => { input.focus(); input.select(); }, 0);
   } else if (hasNote) {
     const noteEl = document.createElement('div');
-    noteEl.className = 'game-note';
+    noteEl.className = 'pc-note';
     noteEl.textContent = game.note;
-    noteEl.title = 'Click to edit · empty to remove';
-    noteEl.onclick = () => { editingNoteFor = { tier, id: game.id }; render(); };
-    wrap.appendChild(noteEl);
+    noteEl.title = game.note + ' · click to edit';
+    noteEl.onclick = (e) => { e.stopPropagation(); editingNoteFor = { tier, id: game.id }; render(); };
+    body.appendChild(noteEl);
   }
 
-  return wrap;
-}
-
-function buildNoteToggleButton(tier, game) {
-  const hasNote = game.note && game.note.length > 0;
-  const btn = document.createElement('div');
-  btn.className = 'row-action' + (hasNote ? ' active' : '');
-  btn.innerHTML = '✎';
-  btn.title = hasNote ? '编辑备注' : '添加备注';
-  btn.onclick = (e) => {
-    e.stopPropagation();
-    if (hasNote) editingNoteFor = { tier, id: game.id };
-    else addingNoteFor = { tier, id: game.id };
-    render();
-  };
-  return btn;
-}
-
-function buildHideButton(tier, game) {
-  const btn = document.createElement('div');
-  btn.className = 'row-action';
-  btn.innerHTML = '⊘';
-  btn.title = 'Hide';
-  btn.onclick = (e) => { e.stopPropagation(); hideGame(tier, game.id); };
-  return btn;
+  return body;
 }
 
 function renderTier1() {
@@ -2071,36 +2393,58 @@ function renderTier1() {
     const hasSubtasks = visibleSubs.length > 0;
     const isAddingSub = addSubtaskGameId === game.id;
 
+    const parsed = parsePlatform(game.name);
+
     const item = document.createElement('div');
-    item.className = 'game-item';
+    item.className = 'daily-card';
     item.dataset.gameId = game.id;
 
     const row = document.createElement('div');
-    row.className = 'game-row';
+    row.className = 'dc-head';
 
-    row.appendChild(makeDragHandle('game', 'tier1', game.id, game.name));
+    const handle = makeDragHandle('game', 'tier1', game.id, game.name);
+    handle.className = 'rc-drag';
+    handle.innerHTML = '⋮⋮';
+    handle.title = 'Drag to reorder';
+    row.appendChild(handle);
 
     const cb = document.createElement('div');
     cb.className = 'checkbox' + (gd.checkedIn ? ' checked' : '');
     cb.onclick = () => toggleTier1(game.id);
     row.appendChild(cb);
 
-    row.appendChild(buildNameWrap('tier1', game, gd.checkedIn));
+    row.appendChild(buildPcBody('tier1', game, gd.checkedIn));
+
+    const right = document.createElement('div');
+    right.className = 'pc-right';
+
+    if (parsed.platform) {
+      const plat = document.createElement('div');
+      plat.className = 'rc-platform';
+      plat.textContent = parsed.platform;
+      right.appendChild(plat);
+    }
 
     const extra = document.createElement('div');
     extra.className = 'extra-toggle' + (gd.extra ? ' active' : '');
     extra.innerHTML = gd.extra ? '✦' : '✧';
     extra.title = '今天多玩了一下';
-    extra.onclick = () => toggleExtra(game.id);
-    row.appendChild(extra);
+    extra.onclick = (e) => { e.stopPropagation(); toggleExtra(game.id); };
+    right.appendChild(extra);
 
     const streakEl = document.createElement('div');
     streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
     streakEl.textContent = streak > 0 ? streak + 'd' : '·';
-    row.appendChild(streakEl);
+    right.appendChild(streakEl);
 
-    row.appendChild(buildNoteToggleButton('tier1', game));
-    row.appendChild(buildHideButton('tier1', game));
+    const menu = document.createElement('div');
+    menu.className = 'rc-menu-btn';
+    menu.innerHTML = '⋯';
+    menu.title = 'More actions';
+    menu.onclick = (e) => { e.stopPropagation(); openDailyCardMenu(menu, game); };
+    right.appendChild(menu);
+
+    row.appendChild(right);
 
     item.appendChild(row);
 
@@ -2200,98 +2544,635 @@ function renderTier1() {
   renderHiddenSection('tier1');
 }
 
+function openDailyCardMenu(anchor, game) {
+  const items = [
+    { value: 'rename', label: 'Rename' },
+    { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
+    { value: 'addtask', label: 'Add task' },
+    { value: 'playing', label: 'Move to Playing' },
+    { value: 'roster', label: 'Move to Roster' },
+    { value: 'hide', label: 'Hide', clear: true }
+  ];
+  showPicker(anchor, items, null, v => {
+    if (v === 'rename') { editingGameId = { tier: 'tier1', id: game.id }; render(); }
+    else if (v === 'note') {
+      if (game.note && game.note.length) editingNoteFor = { tier: 'tier1', id: game.id };
+      else addingNoteFor = { tier: 'tier1', id: game.id };
+      render();
+    }
+    else if (v === 'addtask') { addSubtaskGameId = game.id; render(); }
+    else if (v === 'playing') moveTier1To(game.id, 'tier2');
+    else if (v === 'roster') moveTier1To(game.id, 'tier3');
+    else if (v === 'hide') hideGame('tier1', game.id);
+  });
+}
+
+function moveTier1To(gameId, toTier) {
+  const toIndex = state.config[toTier].length;
+  commitGameMove('tier1', gameId, toTier, toIndex);
+  smoothRender();
+}
+
 function renderTier2() {
   const day = getDay(viewDate);
   const container = document.getElementById('tier2-list');
   container.innerHTML = '';
 
-  const visible = state.config.tier2.filter(g => !g.hidden);
-  visible.forEach(game => {
-    const checked = day.tier2[game.id] === true;
-    const streak = getStreak(game.id, 'tier2');
-
-    const item = document.createElement('div');
-    item.className = 'game-item';
-    item.dataset.gameId = game.id;
-
-    const row = document.createElement('div');
-    row.className = 'game-row';
-
-    row.appendChild(makeDragHandle('game', 'tier2', game.id, game.name));
-
-    const cb = document.createElement('div');
-    cb.className = 'checkbox' + (checked ? ' checked' : '');
-    cb.onclick = () => toggleTier2(game.id);
-    row.appendChild(cb);
-
-    row.appendChild(buildNameWrap('tier2', game, checked));
-
-    // Completion status pill
-    const completion = game.completion || '';
-    const pill = document.createElement('div');
-    pill.className = 'status-pill' + (completion === '' ? ' empty' : '');
-    if (completion) pill.dataset.status = completion;
-    pill.textContent = TIER2_COMPLETION_LABELS[completion] || '';
-    pill.title = 'Click to set status';
-    pill.onclick = (e) => { e.stopPropagation(); openTier2CompletionPicker(pill, game.id); };
-    row.appendChild(pill);
-
-    const streakEl = document.createElement('div');
-    streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
-    streakEl.textContent = streak > 0 ? streak + 'd' : '·';
-    row.appendChild(streakEl);
-
-    row.appendChild(buildNoteToggleButton('tier2', game));
-    row.appendChild(buildHideButton('tier2', game));
-
-    item.appendChild(row);
-    container.appendChild(item);
-  });
+  const visible = state.config.tier2.filter(g => !g.hidden && !g.completion);
+  visible.forEach(game => container.appendChild(buildPlayingCard(game, day)));
 
   renderAddRow('tier2');
   renderHiddenSection('tier2');
 }
 
+// Playing (tier2) — full-width horizontal card. Carries the same information as a
+// Roster card (status pill · name · note · platform · menu) PLUS the daily check-in
+// affordance (circular checkbox + streak) that makes Playing a "ritual" tier.
+function buildPlayingCard(game, day) {
+  const checked = day.tier2[game.id] === true;
+  const streak = getStreak(game.id, 'tier2');
+  const parsed = parsePlatform(game.name);
+  const completion = game.completion || '';
+
+  const card = document.createElement('div');
+  card.className = 'playing-card';
+  card.dataset.gameId = game.id;
+
+  // --- Drag handle (appears on hover) ---
+  const handle = makeDragHandle('game', 'tier2', game.id, game.name);
+  handle.className = 'rc-drag';
+  handle.innerHTML = '⋮⋮';
+  handle.title = 'Drag to reorder';
+  card.appendChild(handle);
+
+  // --- Daily check-in (the ritual core) ---
+  const cb = document.createElement('div');
+  cb.className = 'checkbox' + (checked ? ' checked' : '');
+  cb.onclick = () => toggleTier2(game.id);
+  card.appendChild(cb);
+
+  // --- Body: name + note (shared with Daily) ---
+  card.appendChild(buildPcBody('tier2', game, checked));
+
+  // --- Right cluster: completion pill · platform · streak · menu ---
+  const right = document.createElement('div');
+  right.className = 'pc-right';
+
+  const pill = document.createElement('div');
+  pill.className = 'status-pill' + (completion === '' ? ' empty' : '');
+  if (completion) pill.dataset.status = completion;
+  pill.textContent = TIER2_COMPLETION_LABELS[completion] || '';
+  pill.title = 'Click to set status';
+  pill.onclick = (e) => { e.stopPropagation(); openTier2CompletionPicker(pill, game.id); };
+  right.appendChild(pill);
+
+  if (parsed.platform) {
+    const plat = document.createElement('div');
+    plat.className = 'rc-platform';
+    plat.textContent = parsed.platform;
+    right.appendChild(plat);
+  }
+
+  const streakEl = document.createElement('div');
+  streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
+  streakEl.textContent = streak > 0 ? streak + 'd' : '·';
+  right.appendChild(streakEl);
+
+  const menu = document.createElement('div');
+  menu.className = 'rc-menu-btn';
+  menu.innerHTML = '⋯';
+  menu.title = 'More actions';
+  menu.onclick = (e) => { e.stopPropagation(); openPlayingCardMenu(menu, game); };
+  right.appendChild(menu);
+
+  card.appendChild(right);
+  return card;
+}
+
+function openPlayingCardMenu(anchor, game) {
+  const items = [
+    { value: 'rename', label: 'Rename' },
+    { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
+    { value: 'status', label: 'Set completion' },
+    { value: 'roster', label: 'Move to Roster' },
+    { value: 'daily', label: 'Move to Daily' },
+    { value: 'hide', label: 'Hide', clear: true }
+  ];
+  showPicker(anchor, items, null, v => {
+    if (v === 'rename') { editingGameId = { tier: 'tier2', id: game.id }; render(); }
+    else if (v === 'note') {
+      if (game.note && game.note.length) editingNoteFor = { tier: 'tier2', id: game.id };
+      else addingNoteFor = { tier: 'tier2', id: game.id };
+      render();
+    }
+    else if (v === 'status') {
+      const card = anchor.closest('.playing-card');
+      const pill = card && card.querySelector('.status-pill');
+      if (pill) openTier2CompletionPicker(pill, game.id);
+    }
+    else if (v === 'roster') moveTier2To(game.id, 'tier3');
+    else if (v === 'daily') moveTier2To(game.id, 'tier1');
+    else if (v === 'hide') hideGame('tier2', game.id);
+  });
+}
+
+function moveTier2To(gameId, toTier) {
+  const toIndex = state.config[toTier].length;
+  commitGameMove('tier2', gameId, toTier, toIndex);
+  smoothRender();
+}
+
+// ============================================================
+// Roster (tier3) — grouped card grid
+// ============================================================
+const ROSTER_GROUP_ORDER = ['up_next', 'considering', 'backlog'];
+
+// Parse a trailing platform suffix like 名字（NS） / 名字（PC·Steam）.
+// Only strips the LAST parenthetical, and only when it's a known platform
+// (so （国际服）/（南半球）variants stay in the name).
+const KNOWN_PLATFORMS = ['NS2', 'NS', 'Switch2', 'Switch', 'Steam', 'PC·Steam', 'PS5', 'PS4', 'PC', 'Mobile', 'iOS', 'Android', 'Epic', 'GOG'];
+function parsePlatform(name) {
+  const m = String(name).match(/^(.*?)\s*（([^（）]+)）\s*$/);
+  if (m) {
+    const tag = m[2].trim();
+    const hit = KNOWN_PLATFORMS.find(p => p.toLowerCase() === tag.toLowerCase());
+    if (hit) {
+      const label = (hit === 'PC·Steam') ? 'Steam' : hit;
+      return { base: m[1].trim(), platform: label };
+    }
+  }
+  return { base: String(name), platform: null };
+}
+
+function rosterPrefs() {
+  const c = state.config;
+  return {
+    grouped: c.rosterGrouped !== false,
+    sort: (c.rosterSort === 'added' || c.rosterSort === 'name') ? c.rosterSort : 'manual',
+    fold: Object.assign({ up_next: false, considering: false, backlog: true }, c.rosterGroupFold || {})
+  };
+}
+
+function sortRosterGames(games, sort) {
+  const arr = games.slice();
+  if (sort === 'name') {
+    arr.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh'));
+  } else if (sort === 'added') {
+    arr.sort((a, b) => {
+      const ca = a.createdAt || '1970-01-01', cb = b.createdAt || '1970-01-01';
+      if (ca !== cb) return ca < cb ? 1 : -1; // newer (greater date) first
+      return 0;
+    });
+  }
+  return arr; // 'manual' keeps config order
+}
+
 function renderTier3() {
-  const day = getDay(viewDate);
   const container = document.getElementById('tier3-list');
   container.innerHTML = '';
 
   const visible = state.config.tier3.filter(g => !g.hidden);
-  visible.forEach(game => {
-    const playedToday = day.tier3[game.id] === true;
+  const prefs = rosterPrefs();
 
-    const item = document.createElement('div');
-    item.className = 'roster-item';
-    item.dataset.gameId = game.id;
+  if (visible.length > 0) {
+    container.appendChild(buildRosterControls(prefs));
+  }
 
-    item.appendChild(makeDragHandle('game', 'tier3', game.id, game.name));
-
-    const check = document.createElement('div');
-    check.className = 'roster-check' + (playedToday ? ' checked' : '');
-    check.onclick = () => toggleTier3(game.id);
-    item.appendChild(check);
-
-    item.appendChild(buildNameWrap('tier3', game, playedToday));
-
-    // Status pill
-    const status = game.status || 'considering';
-    const pill = document.createElement('div');
-    pill.className = 'status-pill';
-    pill.dataset.status = status;
-    pill.textContent = TIER3_STATUS_LABELS[status] || '';
-    pill.title = 'Click to set status';
-    pill.onclick = (e) => { e.stopPropagation(); openTier3StatusPicker(pill, game.id); };
-    item.appendChild(pill);
-
-    item.appendChild(buildNoteToggleButton('tier3', game));
-    item.appendChild(buildHideButton('tier3', game));
-
-    container.appendChild(item);
-  });
+  if (prefs.grouped) {
+    ROSTER_GROUP_ORDER.forEach(status => {
+      const games = sortRosterGames(visible.filter(g => (g.status || 'considering') === status), prefs.sort);
+      if (games.length === 0) return; // empty groups show no header
+      container.appendChild(buildRosterGroup(status, games, prefs));
+    });
+  } else {
+    const games = sortRosterGames(visible, prefs.sort);
+    const grid = document.createElement('div');
+    grid.className = 'roster-grid ungrouped';
+    games.forEach(g => grid.appendChild(buildRosterCard(g, prefs, g.status || 'considering')));
+    container.appendChild(grid);
+  }
 
   renderAddRow('tier3');
   renderHiddenSection('tier3');
+}
+
+function buildRosterControls(prefs) {
+  const bar = document.createElement('div');
+  bar.className = 'roster-controls';
+
+  const groupBtn = document.createElement('button');
+  groupBtn.className = 'roster-ctrl' + (prefs.grouped ? ' active' : '');
+  groupBtn.textContent = prefs.grouped ? 'Grouped' : 'Ungrouped';
+  groupBtn.title = 'Toggle status grouping';
+  groupBtn.onclick = () => {
+    state.config.rosterGrouped = !prefs.grouped;
+    scheduleSave(); smoothRender();
+  };
+  bar.appendChild(groupBtn);
+
+  const sortLabels = { manual: 'Manual', added: 'Recently added', name: 'A–Z' };
+  const sortBtn = document.createElement('button');
+  sortBtn.className = 'roster-ctrl';
+  sortBtn.innerHTML = `Sort · ${sortLabels[prefs.sort]}<span class="ctrl-caret">▾</span>`;
+  sortBtn.title = 'Sort within group';
+  sortBtn.onclick = () => {
+    showPicker(sortBtn, [
+      { value: 'manual', label: 'Manual' },
+      { value: 'added', label: 'Recently added' },
+      { value: 'name', label: 'A–Z' }
+    ], prefs.sort, v => {
+      state.config.rosterSort = v;
+      scheduleSave(); smoothRender();
+    });
+  };
+  bar.appendChild(sortBtn);
+
+  return bar;
+}
+
+function buildRosterGroup(status, games, prefs) {
+  const wrap = document.createElement('div');
+  wrap.className = 'roster-group';
+  wrap.dataset.group = status;
+
+  const folded = !!prefs.fold[status];
+
+  const head = document.createElement('div');
+  head.className = 'roster-group-head' + (folded ? ' folded' : '');
+  head.innerHTML =
+    `<span class="rg-caret">›</span>` +
+    `<span class="rg-dot"></span>` +
+    `<span class="rg-label">${escapeHtml(TIER3_STATUS_LABELS[status])}</span>` +
+    `<span class="rg-count">${games.length}</span>` +
+    `<span class="rg-line"></span>`;
+  head.title = folded ? 'Expand group' : 'Collapse group';
+  head.onclick = () => {
+    const fold = Object.assign({ up_next: false, considering: false, backlog: true }, state.config.rosterGroupFold || {});
+    fold[status] = !folded;
+    state.config.rosterGroupFold = fold;
+    scheduleSave(); smoothRender();
+  };
+  wrap.appendChild(head);
+
+  const grid = document.createElement('div');
+  grid.className = 'roster-grid';
+  if (folded) grid.style.display = 'none';
+  games.forEach(g => grid.appendChild(buildRosterCard(g, prefs, status)));
+  wrap.appendChild(grid);
+
+  return wrap;
+}
+
+function buildRosterCard(game, prefs, status) {
+  const day = getDay(viewDate);
+  const playedToday = day.tier3[game.id] === true;
+  const parsed = parsePlatform(game.name);
+
+  const card = document.createElement('div');
+  card.className = 'roster-card';
+  card.dataset.gameId = game.id;
+  card.dataset.rosterStatus = status;
+
+  // --- Head: drag handle (manual only) + status pill + menu ---
+  const head = document.createElement('div');
+  head.className = 'rc-head';
+
+  if (prefs.sort === 'manual') {
+    const handle = makeDragHandle('game', 'tier3', game.id, game.name);
+    handle.className = 'rc-drag';
+    handle.innerHTML = '⋮⋮';
+    handle.title = 'Drag to reorder';
+    head.appendChild(handle);
+  }
+
+  const pill = document.createElement('div');
+  pill.className = 'status-pill';
+  pill.dataset.status = status;
+  pill.textContent = TIER3_STATUS_LABELS[status] || '';
+  pill.title = 'Click to change status';
+  pill.onclick = (e) => { e.stopPropagation(); openTier3StatusPicker(pill, game.id); };
+  head.appendChild(pill);
+
+  const spacer = document.createElement('div');
+  spacer.className = 'rc-spacer';
+  head.appendChild(spacer);
+
+  const menu = document.createElement('div');
+  menu.className = 'rc-menu-btn';
+  menu.innerHTML = '⋯';
+  menu.title = 'More actions';
+  menu.onclick = (e) => { e.stopPropagation(); openRosterCardMenu(menu, game); };
+  head.appendChild(menu);
+
+  card.appendChild(head);
+
+  // --- Name (editable) ---
+  const editingName = editingGameId && editingGameId.tier === 'tier3' && editingGameId.id === game.id;
+  if (editingName) {
+    const input = document.createElement('input');
+    input.className = 'rc-name-edit';
+    input.type = 'text';
+    input.value = game.name;
+    let committed = false;
+    const commit = () => {
+      if (committed) return; committed = true;
+      renameGame('tier3', game.id, input.value);
+      editingGameId = null; render();
+    };
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') commit();
+      else if (e.key === 'Escape') { committed = true; editingGameId = null; render(); }
+    };
+    input.onblur = commit;
+    card.appendChild(input);
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+  } else {
+    const nameEl = document.createElement('div');
+    nameEl.className = 'rc-name';
+    nameEl.textContent = parsed.base;
+    nameEl.title = game.name + ' · double-click to rename';
+    nameEl.ondblclick = (e) => { e.preventDefault(); editingGameId = { tier: 'tier3', id: game.id }; render(); };
+    card.appendChild(nameEl);
+  }
+
+  // --- Note (single line, optional, editable) ---
+  const editingNote = editingNoteFor && editingNoteFor.tier === 'tier3' && editingNoteFor.id === game.id;
+  const isAddingNote = addingNoteFor && addingNoteFor.tier === 'tier3' && addingNoteFor.id === game.id;
+  const hasNote = game.note && game.note.length > 0;
+  if (editingNote || isAddingNote) {
+    const input = document.createElement('input');
+    input.className = 'rc-note-edit';
+    input.type = 'text';
+    input.value = game.note || '';
+    input.placeholder = '备注...';
+    let committed = false;
+    const commit = () => {
+      if (committed) return; committed = true;
+      setGameNote('tier3', game.id, input.value);
+      editingNoteFor = null; addingNoteFor = null; render();
+    };
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') commit();
+      else if (e.key === 'Escape') { committed = true; editingNoteFor = null; addingNoteFor = null; render(); }
+    };
+    input.onblur = commit;
+    card.appendChild(input);
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+  } else if (hasNote) {
+    const noteEl = document.createElement('div');
+    noteEl.className = 'rc-note';
+    noteEl.textContent = game.note;
+    noteEl.title = game.note + ' · click to edit';
+    noteEl.onclick = (e) => { e.stopPropagation(); editingNoteFor = { tier: 'tier3', id: game.id }; render(); };
+    card.appendChild(noteEl);
+  }
+
+  // --- Foot: played-today (weakened secondary affordance) ---
+  const foot = document.createElement('div');
+  foot.className = 'rc-foot';
+
+  const played = document.createElement('div');
+  played.className = 'rc-played' + (playedToday ? ' on' : '');
+  played.title = 'Played today';
+  played.innerHTML = `<span class="rc-played-box"></span><span class="rc-played-label">${playedToday ? 'played' : 'today'}</span>`;
+  played.onclick = (e) => { e.stopPropagation(); toggleTier3(game.id); };
+  foot.appendChild(played);
+
+  if (parsed.platform) {
+    const plat = document.createElement('div');
+    plat.className = 'rc-platform';
+    plat.textContent = parsed.platform;
+    foot.appendChild(plat);
+  }
+
+  card.appendChild(foot);
+
+  return card;
+}
+
+function openRosterCardMenu(anchor, game) {
+  const items = [
+    { value: 'rename', label: 'Rename' },
+    { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
+    { value: 'playing', label: 'Move to Playing' },
+    { value: 'daily', label: 'Move to Daily' },
+    { value: 'hide', label: 'Hide', clear: true }
+  ];
+  showPicker(anchor, items, null, v => {
+    if (v === 'rename') { editingGameId = { tier: 'tier3', id: game.id }; render(); }
+    else if (v === 'note') {
+      if (game.note && game.note.length) editingNoteFor = { tier: 'tier3', id: game.id };
+      else addingNoteFor = { tier: 'tier3', id: game.id };
+      render();
+    }
+    else if (v === 'playing') moveRosterTo(game.id, 'tier2');
+    else if (v === 'daily') moveRosterTo(game.id, 'tier1');
+    else if (v === 'hide') hideGame('tier3', game.id);
+  });
+}
+
+function moveRosterTo(gameId, toTier) {
+  // Explicit cross-tier move — reuses commitGameMove (tierResidence close/open + undo toast).
+  const toIndex = state.config[toTier].length;
+  commitGameMove('tier3', gameId, toTier, toIndex);
+  smoothRender();
+}
+
+// ============================================================
+// Finished shelf — derived from tier2 `completion` (Beaten / Completed / Abandoned)
+// ============================================================
+const FINISHED_GROUP_ORDER = ['beaten', 'completed', 'sated', 'abandoned'];
+let editingMilestoneFor = null; // { id }
+
+function finishedFold() {
+  return Object.assign({ beaten: false, completed: false, sated: true, abandoned: true }, state.config.finishedFold || {});
+}
+
+function renderFinished() {
+  const container = document.getElementById('finished-list');
+  const section = document.getElementById('section-finished');
+  if (!container || !section) return;
+  container.innerHTML = '';
+
+  const all = state.config.tier2.filter(g => !!g.completion);
+  if (all.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const fold = finishedFold();
+  FINISHED_GROUP_ORDER.forEach(status => {
+    const games = state.config.tier2.filter(g => g.completion === status);
+    if (games.length === 0) return; // empty group → no header
+    container.appendChild(buildFinishedGroup(status, games, fold));
+  });
+}
+
+function buildFinishedGroup(status, games, fold) {
+  const wrap = document.createElement('div');
+  wrap.className = 'roster-group finished-group' + (status === 'abandoned' ? ' abandoned-group' : '');
+  wrap.dataset.fgroup = status;
+
+  const folded = !!fold[status];
+  const head = document.createElement('div');
+  head.className = 'roster-group-head' + (folded ? ' folded' : '');
+  head.innerHTML =
+    `<span class="rg-caret">›</span>` +
+    `<span class="rg-dot"></span>` +
+    `<span class="rg-label">${escapeHtml(TIER2_COMPLETION_LABELS[status])}</span>` +
+    `<span class="rg-count">${games.length}</span>` +
+    `<span class="rg-line"></span>`;
+  head.onclick = () => {
+    const ff = Object.assign({ beaten: false, completed: false, sated: true, abandoned: true }, state.config.finishedFold || {});
+    ff[status] = !folded;
+    state.config.finishedFold = ff;
+    scheduleSave(); smoothRender();
+  };
+  wrap.appendChild(head);
+
+  const grid = document.createElement('div');
+  grid.className = 'roster-grid';
+  if (folded) grid.style.display = 'none';
+  const sorted = games.slice().sort((a, b) => {
+    const am = a.lastMilestone || '', bm = b.lastMilestone || '';
+    if (am !== bm) return am < bm ? 1 : -1; // most recent milestone first
+    return 0;
+  });
+  sorted.forEach(g => grid.appendChild(buildFinishedCard(g, status)));
+  wrap.appendChild(grid);
+
+  return wrap;
+}
+
+function buildFinishedCard(game, status) {
+  const parsed = parsePlatform(game.name);
+  const card = document.createElement('div');
+  card.className = 'roster-card finished-card';
+  card.dataset.gameId = game.id;
+
+  // Head: completion pill + menu
+  const head = document.createElement('div');
+  head.className = 'rc-head';
+  const pill = document.createElement('div');
+  pill.className = 'status-pill';
+  pill.dataset.status = status;
+  pill.textContent = TIER2_COMPLETION_LABELS[status] || '';
+  pill.title = 'Change status';
+  pill.onclick = (e) => { e.stopPropagation(); openTier2CompletionPicker(pill, game.id); };
+  head.appendChild(pill);
+  const spacer = document.createElement('div'); spacer.className = 'rc-spacer'; head.appendChild(spacer);
+  const menu = document.createElement('div'); menu.className = 'rc-menu-btn'; menu.innerHTML = '⋯'; menu.title = 'More actions';
+  menu.onclick = (e) => { e.stopPropagation(); openFinishedCardMenu(menu, game, status); };
+  head.appendChild(menu);
+  card.appendChild(head);
+
+  // Name (editable)
+  const editingName = editingGameId && editingGameId.tier === 'tier2' && editingGameId.id === game.id;
+  if (editingName) {
+    const input = document.createElement('input');
+    input.className = 'rc-name-edit'; input.type = 'text'; input.value = game.name;
+    let committed = false;
+    const commit = () => { if (committed) return; committed = true; renameGame('tier2', game.id, input.value); editingGameId = null; render(); };
+    input.onkeydown = (e) => { if (e.key === 'Enter') commit(); else if (e.key === 'Escape') { committed = true; editingGameId = null; render(); } };
+    input.onblur = commit;
+    card.appendChild(input);
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+  } else {
+    const nameEl = document.createElement('div');
+    nameEl.className = 'rc-name';
+    nameEl.textContent = parsed.base;
+    nameEl.title = game.name + ' · double-click to rename';
+    nameEl.ondblclick = (e) => { e.preventDefault(); editingGameId = { tier: 'tier2', id: game.id }; render(); };
+    card.appendChild(nameEl);
+  }
+
+  // Last milestone date (light, editable)
+  const editingMs = editingMilestoneFor && editingMilestoneFor.id === game.id;
+  if (editingMs) {
+    const input = document.createElement('input');
+    input.className = 'rc-note-edit'; input.type = 'text';
+    input.value = game.lastMilestone || ''; input.placeholder = 'YYYY-MM-DD';
+    let committed = false;
+    const commit = () => { if (committed) return; committed = true; setMilestone(game.id, input.value); editingMilestoneFor = null; render(); };
+    input.onkeydown = (e) => { if (e.key === 'Enter') commit(); else if (e.key === 'Escape') { committed = true; editingMilestoneFor = null; render(); } };
+    input.onblur = commit;
+    card.appendChild(input);
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+  } else if (game.lastMilestone) {
+    const ms = document.createElement('div');
+    ms.className = 'rc-milestone';
+    ms.textContent = '◷ ' + game.lastMilestone;
+    ms.title = 'Last milestone · click to edit';
+    ms.onclick = (e) => { e.stopPropagation(); editingMilestoneFor = { id: game.id }; render(); };
+    card.appendChild(ms);
+  }
+
+  // Foot: platform chip (right)
+  const foot = document.createElement('div');
+  foot.className = 'rc-foot';
+  if (parsed.platform) {
+    const plat = document.createElement('div');
+    plat.className = 'rc-platform';
+    plat.textContent = parsed.platform;
+    foot.appendChild(plat);
+  }
+  card.appendChild(foot);
+
+  return card;
+}
+
+function openFinishedCardMenu(anchor, game, status) {
+  let items;
+  if (status === 'beaten') {
+    items = [
+      { value: 'completed', label: 'Mark Completed' },
+      { value: 'milestone', label: game.lastMilestone ? 'Edit milestone date' : 'Add milestone date' },
+      { value: 'rename', label: 'Rename' },
+      { value: 'playing', label: 'Move to Playing' },
+      { value: 'abandon', label: 'Abandon', clear: true }
+    ];
+  } else if (status === 'completed') {
+    items = [
+      { value: 'beaten', label: 'Back to Beaten' },
+      { value: 'milestone', label: game.lastMilestone ? 'Edit milestone date' : 'Add milestone date' },
+      { value: 'rename', label: 'Rename' },
+      { value: 'playing', label: 'Move to Playing', clear: true }
+    ];
+  } else if (status === 'sated') {
+    items = [
+      { value: 'playing', label: 'Move to Playing' },
+      { value: 'beaten', label: 'Mark Beaten' },
+      { value: 'completed', label: 'Mark Completed' },
+      { value: 'milestone', label: game.lastMilestone ? 'Edit milestone date' : 'Add milestone date' },
+      { value: 'rename', label: 'Rename' },
+      { value: 'abandon', label: 'Abandon', clear: true }
+    ];
+  } else { // abandoned
+    items = [
+      { value: 'playing', label: 'Move back to Playing' },
+      { value: 'milestone', label: game.lastMilestone ? 'Edit milestone date' : 'Add milestone date' },
+      { value: 'rename', label: 'Rename' }
+    ];
+  }
+  showPicker(anchor, items, null, v => {
+    if (v === 'completed') setTier2Completion(game.id, 'completed');
+    else if (v === 'beaten') setTier2Completion(game.id, 'beaten');
+    else if (v === 'abandon') setTier2Completion(game.id, 'abandoned');
+    else if (v === 'playing') finishedToPlaying(game.id);
+    else if (v === 'milestone') { editingMilestoneFor = { id: game.id }; render(); }
+    else if (v === 'rename') { editingGameId = { tier: 'tier2', id: game.id }; render(); }
+  });
+}
+
+function setMilestone(gameId, val) {
+  const g = state.config.tier2.find(x => x.id === gameId);
+  if (g) { g.lastMilestone = (val || '').trim(); scheduleSave(); }
+}
+
+function finishedToPlaying(gameId) {
+  const g = state.config.tier2.find(x => x.id === gameId);
+  if (!g) return;
+  g.completion = '';
+  if (g.hidden) { g.hidden = false; g.hiddenAt = null; } // bring it back into the active flow
+  scheduleSave(); smoothRender();
 }
 
 function renderAddRow(tier) {
@@ -2328,7 +3209,9 @@ function renderAddRow(tier) {
 function renderHiddenSection(tier) {
   const container = document.getElementById('hidden-' + tier);
   container.innerHTML = '';
-  const hidden = state.config[tier].filter(g => g.hidden);
+  let hidden = state.config[tier].filter(g => g.hidden);
+  // Finished (beaten/completed/abandoned/sated) tier2 games live on the Parked shelf, not here.
+  if (tier === 'tier2') hidden = hidden.filter(g => !g.completion);
   if (hidden.length === 0) return;
 
   const isOpen = hiddenSectionOpen[tier];
