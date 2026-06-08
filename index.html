@@ -582,7 +582,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 /* Daily — same card material as Playing, but a column card so sub-task chips
    live inside it. Both "ritual" tiers (Daily + Playing) share the warm panel. */
 #tier1-list {
-  background: rgba(232, 183, 135, 0.13);
+  background: rgba(235, 178, 120, 0.14);
   border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: 16px;
   padding: 12px;
@@ -594,7 +594,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .daily-card {
   position: relative;
   display: flex; flex-direction: column; gap: 8px;
-  background: rgba(255, 253, 247, 0.62);
+  background: rgba(255, 250, 241, 0.64);
   border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
   padding: 13px 15px 11px;
@@ -617,31 +617,34 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .daily-card:hover .subtasks-row.empty { opacity: 0.6; }
 .daily-card:hover .subtask-manage-link { opacity: 0.6; }
 
-/* Playing — full-width horizontal cards in a soft "now playing" container.
-   White cards pop against a warm accent tint, echoing how Roster cards sit on
-   their colored group panels. */
+/* Playing — Roster-style cards, but 2 per row (larger than Roster's 4-up).
+   Cream cards on the warm "ritual zone" panel, vertical layout like Roster, in a
+   clay-rose tint so it reads distinct from Daily's peach-amber. */
 #tier2-list {
-  background: rgba(226, 166, 116, 0.16);
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  background: rgba(204, 140, 134, 0.15);
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
   border-radius: 16px;
-  padding: 12px;
+  padding: 14px;
   backdrop-filter: blur(2px);
-  display: flex; flex-direction: column; gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 #tier2-list:empty { display: none; }
 
 .playing-card {
   position: relative;
-  display: flex; align-items: center; gap: 12px;
-  background: rgba(255, 253, 247, 0.62);
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: rgba(253, 245, 245, 0.7);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
   border-radius: 12px;
-  padding: 13px 15px;
+  padding: 11px 13px 10px;
+  display: flex; flex-direction: column; gap: 7px;
+  min-height: 104px;
   transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s, opacity 0.15s;
 }
 .playing-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
-  box-shadow: 0 4px 16px rgba(42, 36, 28, 0.07);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  box-shadow: 0 3px 14px rgba(42, 36, 28, 0.06);
   transform: translateY(-1px);
 }
 .playing-card.dragging { opacity: 0.32; }
@@ -649,6 +652,8 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .playing-card:hover .rc-drag { opacity: 0.5; }
 
 .pc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.playing-card .pc-body { flex: 0 0 auto; gap: 2px; }
+.playing-card .pc-name { font-size: 14.5px; }
 .pc-name {
   font-family: var(--body-font); font-size: 15px; line-height: 1.3;
   color: var(--text); letter-spacing: -0.005em; cursor: text;
@@ -673,14 +678,28 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 }
 .pc-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .playing-card .status-pill.empty { opacity: 0; }
-.playing-card:hover .status-pill.empty { opacity: 0.4; pointer-events: auto; }
+.playing-card:hover .status-pill.empty { opacity: 0.5; pointer-events: auto; }
 .playing-card:hover .status-pill.empty:hover { opacity: 1; }
 .playing-card .rc-menu-btn { opacity: 0.45; }
 .playing-card:hover .rc-menu-btn { opacity: 0.8; }
 .playing-card .rc-menu-btn:hover { opacity: 1; }
 
+/* Playing card foot: platform + streak (left) · daily check-in (right) */
+.pc-foot-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.pc-checkin {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  user-select: none; opacity: 0.5; transition: opacity 0.2s; flex-shrink: 0;
+}
+.playing-card:hover .pc-checkin, .pc-checkin.on { opacity: 1; }
+.pc-checkin .checkbox { width: 15px; height: 15px; }
+.pc-checkin-label {
+  font-family: var(--label-font); font-size: 8px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--text-faint); white-space: nowrap;
+}
+.pc-checkin.on .pc-checkin-label { color: var(--accent); }
+
 @media (max-width: 520px) {
-  .playing-card { gap: 9px; padding: 12px 13px; }
+  #tier2-list { grid-template-columns: 1fr; padding: 12px; }
   .playing-card .rc-drag { opacity: 0.4; }
 }
 
@@ -1605,6 +1624,12 @@ function updateTier2Row(gameId) {
   item.querySelector('.checkbox').classList.toggle('checked', checked);
   const name = item.querySelector('.pc-name');
   if (name) name.classList.toggle('checked', checked);
+  const checkin = item.querySelector('.pc-checkin');
+  if (checkin) {
+    checkin.classList.toggle('on', checked);
+    const lbl = checkin.querySelector('.pc-checkin-label');
+    if (lbl) lbl.textContent = checked ? '今日已玩' : '打卡';
+  }
   updateStreak(item, gameId);
   updateHeatmapCell(viewDate);
 }
@@ -2285,6 +2310,12 @@ function refreshDayView() {
     item.querySelector('.checkbox')?.classList.toggle('checked', checked);
     const name = item.querySelector('.pc-name');
     if (name) name.classList.toggle('checked', checked);
+    const checkin = item.querySelector('.pc-checkin');
+    if (checkin) {
+      checkin.classList.toggle('on', checked);
+      const lbl = checkin.querySelector('.pc-checkin-label');
+      if (lbl) lbl.textContent = checked ? '今日已玩' : '打卡';
+    }
     updateStreak(item, id);
   });
   document.querySelectorAll('#tier3-list .roster-card').forEach(item => {
@@ -2758,9 +2789,10 @@ function renderTier2() {
   renderHiddenSection('tier2');
 }
 
-// Playing (tier2) — full-width horizontal card. Carries the same information as a
-// Roster card (status pill · name · note · platform · menu) PLUS the daily check-in
-// affordance (circular checkbox + streak) that makes Playing a "ritual" tier.
+// Playing (tier2) — Roster-style vertical card, but 2 per row (larger than Roster's
+// 4-up). Carries the same information as a Roster card (status pill · name · note ·
+// platform · menu) PLUS the daily check-in (circular checkbox + label) in the foot
+// that makes Playing a "ritual" tier.
 function buildPlayingCard(game, day) {
   const checked = day.tier2[game.id] === true;
   const streak = getStreak(game.id, 'tier2');
@@ -2771,25 +2803,15 @@ function buildPlayingCard(game, day) {
   card.className = 'playing-card';
   card.dataset.gameId = game.id;
 
-  // --- Drag handle (appears on hover) ---
+  // --- Head: drag · completion pill · menu (mirrors Roster's rc-head) ---
+  const head = document.createElement('div');
+  head.className = 'rc-head';
+
   const handle = makeDragHandle('game', 'tier2', game.id, game.name);
   handle.className = 'rc-drag';
   handle.innerHTML = '⋮⋮';
   handle.title = 'Drag to reorder';
-  card.appendChild(handle);
-
-  // --- Daily check-in (the ritual core) ---
-  const cb = document.createElement('div');
-  cb.className = 'checkbox' + (checked ? ' checked' : '');
-  cb.onclick = () => toggleTier2(game.id);
-  card.appendChild(cb);
-
-  // --- Body: name + note (shared with Daily) ---
-  card.appendChild(buildPcBody('tier2', game, checked));
-
-  // --- Right cluster: completion pill · platform · streak · menu ---
-  const right = document.createElement('div');
-  right.className = 'pc-right';
+  head.appendChild(handle);
 
   const pill = document.createElement('div');
   pill.className = 'status-pill' + (completion === '' ? ' empty' : '');
@@ -2797,28 +2819,55 @@ function buildPlayingCard(game, day) {
   pill.textContent = TIER2_COMPLETION_LABELS[completion] || '';
   pill.title = 'Click to set status';
   pill.onclick = (e) => { e.stopPropagation(); openTier2CompletionPicker(pill, game.id); };
-  right.appendChild(pill);
+  head.appendChild(pill);
 
-  if (parsed.platform) {
-    const plat = document.createElement('div');
-    plat.className = 'rc-platform';
-    plat.textContent = parsed.platform;
-    right.appendChild(plat);
-  }
-
-  const streakEl = document.createElement('div');
-  streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
-  streakEl.textContent = streak > 0 ? streak + 'd' : '·';
-  right.appendChild(streakEl);
+  const spacer = document.createElement('div');
+  spacer.className = 'rc-spacer';
+  head.appendChild(spacer);
 
   const menu = document.createElement('div');
   menu.className = 'rc-menu-btn';
   menu.innerHTML = '⋯';
   menu.title = 'More actions';
   menu.onclick = (e) => { e.stopPropagation(); openPlayingCardMenu(menu, game); };
-  right.appendChild(menu);
+  head.appendChild(menu);
+  card.appendChild(head);
 
-  card.appendChild(right);
+  // --- Body: name + note (shared with Daily) ---
+  card.appendChild(buildPcBody('tier2', game, checked));
+
+  // --- Foot: platform + streak (left) · daily check-in (right) ---
+  const foot = document.createElement('div');
+  foot.className = 'rc-foot';
+
+  const footLeft = document.createElement('div');
+  footLeft.className = 'pc-foot-left';
+  if (parsed.platform) {
+    const plat = document.createElement('div');
+    plat.className = 'rc-platform';
+    plat.textContent = parsed.platform;
+    footLeft.appendChild(plat);
+  }
+  const streakEl = document.createElement('div');
+  streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
+  streakEl.textContent = streak > 0 ? streak + 'd' : '·';
+  footLeft.appendChild(streakEl);
+  foot.appendChild(footLeft);
+
+  // Daily check-in — the ritual core, mirrors Roster's rc-played slot but accent-weighted
+  const checkin = document.createElement('div');
+  checkin.className = 'pc-checkin' + (checked ? ' on' : '');
+  const cb = document.createElement('div');
+  cb.className = 'checkbox' + (checked ? ' checked' : '');
+  checkin.appendChild(cb);
+  const lbl = document.createElement('div');
+  lbl.className = 'pc-checkin-label';
+  lbl.textContent = checked ? '今日已玩' : '打卡';
+  checkin.appendChild(lbl);
+  checkin.onclick = () => toggleTier2(game.id);
+  foot.appendChild(checkin);
+
+  card.appendChild(foot);
   return card;
 }
 
