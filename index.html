@@ -210,6 +210,14 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 }
 .streak.active { color: var(--accent); }
 
+/* Roster streak chip — reuses .streak but sits inline next to the "played" mark,
+   tinted with the card's status color, and stays hidden until there's a run going
+   (keeps the 片库 calm; only games you're actually touching light up). */
+.rc-streak { min-width: 0; text-align: left; font-size: 11px; opacity: 0.9; }
+.rc-streak:not(.active) { display: none; }
+.rc-streak.active { color: var(--g-name, var(--accent)); }
+.rc-foot-left { display: flex; align-items: center; gap: 8px; }
+
 /* Status pills (Playing completion + Roster status) */
 .status-pill {
   font-family: var(--label-font); font-size: 9px;
@@ -2160,15 +2168,16 @@ function getStreak(gameId, currentTierKey) {
   for (let i = 0; i < 365; i++) {
     const d = new Date(today); d.setDate(today.getDate() - i);
     const key = dateKey(d);
-    // 一天是否计入连续天数，看的是「这天在仪式档（Daily 主勾 / Playing 打卡）有没有勾」，
-    // 而非这天历史上在哪一档。原因：卡片永远按游戏【当前】所在档渲染，所以无论你今天打卡还是
-    // 回填过去某天，勾选都写进【当前档】的桶里。若按历史 tierResidence 去查（tierOnDate），
-    // 来回挪过位置 / 回填昨天时桶就对不上，连续天数会断。Roster 的随手标记不计入连续天数。
+    // 一天是否计入连续天数，看的是「这天在任意档碰过这个游戏」——Daily 主勾 / Playing 打卡 /
+    // Roster played 随手标记 三者任一即算，而非这天历史上在哪一档。原因：卡片永远按游戏【当前】
+    // 所在档渲染，所以无论你今天打卡还是回填过去某天，勾选都写进【当前档】的桶里。三档全收，
+    // 跨档来回挪 / 回填过去日期都不会断（用户想法常变，移到待玩区随手摸一下也算连续）。
     const day = state.history[key];
     let checked = false;
     if (day) {
       checked = (day.tier1 && day.tier1[gameId] && day.tier1[gameId].checkedIn === true)
-             || (day.tier2 && day.tier2[gameId] === true);
+             || (day.tier2 && day.tier2[gameId] === true)
+             || (day.tier3 && day.tier3[gameId] === true);
     }
     if (checked) streak++;
     else if (i === 0) continue;
@@ -3160,7 +3169,21 @@ function buildRosterCard(game, prefs, status) {
   played.title = 'Played today';
   played.innerHTML = `<span class="rc-played-box"></span><span class="rc-played-label">${playedToday ? 'played' : 'today'}</span>`;
   played.onclick = (e) => { e.stopPropagation(); toggleTier3(game.id); };
-  foot.appendChild(played);
+
+  // played + streak share the left cluster; streak (shared with Daily/Playing) shows the
+  // game's cross-tier run and updates live via updateStreak() on tap.
+  const footLeft = document.createElement('div');
+  footLeft.className = 'rc-foot-left';
+  footLeft.appendChild(played);
+
+  const rstreak = getStreak(game.id, 'tier3');
+  const streakEl = document.createElement('div');
+  streakEl.className = 'streak rc-streak' + (rstreak > 0 ? ' active' : '');
+  streakEl.textContent = rstreak > 0 ? rstreak + 'd' : '·';
+  streakEl.title = '连续天数';
+  footLeft.appendChild(streakEl);
+
+  foot.appendChild(footLeft);
 
   if (parsed.platform) {
     const plat = document.createElement('div');
