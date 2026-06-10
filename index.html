@@ -2160,13 +2160,15 @@ function getStreak(gameId, currentTierKey) {
   for (let i = 0; i < 365; i++) {
     const d = new Date(today); d.setDate(today.getDate() - i);
     const key = dateKey(d);
-    const tierThatDay = tierOnDate(game, key);
+    // 一天是否计入连续天数，看的是「这天在仪式档（Daily 主勾 / Playing 打卡）有没有勾」，
+    // 而非这天历史上在哪一档。原因：卡片永远按游戏【当前】所在档渲染，所以无论你今天打卡还是
+    // 回填过去某天，勾选都写进【当前档】的桶里。若按历史 tierResidence 去查（tierOnDate），
+    // 来回挪过位置 / 回填昨天时桶就对不上，连续天数会断。Roster 的随手标记不计入连续天数。
     const day = state.history[key];
     let checked = false;
-    if (day && tierThatDay) {
-      if (tierThatDay === 'tier1') checked = day.tier1 && day.tier1[gameId] && day.tier1[gameId].checkedIn === true;
-      else if (tierThatDay === 'tier2') checked = day.tier2 && day.tier2[gameId] === true;
-      else if (tierThatDay === 'tier3') checked = day.tier3 && day.tier3[gameId] === true;
+    if (day) {
+      checked = (day.tier1 && day.tier1[gameId] && day.tier1[gameId].checkedIn === true)
+             || (day.tier2 && day.tier2[gameId] === true);
     }
     if (checked) streak++;
     else if (i === 0) continue;
