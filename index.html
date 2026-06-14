@@ -1454,7 +1454,7 @@ function migrate(state) {
   if (!Array.isArray(state.config.subList) || !state.config.subList.length)
     state.config.subList = ['乙女', '开放世界', '箱庭', '线性', 'JRPG', 'Roguelike', '银河城', '多结局', '抽卡养成', '割草', '推理', '沙盒'];
 
-  ensureGroupSort();
+  ensureGroupSort(state);
 
   return state;
 }
@@ -5014,11 +5014,13 @@ function parseGroupKey(k) { const i = k.indexOf(':'); return i === -1 ? { tier: 
 function groupKeyOf(tier, game) { return tier === 'tier3' ? 'tier3:' + (game.status || 'considering') : tier; }
 
 // Per-group state lives in config (so it syncs and survives refresh). Idempotent.
-function ensureGroupSort() {
-  if (!state.config.groupSort) state.config.groupSort = {};
+function ensureGroupSort(st) {
+  st = st || state;
+  if (!st || !st.config) return;
+  if (!st.config.groupSort) st.config.groupSort = {};
   GROUP_DEFS.forEach(d => {
-    const g = state.config.groupSort[d.key];
-    if (!g) state.config.groupSort[d.key] = { chain: [], dirty: false, presets: [] };
+    const g = st.config.groupSort[d.key];
+    if (!g) st.config.groupSort[d.key] = { chain: [], dirty: false, presets: [] };
     else { if (!Array.isArray(g.chain)) g.chain = []; if (!Array.isArray(g.presets)) g.presets = []; if (typeof g.dirty !== 'boolean') g.dirty = false; }
   });
 }
