@@ -3196,7 +3196,7 @@ function buildRosterControls(prefs) {
   const _anyOpen = GROUP_DEFS.some(d => state.config.groupSort[d.key] && state.config.groupSort[d.key].barOpen);
   const foldAllBtn = document.createElement('button');
   foldAllBtn.className = 'roster-ctrl';
-  foldAllBtn.innerHTML = `⇅ ${_anyOpen ? '收起排序' : '展开排序'}`;
+  foldAllBtn.innerHTML = `⇅ ${_anyOpen ? 'Hide' : 'Sort'}`;
   foldAllBtn.title = '展开 / 收起所有组的排序条';
   foldAllBtn.onclick = () => {
     const target = !_anyOpen;
@@ -5278,7 +5278,7 @@ function buildSortHeadEntry(groupKey) {
   const tone = GROUP_NAME_VAR[groupKey];
   if (tone) btn.style.setProperty('--g-name', tone);
   const sum = chainSummary(gs.chain);
-  btn.innerHTML = `<span class="she-icon">⇅</span><span class="she-sum">${escapeHtml(sum || '排序')}</span>` + (gs.dirty ? `<span class="she-dirty"> ·已改</span>` : '');
+  btn.innerHTML = `<span class="she-icon">⇅</span><span class="she-sum">${escapeHtml(sum || 'SORT')}</span>` + (gs.dirty ? `<span class="she-dirty"> ·已改</span>` : '');
   btn.title = '展开排序';
   btn.onclick = () => { gs.barOpen = true; scheduleSave(); smoothRender(); };
   return btn;
@@ -5312,7 +5312,7 @@ function buildSortBar(groupKey) {
   });
 
   const add = document.createElement('button'); add.className = 'sort-add';
-  add.textContent = gs.chain.length ? '＋' : '＋ 排序';
+  add.textContent = gs.chain.length ? '＋' : '＋ SORT';
   add.title = '加一层排序';
   add.onclick = () => openAddKeyMenu(add, groupKey);
   bar.appendChild(add);
@@ -5326,12 +5326,12 @@ function buildSortBar(groupKey) {
   const sp = document.createElement('span'); sp.className = 'sort-spacer'; bar.appendChild(sp);
 
   const pre = document.createElement('button'); pre.className = 'sort-ctrl';
-  pre.innerHTML = `预设 <span class="ctrl-caret">▾</span>`; pre.title = '保存 / 切换顺序快照';
+  pre.innerHTML = `PRESET <span class="ctrl-caret">▾</span>`; pre.title = '保存 / 切换顺序快照';
   pre.onclick = () => openPresetMenu(pre, groupKey);
   bar.appendChild(pre);
 
   const rng = document.createElement('button'); rng.className = 'sort-ctrl';
-  rng.innerHTML = `套用到 <span class="ctrl-caret">▾</span>`; rng.title = '把这条排序套用到其他组';
+  rng.innerHTML = `APPLY TO <span class="ctrl-caret">▾</span>`; rng.title = '把这条排序套用到其他组';
   if (!gs.chain.length) rng.classList.add('disabled');
   rng.onclick = () => { if (gs.chain.length) openRangeMenu(rng, groupKey); };
   bar.appendChild(rng);
