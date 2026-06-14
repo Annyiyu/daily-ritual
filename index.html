@@ -1201,7 +1201,13 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .jf-chip:hover{border-color:var(--accent-soft);}
 .jf-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .jf-group-label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-faint);align-self:center;margin-right:2px;}
-.journey-month{font-family:var(--label-font);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-faint);margin:20px 0 8px;}
+/* shared month capsule — list / river / star speak one month language */
+.month-cap-wrap{display:flex;align-items:center;gap:8px;}
+.month-cap-wrap.vert{flex-direction:column;align-items:flex-start;gap:4px;}
+.month-cap{color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:11px;letter-spacing:.02em;line-height:1.1;white-space:nowrap;}
+.month-cap-year{font-size:10px;color:var(--text-faint);letter-spacing:.04em;}
+.month-cap-wrap.vert .month-cap-year{font-size:9px;padding-left:3px;}
+.jlist-month{margin:22px 0 10px;}
 .journey-row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
 .journey-row:hover{background:var(--accent-faint);}
 .jr-date{font-size:12px;color:var(--text-faint);width:42px;flex-shrink:0;text-align:right;}
@@ -1241,9 +1247,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .river-svg{position:absolute;top:0;overflow:visible;}
 .river-row{position:absolute;right:0;display:flex;align-items:center;gap:11px;padding:0 4px;box-sizing:border-box;cursor:pointer;border-radius:8px;}
 .river-row:hover{background:var(--accent-faint);}
-.river-month{position:absolute;left:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;padding-left:2px;box-sizing:border-box;}
-.river-mcap{color:#fff;font-size:11px;font-weight:600;padding:3px 9px;border-radius:11px;letter-spacing:.02em;line-height:1.1;white-space:nowrap;}
-.river-myear{font-size:9px;color:var(--text-faint);padding-left:3px;letter-spacing:.04em;}
+.river-month{position:absolute;left:0;display:flex;align-items:center;padding-left:2px;box-sizing:border-box;}
 .river-date{font-size:12px;color:var(--text-faint);width:42px;flex-shrink:0;}
 .river-game{font-size:14px;color:var(--text);font-weight:500;flex-shrink:0;}
 .river-node{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;}
@@ -1251,7 +1255,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 
 /* ===== 星图 (到达热力) ===== */
 .star-month{margin-bottom:24px;}
-.star-month-label{font-family:var(--label-font);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-faint);margin-bottom:10px;}
+.star-month-cap{margin-bottom:12px;}
 .star-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:300px;}
 .star-wd{font-size:10px;color:var(--text-faint);text-align:center;padding-bottom:2px;}
 .star-cell{position:relative;aspect-ratio:1;border-radius:7px;background:var(--bg-deep);display:flex;align-items:flex-start;justify-content:flex-end;}
@@ -4656,6 +4660,30 @@ function gameColor(id) {
   for (let k = 0; k < s.length; k++) h = (h * 31 + s.charCodeAt(k)) >>> 0;
   return GAME_PALETTE[h % GAME_PALETTE.length];
 }
+
+// TIME colour — shares the review page's macaron ring. The unifying language for
+// anything that marks a moment in time (month capsules, shelf accents).
+function timeColorRGB(y, m, d, factor) {
+  const mc = (typeof rvMacaron === 'function') ? rvMacaron(rvWeekT(new Date(y, m - 1, d))) : [184, 118, 62];
+  const f = (factor == null) ? 1 : factor;
+  return `rgb(${Math.round(mc[0] * f)},${Math.round(mc[1] * f)},${Math.round(mc[2] * f)})`;
+}
+// A month marker: time-coloured capsule (月) + year underneath/beside. Shared by
+// list / river / star so every view speaks the same month language.
+function makeMonthCapsule(ym, vertical) {
+  const p = (ym || '').split('-').map(Number);
+  const wrap = document.createElement('div');
+  wrap.className = 'month-cap-wrap' + (vertical ? ' vert' : '');
+  const cap = document.createElement('div');
+  cap.className = 'month-cap';
+  cap.style.background = timeColorRGB(p[0], p[1], 15, 0.66);
+  cap.textContent = p[1] + '月';
+  wrap.appendChild(cap);
+  const yr = document.createElement('div');
+  yr.className = 'month-cap-year'; yr.textContent = p[0];
+  wrap.appendChild(yr);
+  return wrap;
+}
 // Outcome fill for the star calendar (saturated forms of the pill palette).
 const OUTCOME_FILL = {
   beaten: 'rgba(228,193,105,0.92)',
@@ -4771,7 +4799,7 @@ function renderJList(container, rows) {
     const month = (x.date || '????-??').slice(0, 7);
     if (month !== curMonth) {
       curMonth = month;
-      const mh = document.createElement('div'); mh.className = 'journey-month'; mh.textContent = month;
+      const mh = makeMonthCapsule(month, false); mh.classList.add('jlist-month');
       container.appendChild(mh);
     }
     const row = document.createElement('div');
@@ -4808,7 +4836,8 @@ function renderJShelf(container, all, match) {
   games.forEach(g => {
     const card = document.createElement('div');
     card.className = 'shelf-card';
-    card.style.setProperty('--gc', gameColor(g.id));
+    const rd = (g.nodes[0] && g.nodes[0].date ? g.nodes[0].date : '').split('-').map(Number);
+    card.style.setProperty('--gc', rd.length === 3 ? timeColorRGB(rd[0], rd[1], rd[2], 0.9) : 'var(--accent)');
     card.onclick = () => openDetail(g.id);
 
     const top = document.createElement('div'); top.className = 'shelf-top';
@@ -4879,16 +4908,9 @@ function renderJRiver(container, rows) {
     const month = (x.date || '').slice(0, 7);
     if (month !== curMonth) {
       curMonth = month;
-      const [yy, mm] = month.split('-').map(Number);
       const ml = document.createElement('div'); ml.className = 'river-month';
       ml.style.top = (i * RH) + 'px'; ml.style.height = RH + 'px'; ml.style.width = GUTTER + 'px';
-      const cap = document.createElement('div'); cap.className = 'river-mcap';
-      const mc = (typeof rvMacaron === 'function') ? rvMacaron(rvWeekT(new Date(yy, mm - 1, 15))) : [184, 118, 62];
-      cap.style.background = `rgb(${Math.round(mc[0] * 0.66)},${Math.round(mc[1] * 0.66)},${Math.round(mc[2] * 0.66)})`;
-      cap.textContent = mm + '月';
-      ml.appendChild(cap);
-      const yr = document.createElement('div'); yr.className = 'river-myear'; yr.textContent = yy;
-      ml.appendChild(yr);
+      ml.appendChild(makeMonthCapsule(month, true));
       wrap.appendChild(ml);
     }
   });
@@ -4933,7 +4955,7 @@ function renderJStar(container, nodes) {
 function buildStarMonth(ym, byDate) {
   const [y, m] = ym.split('-').map(Number);
   const wrap = document.createElement('div'); wrap.className = 'star-month';
-  const label = document.createElement('div'); label.className = 'star-month-label'; label.textContent = ym; wrap.appendChild(label);
+  const label = makeMonthCapsule(ym, false); label.classList.add('star-month-cap'); wrap.appendChild(label);
 
   const grid = document.createElement('div'); grid.className = 'star-grid';
   ['一', '二', '三', '四', '五', '六', '日'].forEach(w => { const h = document.createElement('div'); h.className = 'star-wd'; h.textContent = w; grid.appendChild(h); });
@@ -4950,7 +4972,6 @@ function buildStarMonth(ym, byDate) {
       const top = hits.slice().sort((a, b) => (OUTCOME_RANK[b.outcome] || 0) - (OUTCOME_RANK[a.outcome] || 0))[0];
       cell.classList.add('lit');
       cell.style.background = OUTCOME_FILL[top.outcome] || 'var(--accent)';
-      cell.style.boxShadow = 'inset 0 0 0 1.5px ' + gameColor(top.gameId);
       cell.title = hits.map(h => h.gameName + ' · ' + h.type + (h.inst ? '·' + h.inst : '')).join('\n');
       if (hits.length > 1) { const n = document.createElement('span'); n.className = 'star-n'; n.textContent = hits.length; cell.appendChild(n); }
       cell.onclick = () => openDetail(top.gameId);
