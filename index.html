@@ -1224,6 +1224,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .shelf-top{display:flex;align-items:flex-start;gap:8px;}
 .shelf-name{font-family:var(--display-font);font-size:15.5px;font-weight:600;color:var(--text);line-height:1.25;flex:1;}
 .shelf-seal{color:var(--gc,var(--accent));font-size:14px;flex-shrink:0;}
+.shelf-year{font-size:10.5px;color:var(--text-faint);letter-spacing:0.03em;flex-shrink:0;align-self:center;}
 .shelf-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;}
 .shelf-tag{font-size:10.5px;color:var(--text-faint);background:var(--bg);border-radius:8px;padding:2px 7px;}
 .shelf-badges{display:flex;flex-direction:column;gap:5px;margin-top:11px;}
@@ -1237,10 +1238,10 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 
 /* ===== 长河 (时间线) ===== */
 .river-wrap{position:relative;margin-top:4px;}
-.river-svg{position:absolute;left:0;top:0;overflow:visible;}
+.river-svg{position:absolute;top:0;overflow:visible;}
 .river-row{position:absolute;right:0;display:flex;align-items:center;gap:11px;padding:0 4px;box-sizing:border-box;cursor:pointer;border-radius:8px;}
 .river-row:hover{background:var(--accent-faint);}
-.river-month{position:absolute;left:0;top:7px;font-size:9.5px;letter-spacing:0.1em;color:var(--text-faint);white-space:nowrap;}
+.river-month{position:absolute;left:0;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;box-sizing:border-box;font-size:10px;letter-spacing:0.02em;color:var(--text-faint);white-space:nowrap;}
 .river-date{font-size:12px;color:var(--text-faint);width:42px;flex-shrink:0;}
 .river-game{font-size:14px;color:var(--text);font-weight:500;flex-shrink:0;}
 .river-node{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;}
@@ -4807,6 +4808,8 @@ function renderJShelf(container, all, match) {
 
     const top = document.createElement('div'); top.className = 'shelf-top';
     const nm = document.createElement('div'); nm.className = 'shelf-name'; nm.textContent = g.name; top.appendChild(nm);
+    const years = [...new Set(g.nodes.map(n => (n.date || '').slice(0, 4)).filter(Boolean))].sort();
+    if (years.length) { const yr = document.createElement('span'); yr.className = 'shelf-year'; yr.textContent = years.length === 1 ? years[0] : years[0] + '–' + years[years.length - 1]; top.appendChild(yr); }
     if (g.overall) { const seal = document.createElement('span'); seal.className = 'shelf-seal'; seal.textContent = '✦'; seal.title = '已通关'; top.appendChild(seal); }
     card.appendChild(top);
 
@@ -4833,13 +4836,16 @@ function renderJShelf(container, all, match) {
 // ---- 长河 (时间线) — fixed-height rows + SVG rail, same-game dots strung in color ----
 function renderJRiver(container, rows) {
   if (rows.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
-  const RH = 66, RAIL = 34, DOTX = 16, CONTENT_LEFT = 40;
+  // Layout columns: [month gutter][rail][content]
+  const RH = 66, GUTTER = 52, RAIL = 20, DOTX = 10, CONTENT_LEFT = GUTTER + RAIL;
   const wrap = document.createElement('div'); wrap.className = 'river-wrap'; wrap.style.height = (rows.length * RH) + 'px';
 
+  // SVG rail sits right of the month gutter
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
   svg.setAttribute('class', 'river-svg');
   svg.setAttribute('width', RAIL); svg.setAttribute('height', rows.length * RH);
+  svg.style.left = GUTTER + 'px';
 
   const byGame = {};
   rows.forEach((x, i) => { (byGame[x.gameId] = byGame[x.gameId] || []).push(i); });
@@ -4861,13 +4867,24 @@ function renderJRiver(container, rows) {
   });
   wrap.appendChild(svg);
 
+  // Month markers: own left column, vertically aligned to that month's first row
   let curMonth = null;
+  rows.forEach((x, i) => {
+    const month = (x.date || '').slice(0, 7);
+    if (month !== curMonth) {
+      curMonth = month;
+      const ml = document.createElement('div'); ml.className = 'river-month';
+      ml.style.top = (i * RH) + 'px'; ml.style.height = RH + 'px'; ml.style.width = GUTTER + 'px';
+      ml.textContent = month;
+      wrap.appendChild(ml);
+    }
+  });
+
+  // Content rows, right of the rail
   rows.forEach((x, i) => {
     const row = document.createElement('div');
     row.className = 'river-row'; row.style.top = (i * RH) + 'px'; row.style.height = RH + 'px'; row.style.left = CONTENT_LEFT + 'px';
     row.onclick = () => openDetail(x.gameId);
-    const month = (x.date || '').slice(0, 7);
-    if (month !== curMonth) { curMonth = month; const ml = document.createElement('div'); ml.className = 'river-month'; ml.textContent = month; row.appendChild(ml); }
     const date = document.createElement('div'); date.className = 'river-date'; date.textContent = (x.date || '').slice(5); row.appendChild(date);
     const gn = document.createElement('div'); gn.className = 'river-game'; gn.textContent = x.gameName; row.appendChild(gn);
     const node = document.createElement('div'); node.className = 'river-node';
