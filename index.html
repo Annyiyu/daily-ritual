@@ -2632,6 +2632,7 @@ function renderApp() {
 
     <section class="section narrow" id="section-tier1">
       <div class="section-header"><div class="section-title">Daily</div><div class="section-line"></div></div>
+      <div id="sortbar-tier1"></div>
       <div id="tier1-list"></div>
       <div class="add-row" id="add-tier1-container"></div>
       <div id="hidden-tier1"></div>
@@ -2639,6 +2640,7 @@ function renderApp() {
 
     <section class="section narrow" id="section-tier2">
       <div class="section-header"><div class="section-title">Playing</div><div class="section-line"></div></div>
+      <div id="sortbar-tier2"></div>
       <div id="tier2-list"></div>
       <div class="add-row" id="add-tier2-container"></div>
       <div id="hidden-tier2"></div>
@@ -2776,7 +2778,8 @@ function renderTier1() {
   container.innerHTML = '';
 
   const visible = state.config.tier1.filter(g => !g.hidden);
-  if (visible.length) container.appendChild(buildSortBar('tier1'));
+  const _sb1 = document.getElementById('sortbar-tier1');
+  if (_sb1) { _sb1.innerHTML = ''; if (visible.length) _sb1.appendChild(buildSortBar('tier1')); }
   visible.forEach(game => {
     const gd = day.tier1[game.id] || { checkedIn: false, subtasks: {}, extra: false };
     const streak = getStreak(game.id, 'tier1');
@@ -2973,7 +2976,8 @@ function renderTier2() {
   container.innerHTML = '';
 
   const visible = state.config.tier2.filter(g => !g.hidden && !g.completion);
-  if (visible.length) container.appendChild(buildSortBar('tier2'));
+  const _sb2 = document.getElementById('sortbar-tier2');
+  if (_sb2) { _sb2.innerHTML = ''; if (visible.length) _sb2.appendChild(buildSortBar('tier2')); }
   visible.forEach(game => container.appendChild(buildPlayingCard(game, day)));
 
   renderAddRow('tier2');
