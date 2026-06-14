@@ -1240,7 +1240,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .river-svg{position:absolute;left:0;top:0;overflow:visible;}
 .river-row{position:absolute;right:0;display:flex;align-items:center;gap:11px;padding:0 4px;box-sizing:border-box;cursor:pointer;border-radius:8px;}
 .river-row:hover{background:var(--accent-faint);}
-.river-month{position:absolute;left:0;top:2px;transform:translateX(-100%);padding-right:8px;font-size:9.5px;letter-spacing:0.1em;color:var(--text-faint);white-space:nowrap;}
+.river-month{position:absolute;left:0;top:7px;font-size:9.5px;letter-spacing:0.1em;color:var(--text-faint);white-space:nowrap;}
 .river-date{font-size:12px;color:var(--text-faint);width:42px;flex-shrink:0;}
 .river-game{font-size:14px;color:var(--text);font-weight:500;flex-shrink:0;}
 .river-node{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;}
@@ -4833,7 +4833,7 @@ function renderJShelf(container, all, match) {
 // ---- 长河 (时间线) — fixed-height rows + SVG rail, same-game dots strung in color ----
 function renderJRiver(container, rows) {
   if (rows.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
-  const RH = 66, RAIL = 34, DOTX = 16, CONTENT_LEFT = 52;
+  const RH = 66, RAIL = 34, DOTX = 16, CONTENT_LEFT = 40;
   const wrap = document.createElement('div'); wrap.className = 'river-wrap'; wrap.style.height = (rows.length * RH) + 'px';
 
   const svgNS = 'http://www.w3.org/2000/svg';
