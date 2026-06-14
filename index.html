@@ -1241,7 +1241,9 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .river-svg{position:absolute;top:0;overflow:visible;}
 .river-row{position:absolute;right:0;display:flex;align-items:center;gap:11px;padding:0 4px;box-sizing:border-box;cursor:pointer;border-radius:8px;}
 .river-row:hover{background:var(--accent-faint);}
-.river-month{position:absolute;left:0;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;box-sizing:border-box;font-size:10px;letter-spacing:0.02em;color:var(--text-faint);white-space:nowrap;}
+.river-month{position:absolute;left:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;padding-left:2px;box-sizing:border-box;}
+.river-mcap{color:#fff;font-size:11px;font-weight:600;padding:3px 9px;border-radius:11px;letter-spacing:.02em;line-height:1.1;white-space:nowrap;}
+.river-myear{font-size:9px;color:var(--text-faint);padding-left:3px;letter-spacing:.04em;}
 .river-date{font-size:12px;color:var(--text-faint);width:42px;flex-shrink:0;}
 .river-game{font-size:14px;color:var(--text);font-weight:500;flex-shrink:0;}
 .river-node{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;}
@@ -4332,6 +4334,9 @@ function deleteMilestone(gameId, msId) {
   const removed = found.game.milestones.find(x => x.id === msId);
   found.game.milestones = found.game.milestones.filter(x => x.id !== msId);
   recomputeGame(found.game);
+  // If this removed the last milestone, clear the derived shelf state too
+  // (so deleting an 整体 reach takes the game back off the Finished shelf).
+  if (found.game.milestones.length === 0) { found.game.completion = ''; found.game.lastMilestone = ''; }
   scheduleSave();
   buildDetail();
   smoothRender();
@@ -4837,7 +4842,7 @@ function renderJShelf(container, all, match) {
 function renderJRiver(container, rows) {
   if (rows.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
   // Layout columns: [month gutter][rail][content]
-  const RH = 66, GUTTER = 52, RAIL = 20, DOTX = 10, CONTENT_LEFT = GUTTER + RAIL;
+  const RH = 66, GUTTER = 58, RAIL = 20, DOTX = 10, CONTENT_LEFT = GUTTER + RAIL;
   const wrap = document.createElement('div'); wrap.className = 'river-wrap'; wrap.style.height = (rows.length * RH) + 'px';
 
   // SVG rail sits right of the month gutter
@@ -4867,15 +4872,23 @@ function renderJRiver(container, rows) {
   });
   wrap.appendChild(svg);
 
-  // Month markers: own left column, vertically aligned to that month's first row
+  // Month markers: own left column — a TIME-coloured capsule (shares the review
+  // page's macaron ring, so month = a colour) + the year underneath, faint.
   let curMonth = null;
   rows.forEach((x, i) => {
     const month = (x.date || '').slice(0, 7);
     if (month !== curMonth) {
       curMonth = month;
+      const [yy, mm] = month.split('-').map(Number);
       const ml = document.createElement('div'); ml.className = 'river-month';
       ml.style.top = (i * RH) + 'px'; ml.style.height = RH + 'px'; ml.style.width = GUTTER + 'px';
-      ml.textContent = month;
+      const cap = document.createElement('div'); cap.className = 'river-mcap';
+      const mc = (typeof rvMacaron === 'function') ? rvMacaron(rvWeekT(new Date(yy, mm - 1, 15))) : [184, 118, 62];
+      cap.style.background = `rgb(${Math.round(mc[0] * 0.66)},${Math.round(mc[1] * 0.66)},${Math.round(mc[2] * 0.66)})`;
+      cap.textContent = mm + '月';
+      ml.appendChild(cap);
+      const yr = document.createElement('div'); yr.className = 'river-myear'; yr.textContent = yy;
+      ml.appendChild(yr);
       wrap.appendChild(ml);
     }
   });
