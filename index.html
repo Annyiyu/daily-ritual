@@ -1276,15 +1276,18 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 #sortbar-tier2{--g-name:var(--play-name);}
 
 .sortbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:2px 0 14px;font-family:var(--body-font);}
-.sortbar.collapsed{margin:2px 0 12px;}
 
-/* fold toggle */
-.sort-toggle{display:inline-flex;align-items:center;gap:6px;border:1px solid color-mix(in srgb, var(--g-name,var(--accent)) 30%, transparent);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--g-name,var(--accent));padding:4px 11px;border-radius:13px;letter-spacing:.01em;}
+/* collapsed entry — lives in the title row, muted until hovered */
+.sort-headentry{display:inline-flex;align-items:center;gap:6px;align-self:center;flex-shrink:0;border:1px solid transparent;background:none;cursor:pointer;font-family:var(--body-font);font-size:11px;color:var(--text-faint);padding:3px 9px;border-radius:11px;letter-spacing:.02em;transition:color .15s,background-color .15s;}
+.sort-headentry:hover{color:var(--g-name,var(--accent));background:color-mix(in srgb, var(--g-name,var(--accent)) 9%, transparent);}
+.she-icon{font-size:12px;opacity:.7;}
+.she-sum{letter-spacing:.03em;}
+.she-dirty{font-style:italic;opacity:.85;}
+
+/* expanded fold toggle (leads the dropped-down bar) */
+.sort-toggle{display:inline-flex;align-items:center;gap:6px;border:1px solid color-mix(in srgb, var(--g-name,var(--accent)) 30%, transparent);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--g-name,var(--accent));padding:4px 9px;border-radius:13px;letter-spacing:.01em;}
 .sort-toggle:hover{background:color-mix(in srgb, var(--g-name,var(--accent)) 12%, transparent);}
 .sort-tg-icon{font-size:13px;opacity:.85;}
-.sort-tg-sum{letter-spacing:.02em;}
-.sort-tg-dirty{opacity:.7;font-style:italic;}
-.sortbar.open .sort-toggle{padding:4px 9px;}
 
 .sort-sep{color:var(--g-name,var(--text-faint));opacity:0.5;font-size:12px;}
 .sort-chip{display:inline-flex;align-items:center;gap:2px;background:color-mix(in srgb, var(--g-name,var(--accent)) 13%, transparent);border-radius:13px;padding:0 4px 0 2px;}
@@ -2795,8 +2798,7 @@ function renderTier1() {
   container.innerHTML = '';
 
   const visible = state.config.tier1.filter(g => !g.hidden);
-  const _sb1 = document.getElementById('sortbar-tier1');
-  if (_sb1) { _sb1.innerHTML = ''; if (visible.length) _sb1.appendChild(buildSortBar('tier1')); }
+  renderSortControls('tier1', document.querySelector('#section-tier1 .section-header'), document.getElementById('sortbar-tier1'), visible.length);
   visible.forEach(game => {
     const gd = day.tier1[game.id] || { checkedIn: false, subtasks: {}, extra: false };
     const streak = getStreak(game.id, 'tier1');
@@ -2993,8 +2995,7 @@ function renderTier2() {
   container.innerHTML = '';
 
   const visible = state.config.tier2.filter(g => !g.hidden && !g.completion);
-  const _sb2 = document.getElementById('sortbar-tier2');
-  if (_sb2) { _sb2.innerHTML = ''; if (visible.length) _sb2.appendChild(buildSortBar('tier2')); }
+  renderSortControls('tier2', document.querySelector('#section-tier2 .section-header'), document.getElementById('sortbar-tier2'), visible.length);
   visible.forEach(game => container.appendChild(buildPlayingCard(game, day)));
 
   renderAddRow('tier2');
@@ -3231,7 +3232,11 @@ function buildRosterGroup(status, games, prefs) {
   };
   wrap.appendChild(head);
 
-  if (!folded) wrap.appendChild(buildSortBar('tier3:' + status));
+  if (!folded) {
+    const _gk = 'tier3:' + status;
+    if (groupSortState(_gk).barOpen) wrap.appendChild(buildSortBar(_gk));
+    else head.appendChild(buildSortHeadEntry(_gk));
+  }
 
   const grid = document.createElement('div');
   grid.className = 'roster-grid';
@@ -5252,29 +5257,46 @@ function customPopover(anchor, build) {
   menu._cleanup = () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
 }
 
+// Routes a group's sort controls: collapsed → entry in the title row (headerEl),
+// expanded → full bar in the body container (bodyEl). Used by Daily / Playing.
+function renderSortControls(groupKey, headerEl, bodyEl, hasVisible) {
+  if (bodyEl) bodyEl.innerHTML = '';
+  if (headerEl) { const old = headerEl.querySelector('.sort-headentry'); if (old) old.remove(); }
+  if (!hasVisible) return;
+  const gs = groupSortState(groupKey);
+  if (gs.barOpen) { if (bodyEl) bodyEl.appendChild(buildSortBar(groupKey)); }
+  else { if (headerEl) headerEl.appendChild(buildSortHeadEntry(groupKey)); }
+}
+
+// Collapsed entry — a low-profile pill that lives at the RIGHT END of the group's
+// title row (section-header / roster-group-head). Muted by default; reveals the
+// region colour on hover. Click → expand the full bar below.
+function buildSortHeadEntry(groupKey) {
+  const gs = groupSortState(groupKey);
+  const btn = document.createElement('button');
+  btn.className = 'sort-headentry';
+  const tone = GROUP_NAME_VAR[groupKey];
+  if (tone) btn.style.setProperty('--g-name', tone);
+  const sum = chainSummary(gs.chain);
+  btn.innerHTML = `<span class="she-icon">⇅</span><span class="she-sum">${escapeHtml(sum || '排序')}</span>` + (gs.dirty ? `<span class="she-dirty"> ·已改</span>` : '');
+  btn.title = '展开排序';
+  btn.onclick = () => { gs.barOpen = true; scheduleSave(); smoothRender(); };
+  return btn;
+}
+
+// Expanded bar — chips + controls, dropped into a row below the title. Leading ⇅
+// collapses it back into the title row. Only rendered when the group is open.
 function buildSortBar(groupKey) {
   ensureGroupSort();
   const gs = groupSortState(groupKey);
-  const bar = document.createElement('div'); bar.className = 'sortbar' + (gs.barOpen ? ' open' : ' collapsed');
+  const bar = document.createElement('div'); bar.className = 'sortbar open';
   const tone = GROUP_NAME_VAR[groupKey];
   if (tone) bar.style.setProperty('--g-name', tone);
 
-  // Toggle (always present) — collapses / expands this group's bar.
   const toggle = document.createElement('button'); toggle.className = 'sort-toggle';
-  toggle.onclick = () => { gs.barOpen = !gs.barOpen; scheduleSave(); smoothRender(); };
-
-  if (!gs.barOpen) {
-    // Collapsed: ⇅ + a light summary of the active chain (1b).
-    const sum = chainSummary(gs.chain);
-    toggle.innerHTML = `<span class="sort-tg-icon">⇅</span><span class="sort-tg-sum">${escapeHtml(sum || '排序')}</span>` + (gs.dirty ? `<span class="sort-tg-dirty"> ·已改</span>` : '');
-    toggle.title = '展开排序';
-    bar.appendChild(toggle);
-    return bar;
-  }
-
-  // Expanded.
   toggle.innerHTML = `<span class="sort-tg-icon">⇅</span>`;
   toggle.title = '收起排序';
+  toggle.onclick = () => { gs.barOpen = false; scheduleSave(); smoothRender(); };
   bar.appendChild(toggle);
 
   gs.chain.forEach((step, idx) => {
