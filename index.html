@@ -1254,7 +1254,8 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .river-node span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* ===== 星图 (到达热力) ===== */
-.star-month{margin-bottom:24px;}
+.star-months{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:26px 36px;align-items:start;}
+.star-month{margin-bottom:0;}
 .star-month-cap{margin-bottom:12px;}
 .star-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:300px;}
 .star-wd{font-size:10px;color:var(--text-faint);text-align:center;padding-bottom:2px;}
@@ -4979,7 +4980,9 @@ function renderJStar(container, nodes) {
   const byDate = {};
   nodes.forEach(x => { if (x.date) (byDate[x.date] = byDate[x.date] || []).push(x); });
   const months = [...new Set(nodes.map(x => (x.date || '').slice(0, 7)).filter(Boolean))].sort();
-  months.forEach(ym => container.appendChild(buildStarMonth(ym, byDate)));
+  const grid = document.createElement('div'); grid.className = 'star-months';
+  months.forEach(ym => grid.appendChild(buildStarMonth(ym, byDate)));
+  container.appendChild(grid);
 
   // legend
   const legend = document.createElement('div'); legend.className = 'star-legend';
