@@ -1269,6 +1269,36 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .star-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);}
 .star-legend-dot{width:11px;height:11px;border-radius:3px;display:inline-block;}
 
+/* ====== Sort bar (per-group sort chains) ====== */
+.sortbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:2px 0 14px;font-family:var(--body-font);}
+.sort-sep{color:var(--text-faint);opacity:0.55;font-size:12px;}
+.sort-chip{display:inline-flex;align-items:center;gap:2px;background:var(--accent-faint,rgba(210,133,107,0.12));border-radius:13px;padding:0 4px 0 2px;}
+.sort-chip-lab{border:none;background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--accent);padding:4px 6px 4px 9px;border-radius:13px;letter-spacing:.01em;}
+.sort-chip-lab:hover{background:var(--accent-soft,rgba(210,133,107,0.2));}
+.sort-arrow{font-weight:700;font-size:11px;}
+.sort-chip-x{border:none;background:none;cursor:pointer;color:var(--accent);opacity:.5;font-size:10px;padding:2px 4px;border-radius:8px;line-height:1;}
+.sort-chip-x:hover{opacity:1;background:var(--accent-soft,rgba(210,133,107,0.2));}
+.sort-add{border:1px dashed var(--line);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--text-faint);padding:4px 10px;border-radius:13px;}
+.sort-add:hover{border-color:var(--accent);color:var(--accent);}
+.sort-dirty{font-size:11px;color:var(--text-faint);letter-spacing:.02em;padding-left:2px;font-style:italic;}
+.sort-spacer{flex:1 1 12px;}
+.sort-ctrl{border:1px solid var(--line);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--text);padding:4px 11px;border-radius:13px;letter-spacing:.01em;display:inline-flex;align-items:center;gap:3px;}
+.sort-ctrl:hover{border-color:var(--accent);color:var(--accent);}
+.sort-ctrl .ctrl-caret{font-size:9px;opacity:.6;}
+.sort-ctrl.disabled{opacity:.4;cursor:default;}
+.sort-ctrl.disabled:hover{border-color:var(--line);color:var(--text);}
+
+/* range-apply popover */
+.rng-title{font-size:12px;color:var(--text-faint);padding:4px 10px 8px;letter-spacing:.02em;}
+.rng-pills{display:flex;flex-wrap:wrap;gap:6px;padding:0 10px 10px;max-width:260px;}
+.rng-pill{border:1px solid var(--line);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--text);padding:4px 11px;border-radius:13px;}
+.rng-pill.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+.rng-actions{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-top:1px solid var(--line);}
+.rng-act{border:1px solid var(--line);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--text);padding:5px 14px;border-radius:11px;}
+.rng-act:hover{border-color:var(--accent);color:var(--accent);}
+.rng-act.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.rng-act.primary:hover{color:#fff;opacity:.9;}
+
 </style>
 </head>
 <body>
@@ -1329,7 +1359,6 @@ const DEFAULT_CONFIG = {
   ],
   // Roster (tier3) UI preferences — persisted in config, purely presentational
   rosterGrouped: true,
-  rosterSort: 'manual',
   rosterGroupFold: { up_next: false, considering: false, backlog: true },
   finishedFold: { beaten: true, completed: true, sated: true, abandoned: true }
 };
@@ -1398,9 +1427,6 @@ function migrate(state) {
 
   // Roster (tier3) UI preferences — backward-compatible defaults
   if (typeof state.config.rosterGrouped !== 'boolean') state.config.rosterGrouped = true;
-  if (state.config.rosterSort !== 'manual' && state.config.rosterSort !== 'added' && state.config.rosterSort !== 'name') {
-    state.config.rosterSort = 'manual';
-  }
   if (!state.config.rosterGroupFold || typeof state.config.rosterGroupFold !== 'object') {
     state.config.rosterGroupFold = { up_next: false, considering: false, backlog: true };
   } else {
@@ -1427,6 +1453,8 @@ function migrate(state) {
     state.config.mediaList = ['视觉小说', '角色扮演', '动作冒险', '平台动作', '模拟经营', '策略', '解谜', '竞速', '互动电影', '工具'];
   if (!Array.isArray(state.config.subList) || !state.config.subList.length)
     state.config.subList = ['乙女', '开放世界', '箱庭', '线性', 'JRPG', 'Roguelike', '银河城', '多结局', '抽卡养成', '割草', '推理', '沙盒'];
+
+  ensureGroupSort();
 
   return state;
 }
@@ -2203,6 +2231,7 @@ function commitGameMove(fromTier, gameId, toTier, toIndex) {
     let adjustedIndex = toIndex;
     if (fromIndex < toIndex) adjustedIndex = toIndex - 1;
     state.config[toTier].splice(adjustedIndex, 0, game);
+    markGroupDirtyByGame(toTier, game);
     scheduleSave();
     return;
   }
@@ -2286,6 +2315,7 @@ function commitRosterReorder(gameId, insertBeforeId, grouped) {
     insertIndex = arr.length; // ungrouped: append to flat list
   }
   arr.splice(insertIndex, 0, moved);
+  markGroupDirtyByGame('tier3', moved);
   scheduleSave();
 }
 
@@ -2746,6 +2776,7 @@ function renderTier1() {
   container.innerHTML = '';
 
   const visible = state.config.tier1.filter(g => !g.hidden);
+  if (visible.length) container.appendChild(buildSortBar('tier1'));
   visible.forEach(game => {
     const gd = day.tier1[game.id] || { checkedIn: false, subtasks: {}, extra: false };
     const streak = getStreak(game.id, 'tier1');
@@ -2942,6 +2973,7 @@ function renderTier2() {
   container.innerHTML = '';
 
   const visible = state.config.tier2.filter(g => !g.hidden && !g.completion);
+  if (visible.length) container.appendChild(buildSortBar('tier2'));
   visible.forEach(game => container.appendChild(buildPlayingCard(game, day)));
 
   renderAddRow('tier2');
@@ -3091,23 +3123,8 @@ function rosterPrefs() {
   const c = state.config;
   return {
     grouped: c.rosterGrouped !== false,
-    sort: (c.rosterSort === 'added' || c.rosterSort === 'name') ? c.rosterSort : 'manual',
     fold: Object.assign({ up_next: false, considering: false, backlog: true }, c.rosterGroupFold || {})
   };
-}
-
-function sortRosterGames(games, sort) {
-  const arr = games.slice();
-  if (sort === 'name') {
-    arr.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh'));
-  } else if (sort === 'added') {
-    arr.sort((a, b) => {
-      const ca = a.createdAt || '1970-01-01', cb = b.createdAt || '1970-01-01';
-      if (ca !== cb) return ca < cb ? 1 : -1; // newer (greater date) first
-      return 0;
-    });
-  }
-  return arr; // 'manual' keeps config order
 }
 
 function renderTier3() {
@@ -3123,12 +3140,12 @@ function renderTier3() {
 
   if (prefs.grouped) {
     ROSTER_GROUP_ORDER.forEach(status => {
-      const games = sortRosterGames(visible.filter(g => (g.status || 'considering') === status), prefs.sort);
+      const games = visible.filter(g => (g.status || 'considering') === status);
       if (games.length === 0) return; // empty groups show no header
       container.appendChild(buildRosterGroup(status, games, prefs));
     });
   } else {
-    const games = sortRosterGames(visible, prefs.sort);
+    const games = visible;
     const grid = document.createElement('div');
     grid.className = 'roster-grid ungrouped';
     games.forEach(g => grid.appendChild(buildRosterCard(g, prefs, g.status || 'considering')));
@@ -3152,23 +3169,6 @@ function buildRosterControls(prefs) {
     scheduleSave(); smoothRender();
   };
   bar.appendChild(groupBtn);
-
-  const sortLabels = { manual: 'Manual', added: 'Recently added', name: 'A–Z' };
-  const sortBtn = document.createElement('button');
-  sortBtn.className = 'roster-ctrl';
-  sortBtn.innerHTML = `Sort · ${sortLabels[prefs.sort]}<span class="ctrl-caret">▾</span>`;
-  sortBtn.title = 'Sort within group';
-  sortBtn.onclick = () => {
-    showPicker(sortBtn, [
-      { value: 'manual', label: 'Manual' },
-      { value: 'added', label: 'Recently added' },
-      { value: 'name', label: 'A–Z' }
-    ], prefs.sort, v => {
-      state.config.rosterSort = v;
-      scheduleSave(); smoothRender();
-    });
-  };
-  bar.appendChild(sortBtn);
 
   return bar;
 }
@@ -3197,6 +3197,8 @@ function buildRosterGroup(status, games, prefs) {
   };
   wrap.appendChild(head);
 
+  if (!folded) wrap.appendChild(buildSortBar('tier3:' + status));
+
   const grid = document.createElement('div');
   grid.className = 'roster-grid';
   if (folded) grid.style.display = 'none';
@@ -3220,7 +3222,7 @@ function buildRosterCard(game, prefs, status) {
   const head = document.createElement('div');
   head.className = 'rc-head';
 
-  if (prefs.sort === 'manual') {
+  {
     const handle = makeDragHandle('game', 'tier3', game.id, game.name);
     handle.className = 'rc-drag';
     handle.innerHTML = '⋮⋮';
@@ -4981,6 +4983,328 @@ function buildStarMonth(ym, byDate) {
   }
   wrap.appendChild(grid);
   return wrap;
+}
+
+// ============================================================
+// SORT ENGINE — per-group sort chains, presets, range-apply.
+// Reusable-ish: chain/comparator logic is decoupled from the DR-specific
+// group definitions so it could be lifted into other apps later.
+// ============================================================
+
+// The six sortable dimensions (real wording, Chinese to match the UI).
+const SORT_KEYS = [
+  { key: 'pinyin',    label: '拼音' },
+  { key: 'lastCheck', label: '上次打卡' },
+  { key: 'platform',  label: '平台' },
+  { key: 'added',     label: '加入时间' },
+  { key: 'lastMs',    label: '最近里程碑' },
+  { key: 'msCount',   label: '里程碑数' },
+];
+function sortKeyLabel(k) { const f = SORT_KEYS.find(x => x.key === k); return f ? f.label : k; }
+
+// The five sortable groups. label uses the app's REAL wording.
+const GROUP_DEFS = [
+  { key: 'tier1',              tier: 'tier1', status: null,          label: 'Daily' },
+  { key: 'tier2',              tier: 'tier2', status: null,          label: 'Playing' },
+  { key: 'tier3:up_next',     tier: 'tier3', status: 'up_next',     label: 'Up next' },
+  { key: 'tier3:considering', tier: 'tier3', status: 'considering', label: 'Considering' },
+  { key: 'tier3:backlog',     tier: 'tier3', status: 'backlog',     label: 'Backlog' },
+];
+function parseGroupKey(k) { const i = k.indexOf(':'); return i === -1 ? { tier: k, status: null } : { tier: k.slice(0, i), status: k.slice(i + 1) }; }
+function groupKeyOf(tier, game) { return tier === 'tier3' ? 'tier3:' + (game.status || 'considering') : tier; }
+
+// Per-group state lives in config (so it syncs and survives refresh). Idempotent.
+function ensureGroupSort() {
+  if (!state.config.groupSort) state.config.groupSort = {};
+  GROUP_DEFS.forEach(d => {
+    const g = state.config.groupSort[d.key];
+    if (!g) state.config.groupSort[d.key] = { chain: [], dirty: false, presets: [] };
+    else { if (!Array.isArray(g.chain)) g.chain = []; if (!Array.isArray(g.presets)) g.presets = []; if (typeof g.dirty !== 'boolean') g.dirty = false; }
+  });
+}
+function groupSortState(key) { ensureGroupSort(); return state.config.groupSort[key]; }
+
+// Which visible games belong to a group (hidden games are never sorted/moved).
+function memberPredicate(tier, status) {
+  if (tier === 'tier1') return g => !g.hidden;
+  if (tier === 'tier2') return g => !g.hidden && !g.completion;       // Playing = active tier2
+  return g => !g.hidden && (g.status || 'considering') === status;     // a roster status group
+}
+function groupMembers(tier, status) { return (state.config[tier] || []).filter(memberPredicate(tier, status)); }
+
+// Last day this game was checked in under ANY tier (it may have moved tiers).
+function lastCheckInDate(id) {
+  const dates = Object.keys(state.history || {}).sort().reverse();
+  for (const d of dates) {
+    const day = state.history[d]; if (!day) continue;
+    if ((day.tier1 && day.tier1[id] && day.tier1[id].checkedIn === true)
+      || (day.tier2 && day.tier2[id] === true)
+      || (day.tier3 && day.tier3[id] === true)) return d;
+  }
+  return '';
+}
+
+function gameSortValue(g, key) {
+  switch (key) {
+    case 'pinyin':    return parsePlatform(g.name).base || '';
+    case 'platform':  return parsePlatform(g.name).platform || '';
+    case 'added':     return g.createdAt || '';
+    case 'lastCheck': return lastCheckInDate(g.id) || '';
+    case 'lastMs':    return g.lastMilestone || '';
+    case 'msCount':   return (g.milestones || []).length;
+    default:          return '';
+  }
+}
+
+// Name collation: latin/numbers before CJK; within each, locale-aware. Same base
+// name → compares EQUAL, so identical titles never get split apart (they fall to
+// the next chain key, e.g. platform, and stay adjacent).
+function _firstChar(s) { const t = String(s).trim(); return t ? t[0] : ''; }
+function isLatinFirst(s) { return /[A-Za-z0-9]/.test(_firstChar(s)); }
+function collateName(a, b) {
+  const la = isLatinFirst(a), lb = isLatinFirst(b);
+  if (la !== lb) return la ? -1 : 1;
+  try { return String(a).localeCompare(String(b), la ? undefined : 'zh', { numeric: true, sensitivity: 'base' }); }
+  catch (e) { return a < b ? -1 : a > b ? 1 : 0; }
+}
+
+// Stable multi-level comparator. Empties (no platform / never checked / no
+// milestone) always sink to the bottom regardless of direction.
+function compareChain(a, b, chain) {
+  for (const step of (chain || [])) {
+    const key = step.key, dir = step.dir || 'asc';
+    const va = gameSortValue(a, key), vb = gameSortValue(b, key);
+    const numeric = (key === 'msCount');
+    const ea = !numeric && (va === '' || va == null);
+    const eb = !numeric && (vb === '' || vb == null);
+    if (ea && eb) continue;
+    if (ea) return 1;
+    if (eb) return -1;
+    let cmp;
+    if (key === 'pinyin' || key === 'platform') cmp = collateName(String(va), String(vb));
+    else if (numeric) cmp = va - vb;
+    else cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    if (cmp !== 0) return dir === 'desc' ? -cmp : cmp;
+  }
+  return 0;
+}
+
+// Write a desired id order back into config[tier], replacing only this group's
+// slots (hidden games / other statuses / finished stay put). Never throws: ids
+// not present are skipped; short/extra lists fall back to the original game.
+function reorderGroup(tier, status, sortedIds) {
+  const arr = state.config[tier] || [];
+  const inGroup = memberPredicate(tier, status);
+  const byId = new Map(arr.map(g => [g.id, g]));
+  const queue = sortedIds.filter(id => byId.has(id));
+  let qi = 0;
+  state.config[tier] = arr.map(g => inGroup(g) ? (byId.get(queue[qi++]) || g) : g);
+}
+
+// Apply a group's current chain → freeze the result into the array order.
+function applySortChain(groupKey) {
+  const gs = groupSortState(groupKey); const { tier, status } = parseGroupKey(groupKey);
+  const members = groupMembers(tier, status);
+  const sorted = members.slice().sort((a, b) => compareChain(a, b, gs.chain));
+  reorderGroup(tier, status, sorted.map(g => g.id));
+  gs.dirty = false; scheduleSave(); smoothRender();
+}
+
+// Chain edits apply immediately (a human action → a fixed state).
+function chainAddKey(groupKey, key) { const gs = groupSortState(groupKey); if (gs.chain.some(s => s.key === key)) return; gs.chain.push({ key, dir: 'asc' }); applySortChain(groupKey); }
+function chainToggleDir(groupKey, key) { const gs = groupSortState(groupKey); const s = gs.chain.find(x => x.key === key); if (s) { s.dir = s.dir === 'asc' ? 'desc' : 'asc'; applySortChain(groupKey); } }
+function chainRemoveKey(groupKey, key) { const gs = groupSortState(groupKey); gs.chain = gs.chain.filter(s => s.key !== key); applySortChain(groupKey); }
+function chainClear(groupKey) { const gs = groupSortState(groupKey); gs.chain = []; gs.dirty = false; scheduleSave(); smoothRender(); }
+
+// A manual drag breaks the chain → keep it but flag dirty (only if a chain exists).
+function markGroupDirtyByGame(tier, game) {
+  const key = groupKeyOf(tier, game);
+  const gs = state.config.groupSort && state.config.groupSort[key];
+  if (gs && Array.isArray(gs.chain) && gs.chain.length) gs.dirty = true;
+}
+
+// Copy ONE chain into many groups (independent copies) and apply to each.
+function applyChainToGroups(chain, groupKeys) {
+  groupKeys.forEach(k => {
+    const gs = groupSortState(k);
+    gs.chain = JSON.parse(JSON.stringify(chain || []));
+    const { tier, status } = parseGroupKey(k);
+    const sorted = groupMembers(tier, status).slice().sort((a, b) => compareChain(a, b, gs.chain));
+    reorderGroup(tier, status, sorted.map(g => g.id));
+    gs.dirty = false;
+  });
+  scheduleSave(); smoothRender();
+}
+
+// Presets: named order snapshots (id-order + the chain at save time), per group.
+function savePreset(groupKey, name) {
+  const gs = groupSortState(groupKey); const { tier, status } = parseGroupKey(groupKey);
+  const order = groupMembers(tier, status).map(g => g.id);
+  const id = 'ps_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  gs.presets.push({ id, name: (name || ('预设 ' + (gs.presets.length + 1))).trim(), order, chain: JSON.parse(JSON.stringify(gs.chain || [])) });
+  scheduleSave();
+  return id;
+}
+function deletePreset(groupKey, presetId) { const gs = groupSortState(groupKey); gs.presets = gs.presets.filter(p => p.id !== presetId); scheduleSave(); smoothRender(); }
+// Restore a (possibly stale) preset. Existing games → preset order; NEW games not
+// in the preset → placed via the preset's chain (else appended); deleted ids
+// ignored. Any uncertainty falls through to "append at end" — never errors.
+function applyPreset(groupKey, presetId) {
+  const gs = groupSortState(groupKey); const p = gs.presets.find(x => x.id === presetId); if (!p) return;
+  const { tier, status } = parseGroupKey(groupKey);
+  const members = groupMembers(tier, status);
+  const memberIds = new Set(members.map(g => g.id));
+  const inPreset = new Set(p.order);
+  const ordered = p.order.filter(id => memberIds.has(id));
+  const missing = members.filter(g => !inPreset.has(g.id));
+  let tail;
+  if (p.chain && p.chain.length) tail = missing.slice().sort((a, b) => compareChain(a, b, p.chain)).map(g => g.id);
+  else tail = missing.map(g => g.id);
+  reorderGroup(tier, status, ordered.concat(tail));
+  gs.chain = JSON.parse(JSON.stringify(p.chain || []));
+  gs.dirty = false; scheduleSave(); smoothRender();
+}
+
+// ============================================================
+// SORT UI — the per-group sort bar (chips + presets + range apply).
+// ============================================================
+
+// Generic text-input popover (mirrors promptNewValue but not config-coupled).
+function promptText(anchor, placeholder, onDone) {
+  const input = document.createElement('input');
+  input.type = 'text'; input.className = 'mf-inline-add'; input.placeholder = placeholder || '';
+  input.style.cssText = 'position:absolute;z-index:700;border:1px solid var(--accent);background:var(--bg);border-radius:9px;padding:7px 9px;font-family:var(--body-font);font-size:13px;color:var(--text);min-width:160px;';
+  const r = anchor.getBoundingClientRect();
+  input.style.left = Math.min(r.left, window.innerWidth - 180) + 'px';
+  input.style.top = (r.bottom + 6) + 'px';
+  let done = false;
+  const commit = (save) => { if (done) return; done = true; const v = input.value.trim(); input.remove(); if (save && v) onDone(v); };
+  input.onkeydown = (e) => { if (e.key === 'Enter') commit(true); else if (e.key === 'Escape') commit(false); };
+  input.onblur = () => commit(true);
+  document.body.appendChild(input);
+  setTimeout(() => input.focus(), 0);
+}
+
+// A custom popover that reuses the picker host + dismiss behaviour.
+function customPopover(anchor, build) {
+  closePicker();
+  const host = document.getElementById('picker-host');
+  const menu = document.createElement('div'); menu.className = 'picker-menu';
+  build(menu, () => closePicker());
+  host.appendChild(menu);
+  const rect = anchor.getBoundingClientRect();
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  let top = rect.bottom + 6, left = rect.left;
+  if (left + mw > window.innerWidth - 12) left = window.innerWidth - mw - 12;
+  if (left < 12) left = 12;
+  if (top + mh > window.innerHeight - 12) top = rect.top - mh - 6;
+  menu.style.top = top + 'px'; menu.style.left = left + 'px';
+  const onDoc = (e) => { if (!menu.contains(e.target)) closePicker(); };
+  const onKey = (e) => { if (e.key === 'Escape') closePicker(); };
+  setTimeout(() => { document.addEventListener('mousedown', onDoc); document.addEventListener('keydown', onKey); }, 0);
+  menu._cleanup = () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
+}
+
+function buildSortBar(groupKey) {
+  ensureGroupSort();
+  const gs = groupSortState(groupKey);
+  const bar = document.createElement('div'); bar.className = 'sortbar';
+
+  gs.chain.forEach((step, idx) => {
+    if (idx > 0) { const sep = document.createElement('span'); sep.className = 'sort-sep'; sep.textContent = '›'; bar.appendChild(sep); }
+    const chip = document.createElement('span'); chip.className = 'sort-chip';
+    const lab = document.createElement('button'); lab.className = 'sort-chip-lab';
+    lab.innerHTML = `${escapeHtml(sortKeyLabel(step.key))} <span class="sort-arrow">${step.dir === 'desc' ? '↓' : '↑'}</span>`;
+    lab.title = '点击切换升 / 降序';
+    lab.onclick = () => chainToggleDir(groupKey, step.key);
+    const x = document.createElement('button'); x.className = 'sort-chip-x'; x.textContent = '✕'; x.title = '移除这一层';
+    x.onclick = (e) => { e.stopPropagation(); chainRemoveKey(groupKey, step.key); };
+    chip.appendChild(lab); chip.appendChild(x); bar.appendChild(chip);
+  });
+
+  const add = document.createElement('button'); add.className = 'sort-add';
+  add.textContent = gs.chain.length ? '＋' : '＋ 排序';
+  add.title = '加一层排序';
+  add.onclick = () => openAddKeyMenu(add, groupKey);
+  bar.appendChild(add);
+
+  if (gs.dirty) {
+    const d = document.createElement('span'); d.className = 'sort-dirty'; d.textContent = '自定 ·已改';
+    d.title = '排序后手动调整过 — 点任一排序项可重新套用';
+    bar.appendChild(d);
+  }
+
+  const sp = document.createElement('span'); sp.className = 'sort-spacer'; bar.appendChild(sp);
+
+  const pre = document.createElement('button'); pre.className = 'sort-ctrl';
+  pre.innerHTML = `预设 <span class="ctrl-caret">▾</span>`; pre.title = '保存 / 切换顺序快照';
+  pre.onclick = () => openPresetMenu(pre, groupKey);
+  bar.appendChild(pre);
+
+  const rng = document.createElement('button'); rng.className = 'sort-ctrl';
+  rng.innerHTML = `套用到 <span class="ctrl-caret">▾</span>`; rng.title = '把这条排序套用到其他组';
+  if (!gs.chain.length) rng.classList.add('disabled');
+  rng.onclick = () => { if (gs.chain.length) openRangeMenu(rng, groupKey); };
+  bar.appendChild(rng);
+
+  return bar;
+}
+
+function openAddKeyMenu(anchor, groupKey) {
+  const gs = groupSortState(groupKey);
+  const used = new Set(gs.chain.map(s => s.key));
+  const items = SORT_KEYS.filter(k => !used.has(k.key)).map(k => ({ value: k.key, label: k.label }));
+  if (!items.length) return;
+  showPicker(anchor, items, null, v => chainAddKey(groupKey, v));
+}
+
+function openPresetMenu(anchor, groupKey) {
+  const gs = groupSortState(groupKey);
+  const items = gs.presets.map(p => ({ value: 'apply:' + p.id, label: p.name }));
+  items.push({ value: 'save', label: '＋ 存为快照…', clear: true });
+  if (gs.presets.length) items.push({ value: 'del', label: '删除快照…' });
+  showPicker(anchor, items, null, v => {
+    if (v === 'save') { promptText(anchor, '快照名称', name => savePreset(groupKey, name)); }
+    else if (v === 'del') {
+      const dels = gs.presets.map(p => ({ value: p.id, label: p.name }));
+      if (dels.length) showPicker(anchor, dels, null, id => {
+        const removed = gs.presets.find(p => p.id === id);
+        deletePreset(groupKey, id);
+        if (removed) showToast({ message: `已删除快照「${removed.name}」`, actionLabel: '撤销', onAction: () => { gs.presets.push(removed); scheduleSave(); smoothRender(); } });
+      });
+    }
+    else if (v.indexOf('apply:') === 0) { applyPreset(groupKey, v.slice(6)); }
+  });
+}
+
+function openRangeMenu(anchor, groupKey) {
+  const gs = groupSortState(groupKey);
+  const chain = JSON.parse(JSON.stringify(gs.chain || []));
+  customPopover(anchor, (menu, close) => {
+    const title = document.createElement('div'); title.className = 'rng-title'; title.textContent = '把这条排序套用到：'; menu.appendChild(title);
+    const selected = new Set([groupKey]);
+    const wrap = document.createElement('div'); wrap.className = 'rng-pills';
+    const refs = [];
+    GROUP_DEFS.forEach(d => {
+      const pill = document.createElement('button'); pill.className = 'rng-pill' + (selected.has(d.key) ? ' on' : '');
+      pill.textContent = d.label;
+      pill.onclick = () => { if (selected.has(d.key)) selected.delete(d.key); else selected.add(d.key); pill.classList.toggle('on'); syncAll(); };
+      refs.push({ d, pill }); wrap.appendChild(pill);
+    });
+    menu.appendChild(wrap);
+    const actions = document.createElement('div'); actions.className = 'rng-actions';
+    const allBtn = document.createElement('button'); allBtn.className = 'rng-act';
+    const isAll = () => GROUP_DEFS.every(d => selected.has(d.key));
+    const syncAll = () => { allBtn.textContent = isAll() ? '全不选' : '全选'; };
+    allBtn.onclick = () => {
+      if (isAll()) { selected.clear(); selected.add(groupKey); } else { GROUP_DEFS.forEach(d => selected.add(d.key)); }
+      refs.forEach(({ d, pill }) => pill.classList.toggle('on', selected.has(d.key))); syncAll();
+    };
+    syncAll();
+    const apply = document.createElement('button'); apply.className = 'rng-act primary'; apply.textContent = '套用';
+    apply.onclick = () => { applyChainToGroups(chain, Array.from(selected)); close(); };
+    actions.appendChild(allBtn); actions.appendChild(apply); menu.appendChild(actions);
+  });
 }
 
 </script>
