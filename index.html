@@ -4833,7 +4833,7 @@ function renderJShelf(container, all, match) {
 // ---- 长河 (时间线) — fixed-height rows + SVG rail, same-game dots strung in color ----
 function renderJRiver(container, rows) {
   if (rows.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
-  const RH = 66, RAIL = 34, DOTX = 16;
+  const RH = 66, RAIL = 34, DOTX = 16, CONTENT_LEFT = 52;
   const wrap = document.createElement('div'); wrap.className = 'river-wrap'; wrap.style.height = (rows.length * RH) + 'px';
 
   const svgNS = 'http://www.w3.org/2000/svg';
@@ -4864,7 +4864,7 @@ function renderJRiver(container, rows) {
   let curMonth = null;
   rows.forEach((x, i) => {
     const row = document.createElement('div');
-    row.className = 'river-row'; row.style.top = (i * RH) + 'px'; row.style.height = RH + 'px'; row.style.left = RAIL + 'px';
+    row.className = 'river-row'; row.style.top = (i * RH) + 'px'; row.style.height = RH + 'px'; row.style.left = CONTENT_LEFT + 'px';
     row.onclick = () => openDetail(x.gameId);
     const month = (x.date || '').slice(0, 7);
     if (month !== curMonth) { curMonth = month; const ml = document.createElement('div'); ml.className = 'river-month'; ml.textContent = month; row.appendChild(ml); }
