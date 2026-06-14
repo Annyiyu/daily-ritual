@@ -1032,7 +1032,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 
 /* Picker popover (status pills) */
 .picker-menu {
-  position: fixed; z-index: 250;
+  position: fixed; z-index: 700;
   background: var(--bg); border: 1px solid var(--line-strong);
   border-radius: 8px; padding: 5px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
@@ -1067,7 +1067,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   font-family: var(--label-font); font-size: 11px;
   letter-spacing: 0.15em; padding: 11px 6px 11px 18px;
   border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-  z-index: 280; display: flex; align-items: center; gap: 4px;
+  z-index: 700; display: flex; align-items: center; gap: 4px;
   animation: toastIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   max-width: calc(100vw - 32px);
 }
@@ -1209,6 +1209,58 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .jr-game{font-size:14px;color:var(--text);font-weight:500;}
 .jr-node{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 .jr-empty{text-align:center;color:var(--text-faint);padding:48px 0;font-style:italic;}
+
+/* ===== Journey view switcher (列表/陈列/长河/星图) ===== */
+.journey-switcher{display:flex;gap:2px;background:var(--bg-deep);border-radius:12px;padding:3px;margin-bottom:16px;width:fit-content;}
+.jv-seg{font-size:12.5px;padding:6px 14px;border-radius:9px;color:var(--text-muted);cursor:pointer;font-family:var(--body-font);transition:.15s;}
+.jv-seg:hover{color:var(--text);}
+.jv-seg.active{background:var(--bg);color:var(--accent);box-shadow:0 1px 3px rgba(42,36,28,0.1);font-weight:500;}
+.journey-body{padding-bottom:40px;}
+
+/* ===== 陈列 (奖杯墙) ===== */
+.shelf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:13px;}
+.shelf-card{background:var(--bg-deep);border-radius:14px;padding:14px 15px 15px;border-left:3px solid var(--gc,var(--accent));cursor:pointer;transition:.16s;}
+.shelf-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(42,36,28,0.1);}
+.shelf-top{display:flex;align-items:flex-start;gap:8px;}
+.shelf-name{font-family:var(--display-font);font-size:15.5px;font-weight:600;color:var(--text);line-height:1.25;flex:1;}
+.shelf-seal{color:var(--gc,var(--accent));font-size:14px;flex-shrink:0;}
+.shelf-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;}
+.shelf-tag{font-size:10.5px;color:var(--text-faint);background:var(--bg);border-radius:8px;padding:2px 7px;}
+.shelf-badges{display:flex;flex-direction:column;gap:5px;margin-top:11px;}
+.shelf-badge{display:flex;align-items:center;gap:7px;font-size:11.5px;padding:5px 8px;border-radius:8px;background:var(--bg);}
+.shelf-badge[data-status="beaten"]{background:rgba(232,200,120,0.16);}
+.shelf-badge[data-status="completed"]{background:rgba(206,190,228,0.18);}
+.shelf-badge[data-status="sated"]{background:rgba(176,196,222,0.16);}
+.shelf-badge[data-status="abandoned"]{background:rgba(150,142,130,0.1);}
+.sb-label{flex:1;min-width:0;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sb-date{color:var(--text-faint);font-size:10.5px;flex-shrink:0;}
+
+/* ===== 长河 (时间线) ===== */
+.river-wrap{position:relative;margin-top:4px;}
+.river-svg{position:absolute;left:0;top:0;overflow:visible;}
+.river-row{position:absolute;right:0;display:flex;align-items:center;gap:11px;padding:0 4px;box-sizing:border-box;cursor:pointer;border-radius:8px;}
+.river-row:hover{background:var(--accent-faint);}
+.river-month{position:absolute;left:0;top:2px;transform:translateX(-100%);padding-right:8px;font-size:9.5px;letter-spacing:0.1em;color:var(--text-faint);white-space:nowrap;}
+.river-date{font-size:12px;color:var(--text-faint);width:42px;flex-shrink:0;}
+.river-game{font-size:14px;color:var(--text);font-weight:500;flex-shrink:0;}
+.river-node{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;}
+.river-node span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ===== 星图 (到达热力) ===== */
+.star-month{margin-bottom:24px;}
+.star-month-label{font-family:var(--label-font);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-faint);margin-bottom:10px;}
+.star-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:300px;}
+.star-wd{font-size:10px;color:var(--text-faint);text-align:center;padding-bottom:2px;}
+.star-cell{position:relative;aspect-ratio:1;border-radius:7px;background:var(--bg-deep);display:flex;align-items:flex-start;justify-content:flex-end;}
+.star-cell.empty{background:transparent;}
+.star-cell.lit{cursor:pointer;transition:transform .12s;}
+.star-cell.lit:hover{transform:scale(1.08);}
+.star-num{font-size:9px;color:var(--text-faint);padding:3px 4px;line-height:1;}
+.star-cell.lit .star-num{color:rgba(60,50,40,0.55);}
+.star-n{position:absolute;left:4px;bottom:3px;font-size:9px;font-weight:600;color:rgba(60,50,40,0.7);}
+.star-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;padding-top:14px;border-top:1px solid var(--line);}
+.star-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);}
+.star-legend-dot{width:11px;height:11px;border-radius:3px;display:inline-block;}
 
 </style>
 </head>
@@ -2848,7 +2900,7 @@ function renderTier1() {
 
 function openDailyCardMenu(anchor, game) {
   const items = [
-    { value: 'detail', label: '详情 · 里程碑' },
+    { value: 'detail', label: 'DETAILS · MILESTONES' },
     { value: 'rename', label: 'Rename' },
     { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
     { value: 'addtask', label: 'Add task' },
@@ -2973,7 +3025,7 @@ function buildPlayingCard(game, day) {
 
 function openPlayingCardMenu(anchor, game) {
   const items = [
-    { value: 'detail', label: '详情 · 里程碑' },
+    { value: 'detail', label: 'DETAILS · MILESTONES' },
     { value: 'rename', label: 'Rename' },
     { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
     { value: 'status', label: 'Set completion' },
@@ -3290,7 +3342,7 @@ function buildRosterCard(game, prefs, status) {
 
 function openRosterCardMenu(anchor, game) {
   const items = [
-    { value: 'detail', label: '详情 · 里程碑' },
+    { value: 'detail', label: 'DETAILS · MILESTONES' },
     { value: 'rename', label: 'Rename' },
     { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
     { value: 'playing', label: 'Move to Playing' },
@@ -3452,7 +3504,7 @@ function openFinishedCardMenu(anchor, game, status) {
   if (status === 'beaten') {
     items = [
       { value: 'completed', label: 'Mark Completed' },
-      { value: 'milestone', label: '详情 · 里程碑' },
+      { value: 'milestone', label: 'DETAILS · MILESTONES' },
       { value: 'rename', label: 'Rename' },
       { value: 'playing', label: 'Move to Playing' },
       { value: 'abandon', label: 'Abandon', clear: true }
@@ -3460,7 +3512,7 @@ function openFinishedCardMenu(anchor, game, status) {
   } else if (status === 'completed') {
     items = [
       { value: 'beaten', label: 'Back to Beaten' },
-      { value: 'milestone', label: '详情 · 里程碑' },
+      { value: 'milestone', label: 'DETAILS · MILESTONES' },
       { value: 'rename', label: 'Rename' },
       { value: 'playing', label: 'Move to Playing', clear: true }
     ];
@@ -3469,14 +3521,14 @@ function openFinishedCardMenu(anchor, game, status) {
       { value: 'playing', label: 'Move to Playing' },
       { value: 'beaten', label: 'Mark Beaten' },
       { value: 'completed', label: 'Mark Completed' },
-      { value: 'milestone', label: '详情 · 里程碑' },
+      { value: 'milestone', label: 'DETAILS · MILESTONES' },
       { value: 'rename', label: 'Rename' },
       { value: 'abandon', label: 'Abandon', clear: true }
     ];
   } else { // abandoned
     items = [
       { value: 'playing', label: 'Move back to Playing' },
-      { value: 'milestone', label: '详情 · 里程碑' },
+      { value: 'milestone', label: 'DETAILS · MILESTONES' },
       { value: 'rename', label: 'Rename' }
     ];
   }
@@ -4142,7 +4194,9 @@ function exportData() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'daily-ritual-' + todayKey() + '.json'; a.click();
+  const _n = new Date();
+  const _stamp = todayKey() + '-' + pad(_n.getHours()) + pad(_n.getMinutes());
+  a.href = url; a.download = 'daily-ritual-' + _stamp + '.json'; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -4356,7 +4410,7 @@ function buildDetail() {
   // ---- Milestones ----
   const label = document.createElement('div');
   label.className = 'detail-section-label';
-  label.textContent = '里程碑 · 到达了什么';
+  label.textContent = '里程碑';
   card.appendChild(label);
 
   const list = document.createElement('div');
@@ -4365,7 +4419,7 @@ function buildDetail() {
   if (ms.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'ms-empty';
-    empty.textContent = '还没有里程碑 · 打通了点下面记一条';
+    empty.textContent = '还没有里程碑';
     list.appendChild(empty);
   } else {
     ms.forEach(m => list.appendChild(buildMilestoneRow(game.id, m)));
@@ -4574,13 +4628,35 @@ function makeInputField(labelText, value, placeholder, onInput) {
 }
 
 // ============================================================
-// Journey view (里程碑历程) — cross-game milestone wall
+// Journey view (历程) — four surfaces over the same milestone set
+//   列表 list · 陈列 shelf · 长河 river · 星图 star
 // ============================================================
 let journeyOpen = false;
 let _journeyFilter = { type: '', outcome: '', media: '' };
 
+function journeyView() {
+  const v = state.config.journeyView;
+  return (v === 'shelf' || v === 'river' || v === 'star') ? v : 'list';
+}
+function setJourneyView(v) { state.config.journeyView = v; scheduleSave(); render(); }
+
 function openJourney() { journeyOpen = true; reviewOpen = false; _journeyFilter = { type: '', outcome: '', media: '' }; render(); }
 function closeJourney() { journeyOpen = false; render(); }
+
+// Stable warm color per game (cross-refresh consistent) — drives river/star/shelf accents.
+const GAME_PALETTE = ['#d2856b', '#c79a5b', '#b8763e', '#cf9f6f', '#bb8a6a', '#c98a7d', '#a98c5a', '#d0a07a', '#b5705a', '#c2a06b'];
+function gameColor(id) {
+  let h = 0; const s = id || '';
+  for (let k = 0; k < s.length; k++) h = (h * 31 + s.charCodeAt(k)) >>> 0;
+  return GAME_PALETTE[h % GAME_PALETTE.length];
+}
+// Outcome fill for the star calendar (saturated forms of the pill palette).
+const OUTCOME_FILL = {
+  beaten: 'rgba(228,193,105,0.92)',
+  completed: 'rgba(196,178,224,0.95)',
+  sated: 'rgba(168,190,220,0.9)',
+  abandoned: 'rgba(168,160,148,0.7)'
+};
 
 function collectMilestones() {
   const out = [];
@@ -4588,7 +4664,7 @@ function collectMilestones() {
     state.config[tier].forEach(g => {
       if (g.hidden) return;
       (g.milestones || []).forEach(m => {
-        out.push({ gameId: g.id, gameName: parsePlatform(g.name).base, media: g.media || '', sub: g.sub || '', type: m.type || '', inst: m.inst || '', outcome: m.outcome || '', date: m.date || '', ending: m.ending || '', rating: m.rating, note: m.note || '' });
+        out.push({ gameId: g.id, gameName: parsePlatform(g.name).base, platform: parsePlatform(g.name).platform, media: g.media || '', sub: g.sub || '', type: m.type || '', inst: m.inst || '', outcome: m.outcome || '', date: m.date || '', ending: m.ending || '', rating: m.rating, note: m.note || '', overall: (g.milestones || []).some(z => FINISHING_TYPES.indexOf(z.type) !== -1) });
       });
     });
   });
@@ -4599,6 +4675,7 @@ function renderJourney() {
   const root = document.getElementById('root');
   root.innerHTML = '';
 
+  // ---- Header ----
   const head = document.createElement('div');
   head.className = 'journey-head narrow';
   const back = document.createElement('span');
@@ -4610,14 +4687,22 @@ function renderJourney() {
   head.appendChild(title);
   root.appendChild(head);
 
-  const sub = document.createElement('div');
-  sub.className = 'journey-sub narrow';
-  sub.textContent = '到达过的里程碑 · 一面点亮的成就墙';
-  root.appendChild(sub);
-
   const all = collectMilestones();
+  const view = journeyView();
 
-  // Filters (only show a row when there is more than one distinct value)
+  // ---- View switcher ----
+  const switcher = document.createElement('div');
+  switcher.className = 'journey-switcher narrow';
+  [['list', '列表'], ['shelf', '陈列'], ['river', '长河'], ['star', '星图']].forEach(([v, label]) => {
+    const seg = document.createElement('span');
+    seg.className = 'jv-seg' + (view === v ? ' active' : '');
+    seg.textContent = label;
+    seg.onclick = () => { if (view !== v) setJourneyView(v); };
+    switcher.appendChild(seg);
+  });
+  root.appendChild(switcher);
+
+  // ---- Filters (shared) ----
   const distinct = (key) => [...new Set(all.map(x => x[key]).filter(Boolean))];
   const filtersWrap = document.createElement('div');
   filtersWrap.className = 'narrow';
@@ -4642,67 +4727,209 @@ function renderJourney() {
   addFilterRow('媒介', 'media', distinct('media'));
   root.appendChild(filtersWrap);
 
-  // Filter + sort (date desc)
-  let rows = all.filter(x =>
+  const match = x =>
     (!_journeyFilter.type || x.type === _journeyFilter.type) &&
     (!_journeyFilter.outcome || x.outcome === _journeyFilter.outcome) &&
-    (!_journeyFilter.media || x.media === _journeyFilter.media)
-  ).sort((a, b) => (a.date || '') < (b.date || '') ? 1 : -1);
+    (!_journeyFilter.media || x.media === _journeyFilter.media);
 
-  const listWrap = document.createElement('div');
-  listWrap.className = 'narrow';
-  if (rows.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'jr-empty';
-    empty.textContent = all.length === 0 ? '还没有里程碑 · 打通一条线就来记一笔' : '这个筛选下没有里程碑';
-    listWrap.appendChild(empty);
-  } else {
-    let curMonth = null;
-    rows.forEach(x => {
-      const month = (x.date || '????-??').slice(0, 7);
-      if (month !== curMonth) {
-        curMonth = month;
-        const mh = document.createElement('div');
-        mh.className = 'journey-month';
-        mh.textContent = month;
-        listWrap.appendChild(mh);
-      }
-      listWrap.appendChild(buildJourneyRow(x));
-    });
-  }
-  root.appendChild(listWrap);
+  // ---- Body (per view) ----
+  const body = document.createElement('div');
+  body.className = 'narrow journey-body';
+  root.appendChild(body);
+
+  if (all.length === 0) { journeyEmpty(body, '还没有里程碑'); return; }
+
+  if (view === 'list') renderJList(body, all.filter(match).sort(byDateDesc));
+  else if (view === 'shelf') renderJShelf(body, all, match);
+  else if (view === 'river') renderJRiver(body, all.filter(match).sort(byDateDesc));
+  else if (view === 'star') renderJStar(body, all.filter(match));
 }
 
-function buildJourneyRow(x) {
-  const row = document.createElement('div');
-  row.className = 'journey-row';
-  row.onclick = () => openDetail(x.gameId);
+function byDateDesc(a, b) { return (a.date || '') < (b.date || '') ? 1 : -1; }
+function journeyEmpty(container, msg) {
+  const e = document.createElement('div'); e.className = 'jr-empty'; e.textContent = msg;
+  container.appendChild(e);
+}
+function outcomePill(outcome) {
+  const pill = document.createElement('span');
+  pill.className = 'status-pill'; pill.dataset.status = outcome;
+  pill.textContent = TIER2_COMPLETION_LABELS[outcome] || outcome;
+  return pill;
+}
 
-  const date = document.createElement('div');
-  date.className = 'jr-date';
-  date.textContent = (x.date || '').slice(5); // MM-DD
-  row.appendChild(date);
+// ---- 列表 ----
+function renderJList(container, rows) {
+  if (rows.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
+  let curMonth = null;
+  rows.forEach(x => {
+    const month = (x.date || '????-??').slice(0, 7);
+    if (month !== curMonth) {
+      curMonth = month;
+      const mh = document.createElement('div'); mh.className = 'journey-month'; mh.textContent = month;
+      container.appendChild(mh);
+    }
+    const row = document.createElement('div');
+    row.className = 'journey-row';
+    row.onclick = () => openDetail(x.gameId);
+    const date = document.createElement('div'); date.className = 'jr-date'; date.textContent = (x.date || '').slice(5);
+    row.appendChild(date);
+    const mid = document.createElement('div'); mid.className = 'jr-mid';
+    const gn = document.createElement('div'); gn.className = 'jr-game'; gn.textContent = x.gameName; mid.appendChild(gn);
+    const node = document.createElement('div'); node.className = 'jr-node';
+    let txt = x.type || ''; if (x.inst) txt += ' · ' + x.inst;
+    const ts = document.createElement('span'); ts.textContent = txt; node.appendChild(ts);
+    if (x.ending) { const e = document.createElement('span'); e.textContent = x.ending; node.appendChild(e); }
+    if (x.rating !== '' && x.rating != null) { const r = document.createElement('span'); r.className = 'ms-rating'; r.textContent = '★ ' + x.rating; node.appendChild(r); }
+    mid.appendChild(node); row.appendChild(mid);
+    if (x.outcome) row.appendChild(outcomePill(x.outcome));
+    container.appendChild(row);
+  });
+}
 
-  const mid = document.createElement('div');
-  mid.className = 'jr-mid';
-  const gn = document.createElement('div'); gn.className = 'jr-game'; gn.textContent = x.gameName; mid.appendChild(gn);
-  const node = document.createElement('div'); node.className = 'jr-node';
-  let txt = x.type || '';
-  if (x.inst) txt += ' · ' + x.inst;
-  const tspan = document.createElement('span'); tspan.textContent = txt; node.appendChild(tspan);
-  if (x.ending) { const e = document.createElement('span'); e.textContent = x.ending; node.appendChild(e); }
-  if (x.rating !== '' && x.rating != null) { const r = document.createElement('span'); r.className = 'ms-rating'; r.textContent = '★ ' + x.rating; node.appendChild(r); }
-  mid.appendChild(node);
-  row.appendChild(mid);
+// ---- 陈列 (奖杯墙) — game-level; whole card qualifies if any node matches ----
+function renderJShelf(container, all, match) {
+  const byGame = {};
+  all.forEach(x => {
+    if (!byGame[x.gameId]) byGame[x.gameId] = { id: x.gameId, name: x.gameName, platform: x.platform, media: x.media, sub: x.sub, overall: x.overall, nodes: [] };
+    byGame[x.gameId].nodes.push(x);
+  });
+  let games = Object.values(byGame).filter(g => g.nodes.some(match));
+  if (games.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
+  games.forEach(g => g.nodes.sort(byDateDesc));
+  games.sort((a, b) => (a.nodes[0].date || '') < (b.nodes[0].date || '') ? 1 : -1);
 
-  if (x.outcome) {
-    const pill = document.createElement('span');
-    pill.className = 'status-pill';
-    pill.dataset.status = x.outcome;
-    pill.textContent = TIER2_COMPLETION_LABELS[x.outcome] || x.outcome;
-    row.appendChild(pill);
+  const grid = document.createElement('div'); grid.className = 'shelf-grid';
+  games.forEach(g => {
+    const card = document.createElement('div');
+    card.className = 'shelf-card';
+    card.style.setProperty('--gc', gameColor(g.id));
+    card.onclick = () => openDetail(g.id);
+
+    const top = document.createElement('div'); top.className = 'shelf-top';
+    const nm = document.createElement('div'); nm.className = 'shelf-name'; nm.textContent = g.name; top.appendChild(nm);
+    if (g.overall) { const seal = document.createElement('span'); seal.className = 'shelf-seal'; seal.textContent = '✦'; seal.title = '已通关'; top.appendChild(seal); }
+    card.appendChild(top);
+
+    if (g.platform || g.media || g.sub) {
+      const tags = document.createElement('div'); tags.className = 'shelf-tags';
+      [g.media, g.sub, g.platform].filter(Boolean).forEach(t => { const s = document.createElement('span'); s.className = 'shelf-tag'; s.textContent = t; tags.appendChild(s); });
+      card.appendChild(tags);
+    }
+
+    const badges = document.createElement('div'); badges.className = 'shelf-badges';
+    g.nodes.forEach(n => {
+      const b = document.createElement('div'); b.className = 'shelf-badge'; b.dataset.status = n.outcome;
+      let label = n.type || ''; if (n.inst) label += ' · ' + n.inst; if (n.ending) label += ' · ' + n.ending;
+      const t = document.createElement('span'); t.className = 'sb-label'; t.textContent = label; b.appendChild(t);
+      const d = document.createElement('span'); d.className = 'sb-date'; d.textContent = (n.date || '').slice(5); b.appendChild(d);
+      badges.appendChild(b);
+    });
+    card.appendChild(badges);
+    grid.appendChild(card);
+  });
+  container.appendChild(grid);
+}
+
+// ---- 长河 (时间线) — fixed-height rows + SVG rail, same-game dots strung in color ----
+function renderJRiver(container, rows) {
+  if (rows.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
+  const RH = 66, RAIL = 34, DOTX = 16;
+  const wrap = document.createElement('div'); wrap.className = 'river-wrap'; wrap.style.height = (rows.length * RH) + 'px';
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('class', 'river-svg');
+  svg.setAttribute('width', RAIL); svg.setAttribute('height', rows.length * RH);
+
+  const byGame = {};
+  rows.forEach((x, i) => { (byGame[x.gameId] = byGame[x.gameId] || []).push(i); });
+  Object.keys(byGame).forEach(gid => {
+    const idxs = byGame[gid]; if (idxs.length < 2) return;
+    let d = '';
+    idxs.forEach((i, k) => { d += (k === 0 ? 'M' : 'L') + DOTX + ' ' + (i * RH + RH / 2) + ' '; });
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', d); path.setAttribute('stroke', gameColor(gid));
+    path.setAttribute('stroke-width', '1.6'); path.setAttribute('fill', 'none');
+    path.setAttribute('opacity', '0.4'); path.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(path);
+  });
+  rows.forEach((x, i) => {
+    const c = document.createElementNS(svgNS, 'circle');
+    c.setAttribute('cx', DOTX); c.setAttribute('cy', i * RH + RH / 2); c.setAttribute('r', '4.5');
+    c.setAttribute('fill', gameColor(x.gameId)); c.setAttribute('stroke', 'var(--bg)'); c.setAttribute('stroke-width', '2');
+    svg.appendChild(c);
+  });
+  wrap.appendChild(svg);
+
+  let curMonth = null;
+  rows.forEach((x, i) => {
+    const row = document.createElement('div');
+    row.className = 'river-row'; row.style.top = (i * RH) + 'px'; row.style.height = RH + 'px'; row.style.left = RAIL + 'px';
+    row.onclick = () => openDetail(x.gameId);
+    const month = (x.date || '').slice(0, 7);
+    if (month !== curMonth) { curMonth = month; const ml = document.createElement('div'); ml.className = 'river-month'; ml.textContent = month; row.appendChild(ml); }
+    const date = document.createElement('div'); date.className = 'river-date'; date.textContent = (x.date || '').slice(5); row.appendChild(date);
+    const gn = document.createElement('div'); gn.className = 'river-game'; gn.textContent = x.gameName; row.appendChild(gn);
+    const node = document.createElement('div'); node.className = 'river-node';
+    let txt = x.type || ''; if (x.inst) txt += ' · ' + x.inst; if (x.ending) txt += ' · ' + x.ending;
+    const ts = document.createElement('span'); ts.textContent = txt; node.appendChild(ts);
+    if (x.outcome) node.appendChild(outcomePill(x.outcome));
+    row.appendChild(node);
+    wrap.appendChild(row);
+  });
+  container.appendChild(wrap);
+}
+
+// ---- 星图 (到达热力) — calendar echo of the heartbeat heatmap; lit days = reaches ----
+function renderJStar(container, nodes) {
+  if (nodes.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
+  const byDate = {};
+  nodes.forEach(x => { if (x.date) (byDate[x.date] = byDate[x.date] || []).push(x); });
+  const months = [...new Set(nodes.map(x => (x.date || '').slice(0, 7)).filter(Boolean))].sort();
+  months.forEach(ym => container.appendChild(buildStarMonth(ym, byDate)));
+
+  // legend
+  const legend = document.createElement('div'); legend.className = 'star-legend';
+  ['beaten', 'completed', 'sated', 'abandoned'].forEach(o => {
+    const item = document.createElement('span'); item.className = 'star-legend-item';
+    const dot = document.createElement('span'); dot.className = 'star-legend-dot'; dot.style.background = OUTCOME_FILL[o];
+    item.appendChild(dot);
+    const t = document.createElement('span'); t.textContent = TIER2_COMPLETION_LABELS[o]; item.appendChild(t);
+    legend.appendChild(item);
+  });
+  container.appendChild(legend);
+}
+
+function buildStarMonth(ym, byDate) {
+  const [y, m] = ym.split('-').map(Number);
+  const wrap = document.createElement('div'); wrap.className = 'star-month';
+  const label = document.createElement('div'); label.className = 'star-month-label'; label.textContent = ym; wrap.appendChild(label);
+
+  const grid = document.createElement('div'); grid.className = 'star-grid';
+  ['一', '二', '三', '四', '五', '六', '日'].forEach(w => { const h = document.createElement('div'); h.className = 'star-wd'; h.textContent = w; grid.appendChild(h); });
+
+  const firstWd = new Date(y, m - 1, 1).getDay();      // 0=Sun
+  const lead = (firstWd + 6) % 7;                        // Monday-first
+  const days = new Date(y, m, 0).getDate();
+  for (let i = 0; i < lead; i++) { const c = document.createElement('div'); c.className = 'star-cell empty'; grid.appendChild(c); }
+  for (let d = 1; d <= days; d++) {
+    const key = ym + '-' + String(d).padStart(2, '0');
+    const cell = document.createElement('div'); cell.className = 'star-cell';
+    const hits = byDate[key];
+    if (hits && hits.length) {
+      const top = hits.slice().sort((a, b) => (OUTCOME_RANK[b.outcome] || 0) - (OUTCOME_RANK[a.outcome] || 0))[0];
+      cell.classList.add('lit');
+      cell.style.background = OUTCOME_FILL[top.outcome] || 'var(--accent)';
+      cell.style.boxShadow = 'inset 0 0 0 1.5px ' + gameColor(top.gameId);
+      cell.title = hits.map(h => h.gameName + ' · ' + h.type + (h.inst ? '·' + h.inst : '')).join('\n');
+      if (hits.length > 1) { const n = document.createElement('span'); n.className = 'star-n'; n.textContent = hits.length; cell.appendChild(n); }
+      cell.onclick = () => openDetail(top.gameId);
+    }
+    const num = document.createElement('span'); num.className = 'star-num'; num.textContent = d; cell.appendChild(num);
+    grid.appendChild(cell);
   }
-  return row;
+  wrap.appendChild(grid);
+  return wrap;
 }
 
 </script>
