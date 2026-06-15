@@ -1287,6 +1287,8 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 
 /* expanded fold toggle (leads the dropped-down bar) */
 .sort-toggle{display:inline-flex;align-items:center;gap:6px;border:1px solid color-mix(in srgb, var(--g-name,var(--accent)) 30%, transparent);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--g-name,var(--accent));padding:4px 9px;border-radius:13px;letter-spacing:.01em;}
+.sort-resort{display:inline-flex;align-items:center;justify-content:center;border:1px solid color-mix(in srgb, var(--g-name,var(--accent)) 30%, transparent);background:none;cursor:pointer;color:var(--g-name,var(--accent));font-size:14px;line-height:1;padding:3px 9px;border-radius:13px;}
+.sort-resort:hover{background:color-mix(in srgb, var(--g-name,var(--accent)) 12%, transparent);}
 .sort-toggle:hover{background:color-mix(in srgb, var(--g-name,var(--accent)) 12%, transparent);}
 .sort-tg-icon{font-size:13px;opacity:.85;}
 
@@ -5319,6 +5321,14 @@ function buildSortBar(groupKey) {
   add.title = '加一层排序';
   add.onclick = () => openAddKeyMenu(add, groupKey);
   bar.appendChild(add);
+
+  if (gs.chain.length) {
+    const resort = document.createElement('button'); resort.className = 'sort-resort';
+    resort.innerHTML = '↻';
+    resort.title = '按当前排序重新整理';
+    resort.onclick = () => applySortChain(groupKey);
+    bar.appendChild(resort);
+  }
 
   if (gs.dirty) {
     const d = document.createElement('span'); d.className = 'sort-dirty'; d.textContent = '自定 ·已改';
