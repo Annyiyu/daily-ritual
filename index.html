@@ -1179,7 +1179,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .ms-form{margin-top:13px;background:var(--bg-deep);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:11px;}
 .ms-form .mf-row{display:flex;gap:9px;flex-wrap:wrap;}
 .ms-field{flex:1;min-width:108px;}
-.ms-field label{display:block;font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-faint);margin-bottom:4px;}
+.ms-field label{display:block;font-family:var(--label-font);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-faint);margin-bottom:4px;}
 .ms-field .mf-pick,.ms-field input{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:8px 10px;font-family:var(--body-font);font-size:13px;color:var(--text);}
 .ms-field .mf-pick{cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
 .ms-field .mf-pick.empty{color:var(--text-faint);}
@@ -1200,7 +1200,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .jf-chip{font-size:12px;padding:5px 11px;border-radius:14px;border:1px solid var(--line);background:transparent;color:var(--text-muted);cursor:pointer;font-family:var(--body-font);}
 .jf-chip:hover{border-color:var(--accent-soft);}
 .jf-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-.jf-group-label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-faint);align-self:center;margin-right:2px;}
+.jf-group-label{font-family:var(--label-font);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-faint);align-self:center;margin-right:2px;}
 /* shared month capsule — list / river / star speak one month language */
 .month-cap-wrap{display:flex;align-items:center;gap:8px;}
 .month-cap-wrap.vert{flex-direction:column;align-items:flex-start;gap:4px;}
@@ -1297,11 +1297,11 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .sort-arrow{font-weight:700;font-size:11px;}
 .sort-chip-x{border:none;background:none;cursor:pointer;color:var(--g-name,var(--accent));opacity:.5;font-size:10px;padding:2px 4px;border-radius:8px;line-height:1;}
 .sort-chip-x:hover{opacity:1;background:color-mix(in srgb, var(--g-name,var(--accent)) 20%, transparent);}
-.sort-add{border:1px dashed color-mix(in srgb, var(--g-name,var(--accent)) 45%, transparent);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:color-mix(in srgb, var(--g-name,var(--accent)) 75%, var(--text-faint));padding:4px 10px;border-radius:13px;}
+.sort-add{border:1px dashed color-mix(in srgb, var(--g-name,var(--accent)) 45%, transparent);background:none;cursor:pointer;font-family:var(--label-font);font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:color-mix(in srgb, var(--g-name,var(--accent)) 75%, var(--text-faint));padding:6px 10px;border-radius:13px;}
 .sort-add:hover{border-color:var(--g-name,var(--accent));color:var(--g-name,var(--accent));}
 .sort-dirty{font-size:11px;color:var(--text-faint);letter-spacing:.02em;padding-left:2px;font-style:italic;}
 .sort-spacer{flex:1 1 12px;}
-.sort-ctrl{border:1px solid color-mix(in srgb, var(--g-name,var(--accent)) 30%, transparent);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--g-name,var(--accent));padding:4px 11px;border-radius:13px;letter-spacing:.01em;display:inline-flex;align-items:center;gap:3px;}
+.sort-ctrl{border:1px solid color-mix(in srgb, var(--g-name,var(--accent)) 30%, transparent);background:none;cursor:pointer;font-family:var(--label-font);font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:var(--g-name,var(--accent));padding:6px 11px;border-radius:13px;display:inline-flex;align-items:center;gap:4px;}
 .sort-ctrl:hover{background:color-mix(in srgb, var(--g-name,var(--accent)) 12%, transparent);}
 .sort-ctrl .ctrl-caret{font-size:9px;opacity:.6;}
 .sort-ctrl.disabled{opacity:.4;cursor:default;}
@@ -5283,7 +5283,7 @@ function buildSortHeadEntry(groupKey) {
   const sum = chainSummary(gs.chain);
   btn.innerHTML = `<span class="she-icon">⇅</span><span class="she-sum">${escapeHtml(sum || 'SORT')}</span>` + (gs.dirty ? `<span class="she-dirty"> ·已改</span>` : '');
   btn.title = '展开排序';
-  btn.onclick = () => { gs.barOpen = true; scheduleSave(); smoothRender(); };
+  btn.onclick = (e) => { e.stopPropagation(); gs.barOpen = true; scheduleSave(); smoothRender(); };
   return btn;
 }
 
