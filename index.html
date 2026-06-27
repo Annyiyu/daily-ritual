@@ -136,8 +136,6 @@ body.first-load .header { animation: fadeIn 0.6s ease-out; }
 .progress-label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
 .progress-label { font-family: var(--label-font); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-muted); }
 .progress-percentage { font-family: var(--label-font); font-size: 2.6rem; font-weight: 400; color: var(--accent); letter-spacing: 0.02em; line-height: 1; }
-.progress-track { height: 10px; width: 100%; background-color: rgba(210,133,107,0.10); border-radius: 999px; overflow: hidden; }
-.progress-fill { height: 100%; background: var(--accent-grad, linear-gradient(90deg, #f1d2b3, #e3ab90)); border-radius: 999px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* Sections */
 .section { margin-bottom: 56px; }
@@ -196,12 +194,23 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 }
 
 .extra-toggle {
-  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-size: 14px; color: var(--text-faint);
-  transition: all 0.2s ease; user-select: none; flex-shrink: 0;
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 17px; color: var(--text-faint); opacity: 0.72;
+  transition: color 0.2s ease, opacity 0.2s ease,
+              transform 0.2s cubic-bezier(0.16,1,0.3,1), text-shadow 0.25s ease;
+  user-select: none; flex-shrink: 0; line-height: 1;
 }
-.extra-toggle:hover { color: var(--accent); }
-.extra-toggle.active { color: var(--accent); }
+.extra-toggle:hover { color: var(--accent); opacity: 1; transform: scale(1.1); }
+.extra-toggle.active {
+  color: var(--accent); opacity: 1;
+  text-shadow: 0 0 9px rgba(210,133,107,0.5), 0 0 3px rgba(210,133,107,0.55);
+  animation: starPop 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes starPop {
+  0%   { transform: scale(0.7); }
+  55%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
 
 .streak {
   font-family: var(--display-font); font-size: 12px; letter-spacing: 0.05em;
@@ -624,6 +633,49 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .daily-card .subtasks-row.empty { opacity: 0; }
 .daily-card:hover .subtasks-row.empty { opacity: 0.6; }
 .daily-card:hover .subtask-manage-link { opacity: 0.6; }
+
+/* --- Company multi-column views (1 / 2 / 4) --- */
+#tier1-list.cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-items: start; }
+#tier1-list.cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: start; }
+#tier1-list.cols-2:empty, #tier1-list.cols-4:empty { display: none; }
+/* compact density: 2-up / 4-up drop the per-game sub-task strip (pure browsing) */
+#tier1-list.cols-2 .subtasks-row,
+#tier1-list.cols-4 .subtasks-row { display: none; }
+#tier1-list.cols-2 .daily-card { padding: 11px 13px; }
+#tier1-list.cols-4 .daily-card { padding: 9px 10px; }
+#tier1-list.cols-4 .dc-head { gap: 8px; }
+#tier1-list.cols-4 .pc-right { gap: 6px; }
+#tier1-list.cols-4 .rc-platform,
+#tier1-list.cols-4 .streak { display: none; }
+#tier1-list.cols-4 .pc-name { font-size: 13.5px; }
+@media (max-width: 560px) {
+  #tier1-list.cols-4 { grid-template-columns: repeat(2, 1fr); }
+}
+/* grid drop indicator — mirror Roster's card-edge accent (a full-width line reads wrong in a grid) */
+.daily-card.drop-before::before,
+.daily-card.drop-after::after {
+  content: ''; position: absolute; top: 12%; height: 76%; width: 2px;
+  background: var(--accent); border-radius: 2px; animation: lineGlow 0.25s ease-out;
+}
+.daily-card.drop-before::before { left: -6px; }
+.daily-card.drop-after::after { right: -6px; }
+
+/* Company column switcher (lives at the right of the section header) */
+.col-switch { display: inline-flex; align-items: center; gap: 2px; margin-left: 12px; flex-shrink: 0; }
+.col-switch .cs-seg {
+  font-family: var(--label-font); font-size: 11px; line-height: 1;
+  width: 22px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-faint); cursor: pointer; border-radius: 6px;
+  border: 1px solid transparent; transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  user-select: none;
+}
+.col-switch .cs-seg:hover { color: var(--accent); }
+.col-switch .cs-seg.active { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-faint); }
+
+/* Detail tag chips (flat multi-tag editor) */
+.detail-tag.tag-chip { display: inline-flex; align-items: center; gap: 6px; }
+.detail-tag .tag-x { color: var(--text-faint); font-size: 10px; cursor: pointer; }
+.detail-tag .tag-x:hover { color: var(--accent); }
 
 /* Playing — Roster-style cards, but 2 per row (larger than Roster's 4-up).
    Cream cards on the warm "ritual zone" panel, vertical layout like Roster, in a
@@ -1427,8 +1479,9 @@ function migrate(state) {
       // Last meaningful milestone date — DERIVED from milestones (write-through)
       if (typeof base.lastMilestone !== 'string') base.lastMilestone = '';
       // Journey: media/sub tags + milestones[] (reaches). completion/lastMilestone derived from these.
-      if (typeof base.media !== 'string') base.media = '';
-      if (typeof base.sub !== 'string') base.sub = '';
+      // Tags: flatten legacy single media/sub into a flat multi-tag array (idempotent)
+      if (!Array.isArray(base.tags)) base.tags = [...new Set([base.media, base.sub].filter(Boolean))];
+      delete base.media; delete base.sub;
       if (!Array.isArray(base.milestones)) base.milestones = [];
       // Tier 3: roster status (preserved but only displayed when currently in Tier 3)
       if (typeof base.status !== 'string') base.status = 'considering';
@@ -1476,6 +1529,17 @@ function migrate(state) {
     state.config.mediaList = ['视觉小说', '角色扮演', '动作冒险', '平台动作', '模拟经营', '策略', '解谜', '竞速', '互动电影', '工具'];
   if (!Array.isArray(state.config.subList) || !state.config.subList.length)
     state.config.subList = ['乙女', '开放世界', '箱庭', '线性', 'JRPG', 'Roguelike', '银河城', '多结局', '抽卡养成', '割草', '推理', '沙盒'];
+
+  // Flat tag pool — merge the legacy media/sub pools into one. Seeded ONCE: once
+  // tagList exists (even empty) it's never re-seeded, so a user who clears tags
+  // doesn't get the defaults back. The legacy lists remain only as this seed.
+  if (!Array.isArray(state.config.tagList)) {
+    const seed = [...(state.config.mediaList || []), ...(state.config.subList || [])];
+    state.config.tagList = [...new Set(seed.filter(Boolean))];
+  }
+
+  // Company (tier1) column-view preference: 1 / 2 / 4
+  if ([1, 2, 4].indexOf(state.config.companyColumns) === -1) state.config.companyColumns = 1;
 
   ensureGroupSort(state);
 
@@ -1864,11 +1928,8 @@ function updateStreak(rowEl, gameId) {
 }
 
 function updateProgress() {
-  const pct = getDayProgress(viewDate);
-  const pctEl = document.getElementById('progress-pct');
-  const fillEl = document.getElementById('progress-fill');
-  if (pctEl) pctEl.textContent = pct + '%';
-  if (fillEl) fillEl.style.width = pct + '%';
+  const cc = document.getElementById('companion-count');
+  if (cc) cc.textContent = getDayCompanions(viewDate);
 }
 
 function updateHeatmapCell(dateStr) {
@@ -2119,7 +2180,7 @@ function markSourceAsDragging(on) {
 function clearDropIndicators() {
   document.querySelectorAll('.drop-line, .subtask-drop-marker').forEach(el => el.remove());
   document.querySelectorAll('.section.drop-target').forEach(el => el.classList.remove('drop-target'));
-  document.querySelectorAll('.roster-card.drop-before, .roster-card.drop-after').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+  document.querySelectorAll('.drop-before, .drop-after').forEach(el => el.classList.remove('drop-before', 'drop-after'));
   drag.currentDropTarget = null;
 }
 
@@ -2181,6 +2242,26 @@ function updateGameDropIndicator(clientX, clientY) {
   const list = document.getElementById(`${targetTier}-list`);
   if (!list) return;
   const items = Array.from(list.querySelectorAll(`[data-game-id]`)).filter(el => !el.classList.contains('dragging'));
+
+  // Multi-column Company: 2D reading-order hit-test with a card-edge marker,
+  // mirroring Roster (a full-width drop-line reads wrong inside a grid). Single
+  // column keeps the original horizontal drop-line. dropIndex semantics are
+  // identical either way, so commitGameMove is unchanged.
+  if (targetTier === 'tier1' && companyColumns() > 1) {
+    let dropIndex = items.length, targetCard = null;
+    for (let i = 0; i < items.length; i++) {
+      const r = items[i].getBoundingClientRect();
+      const inRow = clientY >= r.top - 6 && clientY <= r.bottom + 6;
+      if ((inRow && clientX < r.left + r.width / 2) || clientY < r.top - 6) {
+        targetCard = items[i]; dropIndex = i; break;
+      }
+    }
+    if (targetCard) targetCard.classList.add('drop-before');
+    else if (items.length > 0) items[items.length - 1].classList.add('drop-after');
+    drag.currentDropTarget = { tier: targetTier, index: dropIndex };
+    return;
+  }
+
   let dropIndex = items.length;
   for (let i = 0; i < items.length; i++) {
     const rect = items[i].getBoundingClientRect();
@@ -2249,11 +2330,14 @@ function commitGameMove(fromTier, gameId, toTier, toIndex) {
   const game = fromList[fromIndex];
 
   // === Same-tier reorder: no residence change ===
+  // toIndex is computed over the list with the dragged card filtered OUT — i.e.
+  // it already indexes the array as it will look after removal — so it is the
+  // correct insertion point directly. (An earlier version subtracted 1 on
+  // downward moves, which double-corrected and dropped the card one slot short
+  // of the indicator. Removed so single-column and grid both land on the line.)
   if (fromTier === toTier) {
     fromList.splice(fromIndex, 1);
-    let adjustedIndex = toIndex;
-    if (fromIndex < toIndex) adjustedIndex = toIndex - 1;
-    state.config[toTier].splice(adjustedIndex, 0, game);
+    state.config[toTier].splice(toIndex, 0, game);
     markGroupDirtyByGame(toTier, game);
     scheduleSave();
     return;
@@ -2298,7 +2382,7 @@ function commitGameMove(fromTier, gameId, toTier, toIndex) {
   scheduleSave();
 
   // Tell user what happened, give them undo
-  const tierLabels = { tier1: 'Daily', tier2: 'Playing', tier3: 'Roster' };
+  const tierLabels = { tier1: 'Company', tier2: 'Playing', tier3: 'Roster' };
   const baseMsg = `Moved "${game.name}" → ${tierLabels[toTier]}`;
   const msg = lostSubtasks > 0 ? `${baseMsg} · removed ${lostSubtasks} sub-task${lostSubtasks > 1 ? 's' : ''}` : baseMsg;
   showUndoToast(msg, snap);
@@ -2416,17 +2500,15 @@ function currentTier(game) {
   return tierOnDate(game, todayKey());
 }
 
-function getDayProgress(dateStr) {
+function getDayCompanions(dateStr) {
   const day = state.history[dateStr];
   if (!day) return 0;
   const relevant = gamesInTierOnDate('tier1', dateStr);
-  const total = relevant.length;
-  if (total === 0) return 0;
   let checked = 0;
   relevant.forEach(g => {
     if (day.tier1 && day.tier1[g.id] && day.tier1[g.id].checkedIn) checked++;
   });
-  return Math.round((checked / total) * 100);
+  return checked;
 }
 
 function getDayIntensity(dateStr) {
@@ -2647,14 +2729,13 @@ function renderApp() {
         <div class="today-link" id="today-link" style="display:none">↩ Today</div>
       </div>
       <div class="progress-label-row">
-        <div class="progress-label">完成度</div>
-        <div class="display-font progress-percentage" id="progress-pct">0%</div>
+        <div class="progress-label">小伙伴</div>
+        <div class="display-font progress-percentage" id="companion-count">0</div>
       </div>
-      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width: 0%"></div></div>
     </header>
 
     <section class="section narrow" id="section-tier1">
-      <div class="section-header"><div class="section-title">Daily</div><div class="section-line"></div></div>
+      <div class="section-header"><div class="section-title">Company</div><div class="section-line"></div><div class="col-switch" id="col-switch"></div></div>
       <div id="sortbar-tier1"></div>
       <div id="tier1-list"></div>
       <div class="add-row" id="add-tier1-container"></div>
@@ -2715,9 +2796,9 @@ function renderHeader() {
   document.getElementById('date').className = 'date' + (isViewingToday() ? '' : ' past');
   document.getElementById('next-day').className = 'date-arrow' + (isViewingToday() ? ' disabled' : '');
   document.getElementById('today-link').style.display = isViewingToday() ? 'none' : '';
-  const pct = getDayProgress(viewDate);
-  document.getElementById('progress-pct').textContent = pct + '%';
-  document.getElementById('progress-fill').style.width = pct + '%';
+  const companions = getDayCompanions(viewDate);
+  const cc = document.getElementById('companion-count');
+  if (cc) cc.textContent = companions;
 }
 
 // === Build editable name + note column ===
@@ -2795,13 +2876,39 @@ function buildPcBody(tier, game, isChecked) {
   return body;
 }
 
+function companyColumns() {
+  const c = state.config.companyColumns;
+  return (c === 2 || c === 4) ? c : 1;
+}
+function setCompanyColumns(n) {
+  state.config.companyColumns = n;
+  scheduleSave();
+  smoothRender();
+}
+function renderColumnSwitch() {
+  const host = document.getElementById('col-switch');
+  if (!host) return;
+  host.innerHTML = '';
+  const cur = companyColumns();
+  [1, 2, 4].forEach(n => {
+    const seg = document.createElement('span');
+    seg.className = 'cs-seg' + (cur === n ? ' active' : '');
+    seg.textContent = n;
+    seg.title = n + ' 列';
+    seg.onclick = () => { if (companyColumns() !== n) setCompanyColumns(n); };
+    host.appendChild(seg);
+  });
+}
+
 function renderTier1() {
   const day = getDay(viewDate);
   const container = document.getElementById('tier1-list');
   container.innerHTML = '';
+  container.className = 'cols-' + companyColumns();
 
   const visible = state.config.tier1.filter(g => !g.hidden);
   renderSortControls('tier1', document.querySelector('#section-tier1 .section-header'), document.getElementById('sortbar-tier1'), visible.length);
+  renderColumnSwitch();
   visible.forEach(game => {
     const gd = day.tier1[game.id] || { checkedIn: false, subtasks: {}, extra: false };
     const streak = getStreak(game.id, 'tier1');
@@ -2845,7 +2952,7 @@ function renderTier1() {
     const extra = document.createElement('div');
     extra.className = 'extra-toggle' + (gd.extra ? ' active' : '');
     extra.innerHTML = gd.extra ? '✦' : '✧';
-    extra.title = '今天多玩了一下';
+    extra.title = '今天深入玩了一下';
     extra.onclick = (e) => { e.stopPropagation(); toggleExtra(game.id); };
     right.appendChild(extra);
 
@@ -3094,7 +3201,7 @@ function openPlayingCardMenu(anchor, game) {
     { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
     { value: 'status', label: 'Set completion' },
     { value: 'roster', label: 'Move to Roster' },
-    { value: 'daily', label: 'Move to Daily' },
+    { value: 'daily', label: 'Move to Company' },
     { value: 'hide', label: 'Hide', clear: true }
   ];
   showPicker(anchor, items, null, v => {
@@ -3397,7 +3504,7 @@ function openRosterCardMenu(anchor, game) {
     { value: 'rename', label: 'Rename' },
     { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
     { value: 'playing', label: 'Move to Playing' },
-    { value: 'daily', label: 'Move to Daily' },
+    { value: 'daily', label: 'Move to Company' },
     { value: 'hide', label: 'Hide', clear: true }
   ];
   showPicker(anchor, items, null, v => {
@@ -4087,10 +4194,10 @@ function renderReviewDetail() {
   host.style.setProperty('--rv-day-soft', `rgba(${Math.round(mb[0])},${Math.round(mb[1])},${Math.round(mb[2])},0.30)`);
   const day = state.history[key];
   const dailyGames = gamesInTierOnDate('tier1', key);
-  const pct = getDayProgress(key);
+  const companions = getDayCompanions(key);
 
   let html = `<div class="rv-dt-head"><div class="rv-dt-date">${d.getFullYear()} · ${RV_MONTH[d.getMonth()]}${d.getDate()}日 · ${RV_WK[d.getDay()]}</div>`;
-  if (dailyGames.length) html += `<div class="rv-dt-pct">完成度 ${pct}%</div>`;
+  if (dailyGames.length) html += `<div class="rv-dt-pct">${companions} 位小伙伴</div>`;
   html += `<button class="rv-dt-jump" id="rv-dt-jump">在主视图打开 ›</button></div>`;
 
   // Milestone celebration — a game whose recorded completion lands on this day
@@ -4120,7 +4227,7 @@ function renderReviewDetail() {
         (subs ? `<div class="rv-dt-subs">${subs}</div>` : '') +
       `</div></div>`;
   });
-  if (!dailyGames.length) rows = '<div class="rv-detail-empty">这天 Daily 档还没有游戏</div>';
+  if (!dailyGames.length) rows = '<div class="rv-detail-empty">这天 Company 档还没有游戏</div>';
   html += `<div class="rv-dt-list">${rows}</div>`;
 
   const also = [];
@@ -4339,21 +4446,13 @@ function recomputeGame(game) {
 }
 
 function nodeTypes() { return state.config.nodeTypes || []; }
-function mediaList() { return state.config.mediaList || []; }
-function subList() { return state.config.subList || []; }
+function tagList() { return state.config.tagList || []; }
 
 function addToConfigList(key, val) {
   val = (val || '').trim();
   if (!val) return;
   if (!Array.isArray(state.config[key])) state.config[key] = [];
   if (state.config[key].indexOf(val) === -1) { state.config[key].push(val); scheduleSave(); }
-}
-
-function setGameField(gameId, field, val) {
-  const found = findGameAnywhere(gameId);
-  if (!found) return;
-  found.game[field] = (val || '').trim();
-  scheduleSave();
 }
 
 function addMilestone(gameId, m) {
@@ -4454,12 +4553,8 @@ function buildDetail() {
   head.appendChild(close);
   card.appendChild(head);
 
-  // ---- Meta: media / sub (editable) ----
-  const meta = document.createElement('div');
-  meta.className = 'detail-meta';
-  meta.appendChild(makeMetaTag(game, 'media', game.media, '媒介？', mediaList(), 'mediaList'));
-  meta.appendChild(makeMetaTag(game, 'sub', game.sub, '子类？', subList(), 'subList'));
-  card.appendChild(meta);
+  // ---- Meta: flat tags (multi-select) ----
+  card.appendChild(buildTagEditor(game));
 
   // ---- Milestones ----
   const label = document.createElement('div');
@@ -4494,21 +4589,45 @@ function buildDetail() {
   document.body.appendChild(overlay);
 }
 
-function makeMetaTag(game, field, value, placeholder, list, listKey) {
-  const tag = document.createElement('div');
-  tag.className = 'detail-tag' + (value ? '' : ' empty');
-  tag.textContent = value || placeholder;
-  tag.onclick = (e) => {
-    const items = list.map(v => ({ value: v, label: v }));
+function buildTagEditor(game) {
+  const wrap = document.createElement('div');
+  wrap.className = 'detail-meta';
+  const tags = Array.isArray(game.tags) ? game.tags : [];
+  tags.forEach(t => {
+    const chip = document.createElement('div');
+    chip.className = 'detail-tag tag-chip';
+    const lab = document.createElement('span'); lab.textContent = t; chip.appendChild(lab);
+    const x = document.createElement('span'); x.className = 'tag-x'; x.textContent = '✕';
+    x.onclick = (e) => { e.stopPropagation(); removeGameTag(game.id, t); buildDetail(); };
+    chip.appendChild(x);
+    wrap.appendChild(chip);
+  });
+  const add = document.createElement('div');
+  add.className = 'detail-tag empty';
+  add.textContent = tags.length ? '＋' : '＋ 标签';
+  add.onclick = () => {
+    const avail = tagList().filter(t => tags.indexOf(t) === -1);
+    const items = avail.map(v => ({ value: v, label: v }));
     items.push({ value: '__add__', label: '＋ 新增…' });
-    if (value) items.push({ value: '', label: '（清空）', clear: true });
-    showPicker(tag, items, value || '', v => {
-      if (v === '__add__') { promptNewValue(tag, listKey, nv => { setGameField(game.id, field, nv); buildDetail(); }); return; }
-      setGameField(game.id, field, v);
-      buildDetail();
+    showPicker(add, items, '', v => {
+      if (v === '__add__') { promptNewValue(add, 'tagList', nv => { addGameTag(game.id, nv); buildDetail(); }); return; }
+      if (v) { addGameTag(game.id, v); buildDetail(); }
     });
   };
-  return tag;
+  wrap.appendChild(add);
+  return wrap;
+}
+
+function addGameTag(gameId, tag) {
+  tag = (tag || '').trim(); if (!tag) return;
+  const found = findGameAnywhere(gameId); if (!found) return;
+  if (!Array.isArray(found.game.tags)) found.game.tags = [];
+  if (found.game.tags.indexOf(tag) === -1) { found.game.tags.push(tag); scheduleSave(); }
+}
+function removeGameTag(gameId, tag) {
+  const found = findGameAnywhere(gameId); if (!found) return;
+  if (Array.isArray(found.game.tags)) found.game.tags = found.game.tags.filter(t => t !== tag);
+  scheduleSave();
 }
 
 // Inline "add new option" input (custom, no native prompt)
@@ -4686,7 +4805,7 @@ function makeInputField(labelText, value, placeholder, onInput) {
 //   列表 list · 陈列 shelf · 长河 river · 星图 star
 // ============================================================
 let journeyOpen = false;
-let _journeyFilter = { type: '', outcome: '', media: '' };
+let _journeyFilter = { type: '', outcome: '', tag: '' };
 
 function journeyView() {
   const v = state.config.journeyView;
@@ -4694,7 +4813,7 @@ function journeyView() {
 }
 function setJourneyView(v) { state.config.journeyView = v; scheduleSave(); render(); }
 
-function openJourney() { journeyOpen = true; reviewOpen = false; _journeyFilter = { type: '', outcome: '', media: '' }; render(); }
+function openJourney() { journeyOpen = true; reviewOpen = false; _journeyFilter = { type: '', outcome: '', tag: '' }; render(); }
 function closeJourney() { journeyOpen = false; render(); }
 
 // Stable warm color per game (cross-refresh consistent) — drives river/star/shelf accents.
@@ -4742,7 +4861,7 @@ function collectMilestones() {
     state.config[tier].forEach(g => {
       if (g.hidden) return;
       (g.milestones || []).forEach(m => {
-        out.push({ gameId: g.id, gameName: parsePlatform(g.name).base, platform: parsePlatform(g.name).platform, media: g.media || '', sub: g.sub || '', type: m.type || '', inst: m.inst || '', outcome: m.outcome || '', date: m.date || '', ending: m.ending || '', rating: m.rating, note: m.note || '', overall: (g.milestones || []).some(z => FINISHING_TYPES.indexOf(z.type) !== -1) });
+        out.push({ gameId: g.id, gameName: parsePlatform(g.name).base, platform: parsePlatform(g.name).platform, tags: Array.isArray(g.tags) ? g.tags : [], type: m.type || '', inst: m.inst || '', outcome: m.outcome || '', date: m.date || '', ending: m.ending || '', rating: m.rating, note: m.note || '', overall: (g.milestones || []).some(z => FINISHING_TYPES.indexOf(z.type) !== -1) });
       });
     });
   });
@@ -4782,6 +4901,7 @@ function renderJourney() {
 
   // ---- Filters (shared) ----
   const distinct = (key) => [...new Set(all.map(x => x[key]).filter(Boolean))];
+  const distinctTags = [...new Set(all.flatMap(x => x.tags || []))];
   const filtersWrap = document.createElement('div');
   filtersWrap.className = 'narrow';
   const addFilterRow = (labelText, key, values, labelFn) => {
@@ -4802,13 +4922,13 @@ function renderJourney() {
   };
   addFilterRow('类型', 'type', distinct('type'));
   addFilterRow('了结', 'outcome', distinct('outcome'), o => TIER2_COMPLETION_LABELS[o] || o);
-  addFilterRow('媒介', 'media', distinct('media'));
+  addFilterRow('标签', 'tag', distinctTags);
   root.appendChild(filtersWrap);
 
   const match = x =>
     (!_journeyFilter.type || x.type === _journeyFilter.type) &&
     (!_journeyFilter.outcome || x.outcome === _journeyFilter.outcome) &&
-    (!_journeyFilter.media || x.media === _journeyFilter.media);
+    (!_journeyFilter.tag || (x.tags || []).indexOf(_journeyFilter.tag) !== -1);
 
   // ---- Body (per view) ----
   const body = document.createElement('div');
@@ -4868,7 +4988,7 @@ function renderJList(container, rows) {
 function renderJShelf(container, all, match) {
   const byGame = {};
   all.forEach(x => {
-    if (!byGame[x.gameId]) byGame[x.gameId] = { id: x.gameId, name: x.gameName, platform: x.platform, media: x.media, sub: x.sub, overall: x.overall, nodes: [] };
+    if (!byGame[x.gameId]) byGame[x.gameId] = { id: x.gameId, name: x.gameName, platform: x.platform, tags: x.tags || [], overall: x.overall, nodes: [] };
     byGame[x.gameId].nodes.push(x);
   });
   let games = Object.values(byGame).filter(g => g.nodes.some(match));
@@ -4891,9 +5011,9 @@ function renderJShelf(container, all, match) {
     if (g.overall) { const seal = document.createElement('span'); seal.className = 'shelf-seal'; seal.textContent = '✦'; seal.title = '已通关'; top.appendChild(seal); }
     card.appendChild(top);
 
-    if (g.platform || g.media || g.sub) {
+    if (g.platform || (g.tags && g.tags.length)) {
       const tags = document.createElement('div'); tags.className = 'shelf-tags';
-      [g.media, g.sub, g.platform].filter(Boolean).forEach(t => { const s = document.createElement('span'); s.className = 'shelf-tag'; s.textContent = t; tags.appendChild(s); });
+      [...(g.tags || []), g.platform].filter(Boolean).forEach(t => { const s = document.createElement('span'); s.className = 'shelf-tag'; s.textContent = t; tags.appendChild(s); });
       card.appendChild(tags);
     }
 
@@ -5043,12 +5163,13 @@ const SORT_KEYS = [
   { key: 'added',     label: '加入时间' },
   { key: 'lastMs',    label: '最近里程碑' },
   { key: 'msCount',   label: '里程碑数' },
+  { key: 'extra',     label: '深入', only: 'tier1' },
 ];
 function sortKeyLabel(k) { const f = SORT_KEYS.find(x => x.key === k); return f ? f.label : k; }
 
 // The five sortable groups. label uses the app's REAL wording.
 const GROUP_DEFS = [
-  { key: 'tier1',              tier: 'tier1', status: null,          label: 'Daily' },
+  { key: 'tier1',              tier: 'tier1', status: null,          label: 'Company' },
   { key: 'tier2',              tier: 'tier2', status: null,          label: 'Playing' },
   { key: 'tier3:up_next',     tier: 'tier3', status: 'up_next',     label: 'Up next' },
   { key: 'tier3:considering', tier: 'tier3', status: 'considering', label: 'Considering' },
@@ -5109,6 +5230,10 @@ function gameSortValue(g, key) {
     case 'lastCheck': return lastCheckInDate(g.id) || '';
     case 'lastMs':    return g.lastMilestone || '';
     case 'msCount':   return (g.milestones || []).length;
+    case 'extra': {
+      const d = state.history[viewDate];
+      return (d && d.tier1 && d.tier1[g.id] && d.tier1[g.id].extra) ? 1 : 0;
+    }
     default:          return '';
   }
 }
@@ -5131,7 +5256,7 @@ function compareChain(a, b, chain) {
   for (const step of (chain || [])) {
     const key = step.key, dir = step.dir || 'asc';
     const va = gameSortValue(a, key), vb = gameSortValue(b, key);
-    const numeric = (key === 'msCount');
+    const numeric = (key === 'msCount' || key === 'extra');
     const ea = !numeric && (va === '' || va == null);
     const eb = !numeric && (vb === '' || vb == null);
     if (ea && eb) continue;
@@ -5168,7 +5293,7 @@ function applySortChain(groupKey) {
 }
 
 // Chain edits apply immediately (a human action → a fixed state).
-function chainAddKey(groupKey, key) { const gs = groupSortState(groupKey); if (gs.chain.some(s => s.key === key)) return; gs.chain.push({ key, dir: 'asc' }); applySortChain(groupKey); }
+function chainAddKey(groupKey, key) { const gs = groupSortState(groupKey); if (gs.chain.some(s => s.key === key)) return; gs.chain.push({ key, dir: key === 'extra' ? 'desc' : 'asc' }); applySortChain(groupKey); }
 function chainToggleDir(groupKey, key) { const gs = groupSortState(groupKey); const s = gs.chain.find(x => x.key === key); if (s) { s.dir = s.dir === 'asc' ? 'desc' : 'asc'; applySortChain(groupKey); } }
 function chainRemoveKey(groupKey, key) { const gs = groupSortState(groupKey); gs.chain = gs.chain.filter(s => s.key !== key); applySortChain(groupKey); }
 function chainClear(groupKey) { const gs = groupSortState(groupKey); gs.chain = []; gs.dirty = false; scheduleSave(); smoothRender(); }
@@ -5355,7 +5480,9 @@ function buildSortBar(groupKey) {
 function openAddKeyMenu(anchor, groupKey) {
   const gs = groupSortState(groupKey);
   const used = new Set(gs.chain.map(s => s.key));
-  const items = SORT_KEYS.filter(k => !used.has(k.key)).map(k => ({ value: k.key, label: k.label }));
+  const items = SORT_KEYS
+    .filter(k => !used.has(k.key) && (!k.only || k.only === parseGroupKey(groupKey).tier))
+    .map(k => ({ value: k.key, label: k.label }));
   if (!items.length) return;
   showPicker(anchor, items, null, v => chainAddKey(groupKey, v));
 }
