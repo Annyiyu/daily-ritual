@@ -647,8 +647,10 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
    foot pins to the bottom via .rc-foot's margin-top:auto, so no centering here. */
 #tier1-list.cols-2 .daily-card { min-height: 104px; }
 #tier1-list.cols-4 .daily-card { min-height: 96px; }
-.company-tile .pc-body { flex: 0 0 auto; gap: 2px; }
-.company-tile .pc-checkin { opacity: 1; }            /* check-in is Company's primary action */
+#tier1-list .company-tile { padding: 11px 13px 10px; gap: 7px; }
+#tier1-list .company-tile .pc-body { flex: 0 0 auto; gap: 2px; }
+#tier1-list .company-tile .pc-name { font-size: 14.5px; }
+#tier1-list .company-tile .pc-checkin { opacity: 1; }   /* check-in is Company's primary action */
 /* 4-up columns are narrow — drop the streak so the name + check-in keep room
    (platform stays; this is spacing, not shrinking — padding and font stay full) */
 #tier1-list.cols-4 .streak { display: none; }
@@ -2964,6 +2966,8 @@ function buildCompanyTile(game, gd, streak, parsed) {
   card.className = 'daily-card company-tile';
   card.dataset.gameId = game.id;
 
+  // Head: drag · star (sits in the status-pill slot so the top row is balanced
+  // like Roster/Playing — left filled, menu right) · spacer · menu
   const head = document.createElement('div');
   head.className = 'rc-head';
   const handle = makeDragHandle('game', 'tier1', game.id, game.name);
@@ -2971,15 +2975,15 @@ function buildCompanyTile(game, gd, streak, parsed) {
   handle.innerHTML = '⋮⋮';
   handle.title = 'Drag to reorder';
   head.appendChild(handle);
-  const spacer = document.createElement('div');
-  spacer.className = 'rc-spacer';
-  head.appendChild(spacer);
   const extra = document.createElement('div');
   extra.className = 'extra-toggle' + (gd.extra ? ' active' : '');
   extra.innerHTML = gd.extra ? '✦' : '✧';
   extra.title = '今天深入玩了一下';
   extra.onclick = (e) => { e.stopPropagation(); toggleExtra(game.id); };
   head.appendChild(extra);
+  const spacer = document.createElement('div');
+  spacer.className = 'rc-spacer';
+  head.appendChild(spacer);
   const menu = document.createElement('div');
   menu.className = 'rc-menu-btn';
   menu.innerHTML = '⋯';
@@ -2988,24 +2992,14 @@ function buildCompanyTile(game, gd, streak, parsed) {
   head.appendChild(menu);
   card.appendChild(head);
 
+  // Name + note (shared)
   card.appendChild(buildPcBody('tier1', game, gd.checkedIn));
 
+  // Foot: check-in + streak (left) · platform (right) — same order as Roster
   const foot = document.createElement('div');
   foot.className = 'rc-foot';
   const footLeft = document.createElement('div');
   footLeft.className = 'pc-foot-left';
-  if (parsed.platform) {
-    const plat = document.createElement('div');
-    plat.className = 'rc-platform';
-    plat.textContent = parsed.platform;
-    footLeft.appendChild(plat);
-  }
-  const streakEl = document.createElement('div');
-  streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
-  streakEl.textContent = streak > 0 ? streak + 'd' : '·';
-  footLeft.appendChild(streakEl);
-  foot.appendChild(footLeft);
-
   const checkin = document.createElement('div');
   checkin.className = 'pc-checkin' + (gd.checkedIn ? ' on' : '');
   const cb = document.createElement('div');
@@ -3016,7 +3010,19 @@ function buildCompanyTile(game, gd, streak, parsed) {
   lbl.textContent = gd.checkedIn ? '今日已玩' : '打卡';
   checkin.appendChild(lbl);
   checkin.onclick = () => toggleTier1(game.id);
-  foot.appendChild(checkin);
+  footLeft.appendChild(checkin);
+  const streakEl = document.createElement('div');
+  streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
+  streakEl.textContent = streak > 0 ? streak + 'd' : '·';
+  footLeft.appendChild(streakEl);
+  foot.appendChild(footLeft);
+
+  if (parsed.platform) {
+    const plat = document.createElement('div');
+    plat.className = 'rc-platform';
+    plat.textContent = parsed.platform;
+    foot.appendChild(plat);
+  }
 
   card.appendChild(foot);
   return card;
