@@ -133,9 +133,13 @@ body.first-load .header { animation: fadeIn 0.6s ease-out; }
   padding: 4px 8px; user-select: none; transition: opacity 0.2s; white-space: nowrap;
 }
 .today-link:hover { opacity: 0.6; }
-.progress-label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
-.progress-label { font-family: var(--label-font); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-muted); }
-.progress-percentage { font-family: var(--label-font); font-size: 2.6rem; font-weight: 400; color: var(--accent); letter-spacing: 0.02em; line-height: 1; }
+.companion-band {
+  height: 10px; width: 100%; border-radius: 999px;
+  margin-top: 6px;
+  background: linear-gradient(90deg, rgba(196,180,160,0.10), rgba(196,180,160,0.05));
+  box-shadow: 0 1px 6px rgba(210,133,107,0.10), inset 0 0 0 1px rgba(255,255,255,0.22);
+  transition: background 0.7s ease;
+}
 
 /* Sections */
 .section { margin-bottom: 56px; }
@@ -638,17 +642,15 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 #tier1-list.cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-items: start; }
 #tier1-list.cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: start; }
 #tier1-list.cols-2:empty, #tier1-list.cols-4:empty { display: none; }
-/* grid browsing hides the per-game sub-task strip (like Playing / Roster) */
-#tier1-list.cols-2 .subtasks-row,
-#tier1-list.cols-4 .subtasks-row { display: none; }
-/* keep the cards chunky — same body as single column, just laid out in columns.
-   min-height references the other sections (Playing 104 / Roster 96); the row is
-   centred so the card reads as a full tile, not a thin strip. */
-#tier1-list.cols-2 .daily-card { min-height: 104px; justify-content: center; }
-#tier1-list.cols-4 .daily-card { min-height: 96px; justify-content: center; }
-/* 4-up columns are narrow — drop platform + streak so the name keeps room
-   (this is spacing, not shrinking: padding and font stay full size) */
-#tier1-list.cols-4 .rc-platform,
+/* Grid cards are the vertical 3-segment tile (.company-tile), same body as the
+   other sections. Chunky min-heights reference Playing (104) / Roster (96); the
+   foot pins to the bottom via .rc-foot's margin-top:auto, so no centering here. */
+#tier1-list.cols-2 .daily-card { min-height: 104px; }
+#tier1-list.cols-4 .daily-card { min-height: 96px; }
+.company-tile .pc-body { flex: 0 0 auto; gap: 2px; }
+.company-tile .pc-checkin { opacity: 1; }            /* check-in is Company's primary action */
+/* 4-up columns are narrow — drop the streak so the name + check-in keep room
+   (platform stays; this is spacing, not shrinking — padding and font stay full) */
 #tier1-list.cols-4 .streak { display: none; }
 @media (max-width: 560px) {
   #tier1-list.cols-4 { grid-template-columns: repeat(2, 1fr); }
@@ -1870,6 +1872,12 @@ function updateTier1Row(gameId) {
   const item = document.querySelector(`#tier1-list [data-game-id="${gameId}"]`);
   if (!item) return;
   item.querySelector('.checkbox').classList.toggle('checked', !!gd.checkedIn);
+  const checkin = item.querySelector('.pc-checkin');
+  if (checkin) {
+    checkin.classList.toggle('on', !!gd.checkedIn);
+    const lbl = checkin.querySelector('.pc-checkin-label');
+    if (lbl) lbl.textContent = gd.checkedIn ? '今日已玩' : '打卡';
+  }
   const name = item.querySelector('.pc-name');
   if (name) name.classList.toggle('checked', !!gd.checkedIn);
   item.querySelectorAll('.subtask').forEach(sub => {
@@ -1930,8 +1938,7 @@ function updateStreak(rowEl, gameId) {
 }
 
 function updateProgress() {
-  const cc = document.getElementById('companion-count');
-  if (cc) cc.textContent = getDayCompanions(viewDate);
+  renderCompanionBand();
 }
 
 function updateHeatmapCell(dateStr) {
@@ -2513,6 +2520,20 @@ function getDayCompanions(dateStr) {
   return checked;
 }
 
+// Retained for possible future use: completion % (checked / total Company games on
+// a day). Not currently surfaced — the header uses an ambient colour band instead —
+// but kept so a percentage view can be re-introduced without rebuilding the logic.
+function getDayProgress(dateStr) {
+  const day = state.history[dateStr];
+  if (!day) return 0;
+  const relevant = gamesInTierOnDate('tier1', dateStr);
+  const total = relevant.length;
+  if (total === 0) return 0;
+  let checked = 0;
+  relevant.forEach(g => { if (day.tier1 && day.tier1[g.id] && day.tier1[g.id].checkedIn) checked++; });
+  return Math.round((checked / total) * 100);
+}
+
 function getDayIntensity(dateStr) {
   const day = state.history[dateStr];
   if (!day) return 0;
@@ -2730,10 +2751,7 @@ function renderApp() {
         <div class="date-arrow" id="next-day" title="Next day">›</div>
         <div class="today-link" id="today-link" style="display:none">↩ Today</div>
       </div>
-      <div class="progress-label-row">
-        <div class="progress-label">小伙伴</div>
-        <div class="display-font progress-percentage" id="companion-count">0</div>
-      </div>
+      <div class="companion-band" id="companion-band"></div>
     </header>
 
     <section class="section narrow" id="section-tier1">
@@ -2789,6 +2807,43 @@ function renderApp() {
   var _je = document.getElementById('journey-entry'); if (_je) _je.onclick = openJourney;
 }
 
+// ── Companion band ─────────────────────────────────────────────
+// An ambient, no-text bar in the header. Not a progress meter — it has no fill,
+// no total, no 100%. It blends the warm signature colour of each game checked in
+// today (softened toward cream) into one gentle gradient: "who I spent time with
+// today", growing richer as more companions join. Empty days are a barely-there
+// warm wash. Borrows the soft, handle-less feel of a pastel slider.
+function hexToRgb(hex) {
+  const h = (hex || '').replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+function softWarm(hex, amt) {
+  const cream = [245, 238, 226];
+  const c = hexToRgb(hex);
+  const m = c.map((v, i) => Math.round(v * (1 - amt) + cream[i] * amt));
+  return `rgb(${m[0]},${m[1]},${m[2]})`;
+}
+function companionBandBg(dateStr) {
+  const day = state.history[dateStr];
+  const games = gamesInTierOnDate('tier1', dateStr);
+  const checked = games.filter(g => day && day.tier1 && day.tier1[g.id] && day.tier1[g.id].checkedIn);
+  if (checked.length === 0) {
+    return 'linear-gradient(90deg, rgba(196,180,160,0.10), rgba(196,180,160,0.05))';
+  }
+  if (checked.length === 1) {
+    const mid = softWarm(gameColor(checked[0].id), 0.36);
+    const edge = softWarm(gameColor(checked[0].id), 0.60);
+    return `linear-gradient(90deg, ${edge} 0%, ${mid} 50%, ${edge} 100%)`;
+  }
+  const cols = checked.map(g => softWarm(gameColor(g.id), 0.40));
+  const stops = cols.map((c, i) => `${c} ${Math.round(i / (cols.length - 1) * 100)}%`).join(', ');
+  return `linear-gradient(90deg, ${stops})`;
+}
+function renderCompanionBand() {
+  const band = document.getElementById('companion-band');
+  if (band) band.style.background = companionBandBg(viewDate);
+}
+
 function renderHeader() {
   const d = parseDateKey(viewDate);
   const wd = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -2798,9 +2853,7 @@ function renderHeader() {
   document.getElementById('date').className = 'date' + (isViewingToday() ? '' : ' past');
   document.getElementById('next-day').className = 'date-arrow' + (isViewingToday() ? ' disabled' : '');
   document.getElementById('today-link').style.display = isViewingToday() ? 'none' : '';
-  const companions = getDayCompanions(viewDate);
-  const cc = document.getElementById('companion-count');
-  if (cc) cc.textContent = companions;
+  renderCompanionBand();
 }
 
 // === Build editable name + note column ===
@@ -2902,6 +2955,73 @@ function renderColumnSwitch() {
   });
 }
 
+// Vertical Company tile — used in multi-column (2/4) grid views. Mirrors the
+// Playing/Roster three-segment card (head: drag · star · menu · body: name/note ·
+// foot: platform/streak · check-in) so the grid reads consistent with the other
+// sections. Single column keeps the compact horizontal row (built inline below).
+function buildCompanyTile(game, gd, streak, parsed) {
+  const card = document.createElement('div');
+  card.className = 'daily-card company-tile';
+  card.dataset.gameId = game.id;
+
+  const head = document.createElement('div');
+  head.className = 'rc-head';
+  const handle = makeDragHandle('game', 'tier1', game.id, game.name);
+  handle.className = 'rc-drag';
+  handle.innerHTML = '⋮⋮';
+  handle.title = 'Drag to reorder';
+  head.appendChild(handle);
+  const spacer = document.createElement('div');
+  spacer.className = 'rc-spacer';
+  head.appendChild(spacer);
+  const extra = document.createElement('div');
+  extra.className = 'extra-toggle' + (gd.extra ? ' active' : '');
+  extra.innerHTML = gd.extra ? '✦' : '✧';
+  extra.title = '今天深入玩了一下';
+  extra.onclick = (e) => { e.stopPropagation(); toggleExtra(game.id); };
+  head.appendChild(extra);
+  const menu = document.createElement('div');
+  menu.className = 'rc-menu-btn';
+  menu.innerHTML = '⋯';
+  menu.title = 'More actions';
+  menu.onclick = (e) => { e.stopPropagation(); openDailyCardMenu(menu, game); };
+  head.appendChild(menu);
+  card.appendChild(head);
+
+  card.appendChild(buildPcBody('tier1', game, gd.checkedIn));
+
+  const foot = document.createElement('div');
+  foot.className = 'rc-foot';
+  const footLeft = document.createElement('div');
+  footLeft.className = 'pc-foot-left';
+  if (parsed.platform) {
+    const plat = document.createElement('div');
+    plat.className = 'rc-platform';
+    plat.textContent = parsed.platform;
+    footLeft.appendChild(plat);
+  }
+  const streakEl = document.createElement('div');
+  streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
+  streakEl.textContent = streak > 0 ? streak + 'd' : '·';
+  footLeft.appendChild(streakEl);
+  foot.appendChild(footLeft);
+
+  const checkin = document.createElement('div');
+  checkin.className = 'pc-checkin' + (gd.checkedIn ? ' on' : '');
+  const cb = document.createElement('div');
+  cb.className = 'checkbox' + (gd.checkedIn ? ' checked' : '');
+  checkin.appendChild(cb);
+  const lbl = document.createElement('div');
+  lbl.className = 'pc-checkin-label';
+  lbl.textContent = gd.checkedIn ? '今日已玩' : '打卡';
+  checkin.appendChild(lbl);
+  checkin.onclick = () => toggleTier1(game.id);
+  foot.appendChild(checkin);
+
+  card.appendChild(foot);
+  return card;
+}
+
 function renderTier1() {
   const day = getDay(viewDate);
   const container = document.getElementById('tier1-list');
@@ -2920,6 +3040,11 @@ function renderTier1() {
     const isAddingSub = addSubtaskGameId === game.id;
 
     const parsed = parsePlatform(game.name);
+
+    if (companyColumns() !== 1) {
+      container.appendChild(buildCompanyTile(game, gd, streak, parsed));
+      return;
+    }
 
     const item = document.createElement('div');
     item.className = 'daily-card';
