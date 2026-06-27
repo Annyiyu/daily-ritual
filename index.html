@@ -133,13 +133,6 @@ body.first-load .header { animation: fadeIn 0.6s ease-out; }
   padding: 4px 8px; user-select: none; transition: opacity 0.2s; white-space: nowrap;
 }
 .today-link:hover { opacity: 0.6; }
-.companion-band {
-  height: 10px; width: 100%; border-radius: 999px;
-  margin-top: 6px;
-  background: linear-gradient(90deg, rgba(196,180,160,0.10), rgba(196,180,160,0.05));
-  box-shadow: 0 1px 6px rgba(210,133,107,0.10), inset 0 0 0 1px rgba(255,255,255,0.22);
-  transition: background 0.7s ease;
-}
 
 /* Sections */
 .section { margin-bottom: 56px; }
@@ -657,6 +650,36 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 @media (max-width: 560px) {
   #tier1-list.cols-4 { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* --- Playing (tier2) column views: override its fixed 2-up grid --- */
+#tier2-list.cols-1 { grid-template-columns: 1fr; }
+#tier2-list.cols-2 { grid-template-columns: repeat(2, 1fr); }
+#tier2-list.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* --- Roster (tier3) & Finished column views: applied to each group's grid,
+   overriding the auto-fill default so the count is explicit --- */
+#tier3-list.cols-1 .roster-grid,
+#finished-list.cols-1 .roster-grid { grid-template-columns: 1fr; }
+#tier3-list.cols-2 .roster-grid,
+#finished-list.cols-2 .roster-grid { grid-template-columns: repeat(2, 1fr); }
+#tier3-list.cols-4 .roster-grid,
+#finished-list.cols-4 .roster-grid { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 560px) {
+  #tier2-list.cols-4 { grid-template-columns: repeat(2, 1fr); }
+  #tier3-list.cols-4 .roster-grid,
+  #finished-list.cols-4 .roster-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Playing grid drop indicator — card-edge accent (mirrors Daily/Roster) */
+.playing-card.drop-before::before,
+.playing-card.drop-after::after {
+  content: ''; position: absolute; top: 12%; height: 76%; width: 2px;
+  background: var(--accent); border-radius: 2px; animation: lineGlow 0.25s ease-out;
+}
+.playing-card.drop-before::before { left: -6px; }
+.playing-card.drop-after::after { right: -6px; }
+
 /* grid drop indicator — mirror Roster's card-edge accent (a full-width line reads wrong in a grid) */
 .daily-card.drop-before::before,
 .daily-card.drop-after::after {
@@ -1910,7 +1933,6 @@ function updateTier1Row(gameId) {
     if (sid) sub.classList.toggle('checked', !!gd.subtasks[sid]);
   });
   updateStreak(item, gameId);
-  updateProgress();
   updateHeatmapCell(viewDate);
 }
 function updateTier2Row(gameId) {
@@ -1960,10 +1982,6 @@ function updateStreak(rowEl, gameId) {
     void el.offsetWidth;
     el.style.animation = 'streakPop 0.45s cubic-bezier(0.16, 1, 0.3, 1)';
   }
-}
-
-function updateProgress() {
-  renderCompanionBand();
 }
 
 function updateHeatmapCell(dateStr) {
@@ -2281,7 +2299,7 @@ function updateGameDropIndicator(clientX, clientY) {
   // mirroring Roster (a full-width drop-line reads wrong inside a grid). Single
   // column keeps the original horizontal drop-line. dropIndex semantics are
   // identical either way, so commitGameMove is unchanged.
-  if (targetTier === 'tier1' && companyColumns() > 1) {
+  if ((targetTier === 'tier1' || targetTier === 'tier2') && sectionColumns(targetTier) > 1) {
     let dropIndex = items.length, targetCard = null;
     for (let i = 0; i < items.length; i++) {
       const r = items[i].getBoundingClientRect();
@@ -2776,11 +2794,10 @@ function renderApp() {
         <div class="date-arrow" id="next-day" title="Next day">›</div>
         <div class="today-link" id="today-link" style="display:none">↩ Today</div>
       </div>
-      <div class="companion-band" id="companion-band"></div>
     </header>
 
     <section class="section narrow" id="section-tier1">
-      <div class="section-header"><div class="section-title">Company</div><div class="section-line"></div><div class="col-switch" id="col-switch"></div></div>
+      <div class="section-header"><div class="section-title">Company</div><div class="section-line"></div><div class="col-switch" id="col-switch-tier1"></div></div>
       <div id="sortbar-tier1"></div>
       <div id="tier1-list"></div>
       <div class="add-row" id="add-tier1-container"></div>
@@ -2788,7 +2805,7 @@ function renderApp() {
     </section>
 
     <section class="section narrow" id="section-tier2">
-      <div class="section-header"><div class="section-title">Playing</div><div class="section-line"></div></div>
+      <div class="section-header"><div class="section-title">Playing</div><div class="section-line"></div><div class="col-switch" id="col-switch-tier2"></div></div>
       <div id="sortbar-tier2"></div>
       <div id="tier2-list"></div>
       <div class="add-row" id="add-tier2-container"></div>
@@ -2796,14 +2813,14 @@ function renderApp() {
     </section>
 
     <section class="section wide" id="section-tier3">
-      <div class="section-header"><div class="section-title">Roster</div><div class="section-line"></div></div>
+      <div class="section-header"><div class="section-title">Roster</div><div class="section-line"></div><div class="col-switch" id="col-switch-tier3"></div></div>
       <div id="tier3-list"></div>
       <div class="add-row" id="add-tier3-container"></div>
       <div id="hidden-tier3"></div>
     </section>
 
     <section class="section wide" id="section-finished">
-      <div class="section-header"><div class="section-title">Finished</div><div class="section-line"></div></div>
+      <div class="section-header"><div class="section-title">Finished</div><div class="section-line"></div><div class="col-switch" id="col-switch-finished"></div></div>
       <div id="finished-list"></div>
     </section>
 
@@ -2832,42 +2849,9 @@ function renderApp() {
   var _je = document.getElementById('journey-entry'); if (_je) _je.onclick = openJourney;
 }
 
-// ── Companion band ─────────────────────────────────────────────
-// An ambient, no-text bar in the header. Not a progress meter — it has no fill,
-// no total, no 100%. It blends the warm signature colour of each game checked in
-// today (softened toward cream) into one gentle gradient: "who I spent time with
-// today", growing richer as more companions join. Empty days are a barely-there
-// warm wash. Borrows the soft, handle-less feel of a pastel slider.
-function hexToRgb(hex) {
-  const h = (hex || '').replace('#', '');
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
-function softWarm(hex, amt) {
-  const cream = [245, 238, 226];
-  const c = hexToRgb(hex);
-  const m = c.map((v, i) => Math.round(v * (1 - amt) + cream[i] * amt));
-  return `rgb(${m[0]},${m[1]},${m[2]})`;
-}
-function companionBandBg(dateStr) {
-  const day = state.history[dateStr];
-  const games = gamesInTierOnDate('tier1', dateStr);
-  const checked = games.filter(g => day && day.tier1 && day.tier1[g.id] && day.tier1[g.id].checkedIn);
-  if (checked.length === 0) {
-    return 'linear-gradient(90deg, rgba(196,180,160,0.10), rgba(196,180,160,0.05))';
-  }
-  if (checked.length === 1) {
-    const mid = softWarm(gameColor(checked[0].id), 0.36);
-    const edge = softWarm(gameColor(checked[0].id), 0.60);
-    return `linear-gradient(90deg, ${edge} 0%, ${mid} 50%, ${edge} 100%)`;
-  }
-  const cols = checked.map(g => softWarm(gameColor(g.id), 0.40));
-  const stops = cols.map((c, i) => `${c} ${Math.round(i / (cols.length - 1) * 100)}%`).join(', ');
-  return `linear-gradient(90deg, ${stops})`;
-}
-function renderCompanionBand() {
-  const band = document.getElementById('companion-band');
-  if (band) band.style.background = companionBandBg(viewDate);
-}
+// ── Companion band — removed (header progress bar deleted). The check-in history
+// in state.history is untouched, and getDayProgress / getDayCompanions remain, so
+// any header summary can be re-added later without rebuilding the data layer.
 
 function renderHeader() {
   const d = parseDateKey(viewDate);
@@ -2878,7 +2862,6 @@ function renderHeader() {
   document.getElementById('date').className = 'date' + (isViewingToday() ? '' : ' past');
   document.getElementById('next-day').className = 'date-arrow' + (isViewingToday() ? ' disabled' : '');
   document.getElementById('today-link').style.display = isViewingToday() ? 'none' : '';
-  renderCompanionBand();
 }
 
 // === Build editable name + note column ===
@@ -2956,26 +2939,32 @@ function buildPcBody(tier, game, isChecked) {
   return body;
 }
 
-function companyColumns() {
-  const c = state.config.companyColumns;
-  return (c === 2 || c === 4) ? c : 1;
+// Per-section column preference (1 / 2 / 4). tier1 keeps its original config key
+// for backward-compat; the other sections get their own. An unset key falls back
+// to that section's default.
+const COLS_KEY = { tier1: 'companyColumns', tier2: 'tier2Columns', tier3: 'tier3Columns', finished: 'finishedColumns' };
+const COLS_DEFAULT = { tier1: 1, tier2: 2, tier3: 4, finished: 4 };
+function sectionColumns(tier) {
+  const c = state.config[COLS_KEY[tier]];
+  return (c === 1 || c === 2 || c === 4) ? c : COLS_DEFAULT[tier];
 }
-function setCompanyColumns(n) {
-  state.config.companyColumns = n;
+function setSectionColumns(tier, n) {
+  state.config[COLS_KEY[tier]] = n;
   scheduleSave();
   smoothRender();
 }
-function renderColumnSwitch() {
-  const host = document.getElementById('col-switch');
+function companyColumns() { return sectionColumns('tier1'); }   // back-compat alias (renderTier1, grid drag)
+function renderColumnSwitch(tier) {
+  const host = document.getElementById('col-switch-' + tier);
   if (!host) return;
   host.innerHTML = '';
-  const cur = companyColumns();
+  const cur = sectionColumns(tier);
   [1, 2, 4].forEach(n => {
     const seg = document.createElement('span');
     seg.className = 'cs-seg' + (cur === n ? ' active' : '');
     seg.textContent = n;
     seg.title = n + ' 列';
-    seg.onclick = () => { if (companyColumns() !== n) setCompanyColumns(n); };
+    seg.onclick = () => { if (sectionColumns(tier) !== n) setSectionColumns(tier, n); };
     host.appendChild(seg);
   });
 }
@@ -3059,7 +3048,7 @@ function renderTier1() {
 
   const visible = state.config.tier1.filter(g => !g.hidden);
   renderSortControls('tier1', document.querySelector('#section-tier1 .section-header'), document.getElementById('sortbar-tier1'), visible.length);
-  renderColumnSwitch();
+  renderColumnSwitch('tier1');
   visible.forEach(game => {
     const gd = day.tier1[game.id] || { checkedIn: false, subtasks: {}, extra: false };
     const streak = getStreak(game.id, 'tier1');
@@ -3259,9 +3248,11 @@ function renderTier2() {
   const day = getDay(viewDate);
   const container = document.getElementById('tier2-list');
   container.innerHTML = '';
+  container.className = 'cols-' + sectionColumns('tier2');
 
   const visible = state.config.tier2.filter(g => !g.hidden && !g.completion);
   renderSortControls('tier2', document.querySelector('#section-tier2 .section-header'), document.getElementById('sortbar-tier2'), visible.length);
+  renderColumnSwitch('tier2');
   visible.forEach(game => container.appendChild(buildPlayingCard(game, day)));
 
   renderAddRow('tier2');
@@ -3418,9 +3409,11 @@ function rosterPrefs() {
 function renderTier3() {
   const container = document.getElementById('tier3-list');
   container.innerHTML = '';
+  container.className = 'cols-' + sectionColumns('tier3');
 
   const visible = state.config.tier3.filter(g => !g.hidden);
   const prefs = rosterPrefs();
+  renderColumnSwitch('tier3');
 
   if (visible.length > 0) {
     container.appendChild(buildRosterControls(prefs));
@@ -3702,6 +3695,8 @@ function renderFinished() {
   const all = state.config.tier2.filter(g => !!g.completion);
   if (all.length === 0) { section.style.display = 'none'; return; }
   section.style.display = '';
+  container.className = 'cols-' + sectionColumns('finished');
+  renderColumnSwitch('finished');
 
   const fold = finishedFold();
   FINISHED_GROUP_ORDER.forEach(status => {
