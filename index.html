@@ -638,16 +638,18 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 #tier1-list.cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-items: start; }
 #tier1-list.cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: start; }
 #tier1-list.cols-2:empty, #tier1-list.cols-4:empty { display: none; }
-/* compact density: 2-up / 4-up drop the per-game sub-task strip (pure browsing) */
+/* grid browsing hides the per-game sub-task strip (like Playing / Roster) */
 #tier1-list.cols-2 .subtasks-row,
 #tier1-list.cols-4 .subtasks-row { display: none; }
-#tier1-list.cols-2 .daily-card { padding: 11px 13px; }
-#tier1-list.cols-4 .daily-card { padding: 9px 10px; }
-#tier1-list.cols-4 .dc-head { gap: 8px; }
-#tier1-list.cols-4 .pc-right { gap: 6px; }
+/* keep the cards chunky — same body as single column, just laid out in columns.
+   min-height references the other sections (Playing 104 / Roster 96); the row is
+   centred so the card reads as a full tile, not a thin strip. */
+#tier1-list.cols-2 .daily-card { min-height: 104px; justify-content: center; }
+#tier1-list.cols-4 .daily-card { min-height: 96px; justify-content: center; }
+/* 4-up columns are narrow — drop platform + streak so the name keeps room
+   (this is spacing, not shrinking: padding and font stay full size) */
 #tier1-list.cols-4 .rc-platform,
 #tier1-list.cols-4 .streak { display: none; }
-#tier1-list.cols-4 .pc-name { font-size: 13.5px; }
 @media (max-width: 560px) {
   #tier1-list.cols-4 { grid-template-columns: repeat(2, 1fr); }
 }
