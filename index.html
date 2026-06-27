@@ -683,6 +683,28 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .detail-tag .tag-x { color: var(--text-faint); font-size: 10px; cursor: pointer; }
 .detail-tag .tag-x:hover { color: var(--accent); }
 
+/* Multi-select tag palette */
+.tag-palette { max-width: min(86vw, 300px); }
+.tag-palette-grid {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 3px;
+  max-height: 236px; overflow-y: auto; overscroll-behavior: contain;
+}
+.tp-chip {
+  font-family: var(--body-font); font-size: 12.5px; letter-spacing: 0; text-transform: none;
+  padding: 5px 11px; border-radius: 999px; cursor: pointer; white-space: nowrap; user-select: none;
+  border: 1px solid var(--line-strong); color: var(--text-muted); background: transparent;
+  transition: background-color 0.14s, color 0.14s, border-color 0.14s;
+}
+.tp-chip:hover { border-color: var(--accent); color: var(--accent); }
+.tp-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tp-add { justify-content: flex-start; margin-top: 3px; border-top: 1px solid var(--line); padding-top: 9px; }
+.tp-add-input {
+  border: 1px solid var(--accent); background: var(--bg); border-radius: 7px;
+  padding: 7px 9px; font-family: var(--body-font); font-size: 13px; color: var(--text);
+  width: 100%; box-sizing: border-box; margin-top: 3px;
+}
+.tp-empty { font-size: 12px; color: var(--text-faint); padding: 6px 4px; }
+
 /* Playing — Roster-style cards, but 2 per row (larger than Roster's 4-up).
    Cream cards on the warm "ritual zone" panel, vertical layout like Roster, in a
    clay-rose tint so it reads distinct from Daily's peach-amber. */
@@ -1096,6 +1118,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   display: flex; flex-direction: column; gap: 1px;
   min-width: 140px;
+  max-height: min(60vh, 360px); overflow-y: auto; overscroll-behavior: contain;
   animation: pickerIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes pickerIn {
@@ -4738,17 +4761,99 @@ function buildTagEditor(game) {
   const add = document.createElement('div');
   add.className = 'detail-tag empty';
   add.textContent = tags.length ? '＋' : '＋ 标签';
-  add.onclick = () => {
-    const avail = tagList().filter(t => tags.indexOf(t) === -1);
-    const items = avail.map(v => ({ value: v, label: v }));
-    items.push({ value: '__add__', label: '＋ 新增…' });
-    showPicker(add, items, '', v => {
-      if (v === '__add__') { promptNewValue(add, 'tagList', nv => { addGameTag(game.id, nv); buildDetail(); }); return; }
-      if (v) { addGameTag(game.id, v); buildDetail(); }
-    });
-  };
+  add.onclick = (e) => { e.stopPropagation(); showTagPalette(add, game); };
   wrap.appendChild(add);
   return wrap;
+}
+
+// Multi-select tag palette: every tag in the pool as a toggle chip (selected =
+// filled). Stays open so several can be toggled in a row; closing syncs the card.
+// "New tag" is entered inline inside the panel so it never steals focus/dismisses.
+function showTagPalette(anchorEl, game) {
+  closePicker();
+  const host = document.getElementById('picker-host');
+  const menu = document.createElement('div');
+  menu.className = 'picker-menu tag-palette';
+
+  const renderPalette = () => {
+    menu.innerHTML = '';
+    const selected = Array.isArray(game.tags) ? game.tags : [];
+    const grid = document.createElement('div');
+    grid.className = 'tag-palette-grid';
+    const pool = tagList();
+    if (pool.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'tp-empty';
+      empty.textContent = '还没有标签，先新增一个吧';
+      grid.appendChild(empty);
+    }
+    pool.forEach(t => {
+      const on = selected.indexOf(t) !== -1;
+      const chip = document.createElement('div');
+      chip.className = 'tp-chip' + (on ? ' on' : '');
+      chip.textContent = t;
+      chip.onclick = (e) => {
+        e.stopPropagation();
+        if (on) removeGameTag(game.id, t); else addGameTag(game.id, t);
+        renderPalette();
+      };
+      grid.appendChild(chip);
+    });
+    menu.appendChild(grid);
+
+    const addNew = document.createElement('div');
+    addNew.className = 'picker-item tp-add';
+    addNew.innerHTML = '<span>＋ 新增标签…</span>';
+    addNew.onclick = (e) => {
+      e.stopPropagation();
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'tp-add-input';
+      input.placeholder = '新标签…';
+      let done = false;
+      const commit = (save) => {
+        if (done) return; done = true;
+        const v = input.value.trim();
+        if (save && v) { addToConfigList('tagList', v); addGameTag(game.id, v); }
+        renderPalette();
+      };
+      input.onkeydown = (ev) => {
+        ev.stopPropagation();
+        if (ev.key === 'Enter') commit(true);
+        else if (ev.key === 'Escape') commit(false);
+      };
+      input.onclick = (ev) => ev.stopPropagation();
+      input.onblur = () => commit(true);
+      menu.replaceChild(input, addNew);
+      setTimeout(() => input.focus(), 0);
+    };
+    menu.appendChild(addNew);
+  };
+  renderPalette();
+  host.appendChild(menu);
+
+  // Position: below the anchor, flip up if it would overflow, clamp to viewport.
+  const rect = anchorEl.getBoundingClientRect();
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  let top = rect.bottom + 6, left = rect.left;
+  if (left + mw > window.innerWidth - 12) left = window.innerWidth - mw - 12;
+  if (left < 12) left = 12;
+  if (top + mh > window.innerHeight - 12) top = Math.max(12, rect.top - mh - 6);
+  menu.style.top = top + 'px';
+  menu.style.left = left + 'px';
+
+  // Dismiss on outside click / Escape; refresh the card's chips on close.
+  const onDocClick = (e) => { if (!menu.contains(e.target)) closePicker(); };
+  const onKey = (e) => { if (e.key === 'Escape') closePicker(); };
+  setTimeout(() => {
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+  }, 0);
+  menu._cleanup = () => {
+    document.removeEventListener('mousedown', onDocClick);
+    document.removeEventListener('keydown', onKey);
+    buildDetail();
+  };
 }
 
 function addGameTag(gameId, tag) {
