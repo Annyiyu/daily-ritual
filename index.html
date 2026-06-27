@@ -693,10 +693,10 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .col-switch { display: inline-flex; align-items: center; gap: 2px; margin-left: 12px; flex-shrink: 0; }
 .col-switch .cs-seg {
   font-family: var(--label-font); font-size: 11px; line-height: 1;
-  width: 22px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; padding: 0 6px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
   color: var(--text-faint); cursor: pointer; border-radius: 6px;
   border: 1px solid transparent; transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
-  user-select: none;
+  user-select: none; white-space: nowrap;
 }
 .col-switch .cs-seg:hover { color: var(--accent); }
 .col-switch .cs-seg.active { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-faint); }
@@ -2943,27 +2943,34 @@ function buildPcBody(tier, game, isChecked) {
 // for backward-compat; the other sections get their own. An unset key falls back
 // to that section's default.
 const COLS_KEY = { tier1: 'companyColumns', tier2: 'tier2Columns', tier3: 'tier3Columns', finished: 'finishedColumns' };
-const COLS_DEFAULT = { tier1: 1, tier2: 2, tier3: 4, finished: 4 };
+// Roster & Finished were responsive auto-fill grids; 'auto' keeps that and is their
+// default, with fixed 1/2/4 opt-in. Company & Playing are fixed-count only.
+const COLS_OPTIONS = { tier1: [1, 2, 4], tier2: [1, 2, 4], tier3: ['auto', 1, 2, 4], finished: ['auto', 1, 2, 4] };
+const COLS_DEFAULT = { tier1: 1, tier2: 2, tier3: 'auto', finished: 'auto' };
 function sectionColumns(tier) {
   const c = state.config[COLS_KEY[tier]];
-  return (c === 1 || c === 2 || c === 4) ? c : COLS_DEFAULT[tier];
+  return COLS_OPTIONS[tier].indexOf(c) !== -1 ? c : COLS_DEFAULT[tier];
 }
 function setSectionColumns(tier, n) {
   state.config[COLS_KEY[tier]] = n;
   scheduleSave();
   smoothRender();
 }
-function companyColumns() { return sectionColumns('tier1'); }   // back-compat alias (renderTier1, grid drag)
+function companyColumns() { const c = sectionColumns('tier1'); return c === 'auto' ? 1 : c; }  // back-compat
+function colsClass(tier) {
+  const c = sectionColumns(tier);
+  return c === 'auto' ? '' : ('cols-' + c);   // 'auto' → no class, keeps the base auto-fill grid
+}
 function renderColumnSwitch(tier) {
   const host = document.getElementById('col-switch-' + tier);
   if (!host) return;
   host.innerHTML = '';
   const cur = sectionColumns(tier);
-  [1, 2, 4].forEach(n => {
+  COLS_OPTIONS[tier].forEach(n => {
     const seg = document.createElement('span');
-    seg.className = 'cs-seg' + (cur === n ? ' active' : '');
-    seg.textContent = n;
-    seg.title = n + ' 列';
+    seg.className = 'cs-seg' + (cur === n ? ' active' : '') + (n === 'auto' ? ' cs-auto' : '');
+    seg.textContent = n === 'auto' ? '自动' : n;
+    seg.title = n === 'auto' ? '自动铺满' : (n + ' 列');
     seg.onclick = () => { if (sectionColumns(tier) !== n) setSectionColumns(tier, n); };
     host.appendChild(seg);
   });
@@ -3044,7 +3051,7 @@ function renderTier1() {
   const day = getDay(viewDate);
   const container = document.getElementById('tier1-list');
   container.innerHTML = '';
-  container.className = 'cols-' + companyColumns();
+  container.className = colsClass('tier1');
 
   const visible = state.config.tier1.filter(g => !g.hidden);
   renderSortControls('tier1', document.querySelector('#section-tier1 .section-header'), document.getElementById('sortbar-tier1'), visible.length);
@@ -3248,7 +3255,7 @@ function renderTier2() {
   const day = getDay(viewDate);
   const container = document.getElementById('tier2-list');
   container.innerHTML = '';
-  container.className = 'cols-' + sectionColumns('tier2');
+  container.className = colsClass('tier2');
 
   const visible = state.config.tier2.filter(g => !g.hidden && !g.completion);
   renderSortControls('tier2', document.querySelector('#section-tier2 .section-header'), document.getElementById('sortbar-tier2'), visible.length);
@@ -3409,7 +3416,7 @@ function rosterPrefs() {
 function renderTier3() {
   const container = document.getElementById('tier3-list');
   container.innerHTML = '';
-  container.className = 'cols-' + sectionColumns('tier3');
+  container.className = colsClass('tier3');
 
   const visible = state.config.tier3.filter(g => !g.hidden);
   const prefs = rosterPrefs();
@@ -3695,7 +3702,7 @@ function renderFinished() {
   const all = state.config.tier2.filter(g => !!g.completion);
   if (all.length === 0) { section.style.display = 'none'; return; }
   section.style.display = '';
-  container.className = 'cols-' + sectionColumns('finished');
+  container.className = colsClass('finished');
   renderColumnSwitch('finished');
 
   const fold = finishedFold();
