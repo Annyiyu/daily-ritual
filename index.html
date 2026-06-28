@@ -632,8 +632,8 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .daily-card:hover .subtask-manage-link { opacity: 0.6; }
 
 /* --- Company multi-column views (1 / 2 / 4) --- */
-#tier1-list.cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-items: start; }
-#tier1-list.cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: start; }
+#tier1-list.cols-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+#tier1-list.cols-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-items: start; }
 #tier1-list.cols-2:empty, #tier1-list.cols-4:empty { display: none; }
 /* Grid cards are the vertical 3-segment tile (.company-tile), same body as the
    other sections. Chunky min-heights reference Playing (104) / Roster (96); the
@@ -648,33 +648,40 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
    (platform stays; this is spacing, not shrinking — padding and font stay full) */
 #tier1-list.cols-4 .streak { display: none; }
 @media (max-width: 560px) {
-  #tier1-list.cols-4 { grid-template-columns: repeat(2, 1fr); }
+  #tier1-list.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* --- Playing (tier2) column views: override its fixed 2-up grid --- */
-#tier2-list.cols-1 { grid-template-columns: 1fr; }
-#tier2-list.cols-2 { grid-template-columns: repeat(2, 1fr); }
-#tier2-list.cols-4 { grid-template-columns: repeat(4, 1fr); }
+#tier2-list.cols-1 { grid-template-columns: minmax(0, 1fr); }
+#tier2-list.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#tier2-list.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 /* --- Roster (tier3) & Finished column views: applied to each group's grid,
    overriding the auto-fill default so the count is explicit --- */
 #tier3-list.cols-1 .roster-grid,
-#finished-list.cols-1 .roster-grid { grid-template-columns: 1fr; }
+#finished-list.cols-1 .roster-grid { grid-template-columns: minmax(0, 1fr); }
 #tier3-list.cols-2 .roster-grid,
-#finished-list.cols-2 .roster-grid { grid-template-columns: repeat(2, 1fr); }
+#finished-list.cols-2 .roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 #tier3-list.cols-4 .roster-grid,
-#finished-list.cols-4 .roster-grid { grid-template-columns: repeat(4, 1fr); }
+#finished-list.cols-4 .roster-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 @media (max-width: 560px) {
-  #tier2-list.cols-4 { grid-template-columns: repeat(2, 1fr); }
+  #tier2-list.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #tier3-list.cols-4 .roster-grid,
-  #finished-list.cols-4 .roster-grid { grid-template-columns: repeat(2, 1fr); }
+  #finished-list.cols-4 .roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* Cap multi-column grids so the cards keep a readable width instead of stretching
    ("铺开") on a wide layout. The grid fills up to this width (cards fill, no empty
    tint band) and then stops, leaving page background — never widening the cards.
    On a narrow page (≤ this width) it has no effect. 1-column stays full-width. */
+/* Grid columns must stay strictly equal — long nowrap content (milestone dates)
+   could otherwise inflate one column. min-width:0 lets cards shrink to their track. */
+#tier1-list[class*="cols-"] .daily-card,
+#tier2-list[class*="cols-"] .playing-card,
+#tier3-list[class*="cols-"] .roster-card,
+#finished-list[class*="cols-"] .roster-card { min-width: 0; }
+
 #tier1-list.cols-2, #tier1-list.cols-4,
 #tier2-list.cols-2, #tier2-list.cols-4,
 #tier3-list.cols-2 .roster-grid, #tier3-list.cols-4 .roster-grid,
