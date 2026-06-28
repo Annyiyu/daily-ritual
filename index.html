@@ -671,6 +671,17 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   #finished-list.cols-4 .roster-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* Cap multi-column grids so the cards keep a readable width instead of stretching
+   ("铺开") on a wide layout. The grid fills up to this width (cards fill, no empty
+   tint band) and then stops, leaving page background — never widening the cards.
+   On a narrow page (≤ this width) it has no effect. 1-column stays full-width. */
+#tier1-list.cols-2, #tier1-list.cols-4,
+#tier2-list.cols-2, #tier2-list.cols-4,
+#tier3-list.cols-2 .roster-grid, #tier3-list.cols-4 .roster-grid,
+#finished-list.cols-2 .roster-grid, #finished-list.cols-4 .roster-grid {
+  max-width: 760px;
+}
+
 /* Playing grid drop indicator — card-edge accent (mirrors Daily/Roster) */
 .playing-card.drop-before::before,
 .playing-card.drop-after::after {
@@ -1383,8 +1394,11 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .sortbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:2px 0 14px;font-family:var(--body-font);}
 
 /* collapsed entry — lives in the title row, muted until hovered */
-.sort-headentry{display:inline-flex;align-items:center;gap:6px;align-self:center;flex-shrink:0;border:1px solid transparent;background:none;cursor:pointer;font-family:var(--body-font);font-size:11px;color:var(--text-faint);padding:3px 9px;border-radius:11px;letter-spacing:.02em;transition:color .15s,background-color .15s;}
-.sort-headentry:hover{color:var(--g-name,var(--accent));background:color-mix(in srgb, var(--g-name,var(--accent)) 9%, transparent);}
+.sort-headentry{display:inline-flex;align-items:center;gap:3px;align-self:center;flex-shrink:0;}
+.she-main,.she-resort{border:1px solid transparent;background:none;cursor:pointer;font-family:var(--body-font);color:var(--text-faint);transition:color .15s,background-color .15s;}
+.she-main{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:3px 9px;border-radius:11px;letter-spacing:.02em;}
+.she-resort{font-size:13px;line-height:1;padding:3px 7px;border-radius:9px;}
+.she-main:hover,.she-resort:hover{color:var(--g-name,var(--accent));background:color-mix(in srgb, var(--g-name,var(--accent)) 9%, transparent);}
 .she-icon{font-size:12px;opacity:.7;}
 .she-sum{letter-spacing:.03em;}
 .she-dirty{font-style:italic;opacity:.85;}
@@ -5643,15 +5657,30 @@ function renderSortControls(groupKey, headerEl, bodyEl, hasVisible) {
 // region colour on hover. Click → expand the full bar below.
 function buildSortHeadEntry(groupKey) {
   const gs = groupSortState(groupKey);
-  const btn = document.createElement('button');
-  btn.className = 'sort-headentry';
+  const wrap = document.createElement('span');
+  wrap.className = 'sort-headentry';
   const tone = GROUP_NAME_VAR[groupKey];
-  if (tone) btn.style.setProperty('--g-name', tone);
+  if (tone) wrap.style.setProperty('--g-name', tone);
+
+  const main = document.createElement('button');
+  main.className = 'she-main';
   const sum = chainSummary(gs.chain);
-  btn.innerHTML = `<span class="she-icon">⇅</span><span class="she-sum">${escapeHtml(sum || 'SORT')}</span>` + (gs.dirty ? `<span class="she-dirty"> ·已改</span>` : '');
-  btn.title = '展开排序';
-  btn.onclick = (e) => { e.stopPropagation(); gs.barOpen = true; scheduleSave(); smoothRender(); };
-  return btn;
+  main.innerHTML = `<span class="she-icon">⇅</span><span class="she-sum">${escapeHtml(sum || 'SORT')}</span>` + (gs.dirty ? `<span class="she-dirty"> ·已改</span>` : '');
+  main.title = '展开排序';
+  main.onclick = (e) => { e.stopPropagation(); gs.barOpen = true; scheduleSave(); smoothRender(); };
+  wrap.appendChild(main);
+
+  // Quick "re-sort by this priority" — the same ↻ action as the open bar, but
+  // reachable without expanding (collapsed is where you most want it to be quick).
+  if (gs.chain.length) {
+    const resort = document.createElement('button');
+    resort.className = 'she-resort';
+    resort.innerHTML = '↻';
+    resort.title = '按当前优先级重新排序';
+    resort.onclick = (e) => { e.stopPropagation(); applySortChain(groupKey); };
+    wrap.appendChild(resort);
+  }
+  return wrap;
 }
 
 // Expanded bar — chips + controls, dropped into a row below the title. Leading ⇅
