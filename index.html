@@ -1418,7 +1418,13 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .sort-tg-icon{font-size:13px;opacity:.85;}
 
 .sort-sep{color:var(--g-name,var(--text-faint));opacity:0.5;font-size:12px;}
-.sort-chip{display:inline-flex;align-items:center;gap:2px;background:color-mix(in srgb, var(--g-name,var(--accent)) 13%, transparent);border-radius:13px;padding:0 4px 0 2px;}
+.sort-chip{position:relative;display:inline-flex;align-items:center;gap:2px;background:color-mix(in srgb, var(--g-name,var(--accent)) 13%, transparent);border-radius:13px;padding:0 4px 0 2px;}
+.sort-chip.chip-dragging{opacity:.4;}
+.drag-ghost-chip{position:fixed;z-index:9999;pointer-events:none;display:inline-flex;align-items:center;background:color-mix(in srgb, var(--g-name,var(--accent)) 24%, #fff);color:var(--g-name,var(--accent));padding:4px 10px;border-radius:13px;font-family:var(--body-font);font-size:12px;box-shadow:0 5px 16px rgba(80,60,45,.18);}
+.sort-chip.chip-drop-before::before,.sort-chip.chip-drop-after::after{content:'';position:absolute;top:-2px;bottom:-2px;width:2px;border-radius:2px;background:var(--g-name,var(--accent));}
+.sort-chip.chip-drop-before::before{left:-4px;}
+.sort-chip.chip-drop-after::after{right:-4px;}
+body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .sort-chip-lab{border:none;background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--g-name,var(--accent));padding:4px 6px 4px 9px;border-radius:13px;letter-spacing:.01em;}
 .sort-chip-lab:hover{background:color-mix(in srgb, var(--g-name,var(--accent)) 20%, transparent);}
 .sort-arrow{font-weight:700;font-size:11px;}
@@ -5597,6 +5603,80 @@ function applySortChain(groupKey) {
   gs.dirty = false; scheduleSave(); smoothRender();
 }
 
+// --- Sort-chip drag reorder: self-contained pointer/touch (does NOT touch the game
+// drag system). Tap a chip's label = toggle dir; drag a chip = reorder the chain. ---
+function chipDropIndex(bar, x) {
+  const chips = [...bar.querySelectorAll('.sort-chip:not(.drag-ghost-chip)')];
+  let idx = 0;
+  for (const c of chips) { const r = c.getBoundingClientRect(); if (x > r.left + r.width / 2) idx++; }
+  return idx;
+}
+function markChipDrop(bar, toIdx) {
+  const chips = [...bar.querySelectorAll('.sort-chip:not(.drag-ghost-chip)')];
+  chips.forEach(c => c.classList.remove('chip-drop-before', 'chip-drop-after'));
+  if (!chips.length) return;
+  if (toIdx >= chips.length) chips[chips.length - 1].classList.add('chip-drop-after');
+  else chips[toIdx].classList.add('chip-drop-before');
+}
+function chipReorder(groupKey, fromIdx, toIdx) {
+  const gs = groupSortState(groupKey);
+  if (!gs || !Array.isArray(gs.chain) || fromIdx < 0 || fromIdx >= gs.chain.length) { smoothRender(); return; }
+  let to = toIdx; if (to > fromIdx) to--;
+  to = Math.max(0, Math.min(to, gs.chain.length - 1));
+  if (to === fromIdx) { smoothRender(); return; }
+  const [item] = gs.chain.splice(fromIdx, 1);
+  gs.chain.splice(to, 0, item);
+  applySortChain(groupKey);
+}
+function attachChipDrag(chip, groupKey, fromIdx) {
+  const onDown = (e) => {
+    if (e.target.closest('.sort-chip-x')) return;
+    if (e.button !== undefined && e.button !== 0) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const sx = pt.clientX, sy = pt.clientY;
+    const bar = chip.parentElement;
+    let dragging = false, ghost = null, lastX = sx;
+    chip._dragged = false;
+    const move = (ev) => {
+      const q = ev.touches ? ev.touches[0] : ev;
+      lastX = q.clientX;
+      if (!dragging) {
+        if (Math.hypot(q.clientX - sx, q.clientY - sy) < 6) return;
+        dragging = true; chip._dragged = true;
+        document.body.classList.add('dragging');
+        chip.classList.add('chip-dragging');
+        ghost = document.createElement('span');
+        ghost.className = 'sort-chip drag-ghost-chip';
+        const labEl = chip.querySelector('.sort-chip-lab');
+        ghost.innerHTML = labEl ? labEl.innerHTML : '';
+        document.body.appendChild(ghost);
+      }
+      ev.preventDefault();
+      ghost.style.left = (q.clientX + 10) + 'px';
+      ghost.style.top  = (q.clientY - 10) + 'px';
+      markChipDrop(bar, chipDropIndex(bar, lastX));
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
+      document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up); document.removeEventListener('touchcancel', up);
+      if (!dragging) return;
+      const toIdx = chipDropIndex(bar, lastX);
+      document.body.classList.remove('dragging');
+      chip.classList.remove('chip-dragging');
+      if (ghost) ghost.remove();
+      bar.querySelectorAll('.chip-drop-before, .chip-drop-after').forEach(c => c.classList.remove('chip-drop-before', 'chip-drop-after'));
+      chipReorder(groupKey, fromIdx, toIdx);
+    };
+    document.addEventListener('mousemove', move, { passive: false });
+    document.addEventListener('mouseup', up);
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', up);
+    document.addEventListener('touchcancel', up);
+  };
+  chip.addEventListener('mousedown', onDown);
+  chip.addEventListener('touchstart', onDown, { passive: false });
+}
+
 // Chain edits apply immediately (a human action → a fixed state).
 function chainAddKey(groupKey, key) { const gs = groupSortState(groupKey); if (gs.chain.some(s => s.key === key)) return; gs.chain.push({ key, dir: (key === 'extra' || key === 'todayCheck') ? 'desc' : 'asc' }); applySortChain(groupKey); }
 function chainToggleDir(groupKey, key) { const gs = groupSortState(groupKey); const s = gs.chain.find(x => x.key === key); if (s) { s.dir = s.dir === 'asc' ? 'desc' : 'asc'; applySortChain(groupKey); } }
@@ -5752,13 +5832,15 @@ function buildSortBar(groupKey) {
   gs.chain.forEach((step, idx) => {
     if (idx > 0) { const sep = document.createElement('span'); sep.className = 'sort-sep'; sep.textContent = '›'; bar.appendChild(sep); }
     const chip = document.createElement('span'); chip.className = 'sort-chip';
+    chip.title = '拖动可重排优先级 · 点击标签切升 / 降序';
     const lab = document.createElement('button'); lab.className = 'sort-chip-lab';
     lab.innerHTML = `${escapeHtml(sortKeyLabel(step.key))} <span class="sort-arrow">${step.dir === 'desc' ? '↓' : '↑'}</span>`;
     lab.title = '点击切换升 / 降序';
-    lab.onclick = () => chainToggleDir(groupKey, step.key);
+    lab.onclick = () => { if (chip._dragged) { chip._dragged = false; return; } chainToggleDir(groupKey, step.key); };
     const x = document.createElement('button'); x.className = 'sort-chip-x'; x.textContent = '✕'; x.title = '移除这一层';
     x.onclick = (e) => { e.stopPropagation(); chainRemoveKey(groupKey, step.key); };
     chip.appendChild(lab); chip.appendChild(x); bar.appendChild(chip);
+    attachChipDrag(chip, groupKey, idx);
   });
 
   const add = document.createElement('button'); add.className = 'sort-add';
