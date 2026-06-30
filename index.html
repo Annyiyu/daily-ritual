@@ -1923,6 +1923,30 @@ function toggleExtra(gameId) {
   }
   updateHeatmapCell(viewDate);
 }
+
+// 深入 for Playing/Roster — stored in the per-day `day.extra` map (created lazily so
+// untouched days stay clean). Does NOT touch tier1/heatmap. Updates the star in place.
+function toggleExtra2(gameId) {
+  const day = getDay(viewDate);
+  if (!day.extra) day.extra = {};
+  if (day.extra[gameId]) delete day.extra[gameId]; else day.extra[gameId] = true;
+  scheduleSave();
+  const on = !!(day.extra && day.extra[gameId]);
+  document.querySelectorAll(`#tier2-list [data-game-id="${gameId}"] .extra-toggle, #tier3-list [data-game-id="${gameId}"] .extra-toggle`).forEach(el => {
+    el.classList.toggle('active', on);
+    el.innerHTML = on ? '✦' : '✧';
+  });
+}
+
+function buildDeepStar(game, day) {
+  const on = !!(day.extra && day.extra[game.id]);
+  const el = document.createElement('div');
+  el.className = 'extra-toggle' + (on ? ' active' : '');
+  el.innerHTML = on ? '✦' : '✧';
+  el.title = '深入玩了一下（可排序）';
+  el.onclick = (e) => { e.stopPropagation(); toggleExtra2(game.id); };
+  return el;
+}
 function toggleTier2(gameId) {
   const day = getDay(viewDate);
   day.tier2[gameId] = !day.tier2[gameId];
@@ -3363,6 +3387,7 @@ function buildPlayingCard(game, day) {
   lbl.textContent = checked ? '今日已玩' : '打卡';
   checkin.appendChild(lbl);
   checkin.onclick = () => toggleTier2(game.id);
+  foot.appendChild(buildDeepStar(game, day));
   foot.appendChild(checkin);
 
   card.appendChild(foot);
@@ -3653,6 +3678,7 @@ function buildRosterCard(game, prefs, status) {
   const footLeft = document.createElement('div');
   footLeft.className = 'rc-foot-left';
   footLeft.appendChild(played);
+  if (status === 'up_next' || status === 'considering' || status === 'backlog') footLeft.appendChild(buildDeepStar(game, day));
 
   const rstreak = getStreak(game.id, 'tier3');
   const streakEl = document.createElement('div');
@@ -5420,11 +5446,12 @@ function buildStarMonth(ym, byDate) {
 const SORT_KEYS = [
   { key: 'pinyin',    label: '拼音' },
   { key: 'lastCheck', label: '上次打卡' },
+  { key: 'todayCheck',label: '打卡' },
   { key: 'platform',  label: '平台' },
   { key: 'added',     label: '加入时间' },
   { key: 'lastMs',    label: '最近里程碑' },
   { key: 'msCount',   label: '里程碑数' },
-  { key: 'extra',     label: '深入', only: 'tier1' },
+  { key: 'extra',     label: '深入' },
 ];
 function sortKeyLabel(k) { const f = SORT_KEYS.find(x => x.key === k); return f ? f.label : k; }
 
@@ -5483,17 +5510,34 @@ function lastCheckInDate(id) {
   return '';
 }
 
+// Deep-play (深入): tier1 keeps it inline on the day record (legacy — feeds the star
+// calendar, untouched); tier2/tier3 use the per-day `day.extra` map. Single canonical read.
+function isDeepPlay(day, id) {
+  if (!day) return false;
+  if (day.tier1 && day.tier1[id] && day.tier1[id].extra) return true;
+  if (day.extra && day.extra[id]) return true;
+  return false;
+}
+// Checked-in (打卡) on a given day, across any tier.
+function isCheckedInOn(day, id) {
+  if (!day) return false;
+  return (day.tier1 && day.tier1[id] && day.tier1[id].checkedIn === true)
+      || (day.tier2 && day.tier2[id] === true)
+      || (day.tier3 && day.tier3[id] === true);
+}
+
 function gameSortValue(g, key) {
   switch (key) {
     case 'pinyin':    return parsePlatform(g.name).base || '';
     case 'platform':  return parsePlatform(g.name).platform || '';
     case 'added':     return g.createdAt || '';
     case 'lastCheck': return lastCheckInDate(g.id) || '';
+    case 'todayCheck': { const d = state.history[viewDate]; return isCheckedInOn(d, g.id) ? 1 : 0; }
     case 'lastMs':    return g.lastMilestone || '';
     case 'msCount':   return (g.milestones || []).length;
     case 'extra': {
       const d = state.history[viewDate];
-      return (d && d.tier1 && d.tier1[g.id] && d.tier1[g.id].extra) ? 1 : 0;
+      return isDeepPlay(d, g.id) ? 1 : 0;
     }
     default:          return '';
   }
@@ -5517,7 +5561,7 @@ function compareChain(a, b, chain) {
   for (const step of (chain || [])) {
     const key = step.key, dir = step.dir || 'asc';
     const va = gameSortValue(a, key), vb = gameSortValue(b, key);
-    const numeric = (key === 'msCount' || key === 'extra');
+    const numeric = (key === 'msCount' || key === 'extra' || key === 'todayCheck');
     const ea = !numeric && (va === '' || va == null);
     const eb = !numeric && (vb === '' || vb == null);
     if (ea && eb) continue;
@@ -5554,7 +5598,7 @@ function applySortChain(groupKey) {
 }
 
 // Chain edits apply immediately (a human action → a fixed state).
-function chainAddKey(groupKey, key) { const gs = groupSortState(groupKey); if (gs.chain.some(s => s.key === key)) return; gs.chain.push({ key, dir: key === 'extra' ? 'desc' : 'asc' }); applySortChain(groupKey); }
+function chainAddKey(groupKey, key) { const gs = groupSortState(groupKey); if (gs.chain.some(s => s.key === key)) return; gs.chain.push({ key, dir: (key === 'extra' || key === 'todayCheck') ? 'desc' : 'asc' }); applySortChain(groupKey); }
 function chainToggleDir(groupKey, key) { const gs = groupSortState(groupKey); const s = gs.chain.find(x => x.key === key); if (s) { s.dir = s.dir === 'asc' ? 'desc' : 'asc'; applySortChain(groupKey); } }
 function chainRemoveKey(groupKey, key) { const gs = groupSortState(groupKey); gs.chain = gs.chain.filter(s => s.key !== key); applySortChain(groupKey); }
 function chainClear(groupKey) { const gs = groupSortState(groupKey); gs.chain = []; gs.dirty = false; scheduleSave(); smoothRender(); }
