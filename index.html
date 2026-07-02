@@ -133,6 +133,11 @@ body.first-load .header { animation: fadeIn 0.6s ease-out; }
   padding: 4px 8px; user-select: none; transition: opacity 0.2s; white-space: nowrap;
 }
 .today-link:hover { opacity: 0.6; }
+.progress-label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.progress-label { font-family: var(--label-font); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-muted); }
+.progress-percentage { font-family: var(--label-font); font-size: 2.6rem; font-weight: 400; color: var(--accent); letter-spacing: 0.02em; line-height: 1; }
+.progress-track { height: 10px; width: 100%; background-color: rgba(210,133,107,0.10); border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent-grad, linear-gradient(90deg, #f1d2b3, #e3ab90)); border-radius: 999px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* Sections */
 .section { margin-bottom: 56px; }
@@ -191,23 +196,12 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 }
 
 .extra-toggle {
-  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-size: 17px; color: var(--text-faint); opacity: 0.72;
-  transition: color 0.2s ease, opacity 0.2s ease,
-              transform 0.2s cubic-bezier(0.16,1,0.3,1), text-shadow 0.25s ease;
-  user-select: none; flex-shrink: 0; line-height: 1;
+  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; color: var(--text-faint);
+  transition: all 0.2s ease; user-select: none; flex-shrink: 0;
 }
-.extra-toggle:hover { color: var(--accent); opacity: 1; transform: scale(1.1); }
-.extra-toggle.active {
-  color: var(--accent); opacity: 1;
-  text-shadow: 0 0 9px rgba(210,133,107,0.5), 0 0 3px rgba(210,133,107,0.55);
-  animation: starPop 0.42s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes starPop {
-  0%   { transform: scale(0.7); }
-  55%  { transform: scale(1.22); }
-  100% { transform: scale(1); }
-}
+.extra-toggle:hover { color: var(--accent); }
+.extra-toggle.active { color: var(--accent); }
 
 .streak {
   font-family: var(--display-font); font-size: 12px; letter-spacing: 0.05em;
@@ -548,6 +542,11 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   text-transform: uppercase; color: var(--g-name, var(--text-faint)); opacity: 0.75;
   border: 1px solid color-mix(in srgb, var(--g-line, var(--line-strong)) 45%, transparent);
   padding: 2px 6px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; line-height: 1.4;
+  /* letter-spacing adds a trailing space after the last glyph. Browsers disagree on
+     whether the pill's auto width counts it (Safari/FF do → gap on the right; modern
+     Chromium drops it → already centered). Half-compensate with text-indent so the
+     residual stays under ~0.6px on EITHER engine — balanced on every PC. */
+  text-indent: 0.08em;
 }
 .rc-played {
   display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
@@ -630,121 +629,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .daily-card .subtasks-row.empty { opacity: 0; }
 .daily-card:hover .subtasks-row.empty { opacity: 0.6; }
 .daily-card:hover .subtask-manage-link { opacity: 0.6; }
-
-/* --- Company multi-column views (1 / 2 / 4) --- */
-#tier1-list.cols-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
-#tier1-list.cols-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-items: start; }
-#tier1-list.cols-2:empty, #tier1-list.cols-4:empty { display: none; }
-/* Grid cards are the vertical 3-segment tile (.company-tile), same body as the
-   other sections. Chunky min-heights reference Playing (104) / Roster (96); the
-   foot pins to the bottom via .rc-foot's margin-top:auto, so no centering here. */
-#tier1-list.cols-2 .daily-card { min-height: 104px; }
-#tier1-list.cols-4 .daily-card { min-height: 96px; }
-#tier1-list .company-tile { padding: 11px 13px 10px; gap: 7px; }
-#tier1-list .company-tile .pc-body { flex: 0 0 auto; gap: 2px; }
-#tier1-list .company-tile .pc-name { font-size: 14.5px; }
-#tier1-list .company-tile .pc-checkin { opacity: 1; }   /* check-in is Company's primary action */
-/* 4-up columns are narrow — drop the streak so the name + check-in keep room
-   (platform stays; this is spacing, not shrinking — padding and font stay full) */
-#tier1-list.cols-4 .streak { display: none; }
-@media (max-width: 560px) {
-  #tier1-list.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-/* --- Playing (tier2) column views: override its fixed 2-up grid --- */
-#tier2-list.cols-1 { grid-template-columns: minmax(0, 1fr); }
-#tier2-list.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-#tier2-list.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-
-/* --- Roster (tier3) & Finished column views: applied to each group's grid,
-   overriding the auto-fill default so the count is explicit --- */
-#tier3-list.cols-1 .roster-grid,
-#finished-list.cols-1 .roster-grid { grid-template-columns: minmax(0, 1fr); }
-#tier3-list.cols-2 .roster-grid,
-#finished-list.cols-2 .roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-#tier3-list.cols-4 .roster-grid,
-#finished-list.cols-4 .roster-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-
-@media (max-width: 560px) {
-  #tier2-list.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  #tier3-list.cols-4 .roster-grid,
-  #finished-list.cols-4 .roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-/* Cap multi-column grids so the cards keep a readable width instead of stretching
-   ("铺开") on a wide layout. The grid fills up to this width (cards fill, no empty
-   tint band) and then stops, leaving page background — never widening the cards.
-   On a narrow page (≤ this width) it has no effect. 1-column stays full-width. */
-/* Grid columns must stay strictly equal — long nowrap content (milestone dates)
-   could otherwise inflate one column. min-width:0 lets cards shrink to their track. */
-#tier1-list[class*="cols-"] .daily-card,
-#tier2-list[class*="cols-"] .playing-card,
-#tier3-list[class*="cols-"] .roster-card,
-#finished-list[class*="cols-"] .roster-card { min-width: 0; }
-
-#tier1-list.cols-2, #tier1-list.cols-4,
-#tier2-list.cols-2, #tier2-list.cols-4,
-#tier3-list.cols-2 .roster-grid, #tier3-list.cols-4 .roster-grid,
-#finished-list.cols-2 .roster-grid, #finished-list.cols-4 .roster-grid {
-  max-width: 760px;
-}
-
-/* Playing grid drop indicator — card-edge accent (mirrors Daily/Roster) */
-.playing-card.drop-before::before,
-.playing-card.drop-after::after {
-  content: ''; position: absolute; top: 12%; height: 76%; width: 2px;
-  background: var(--accent); border-radius: 2px; animation: lineGlow 0.25s ease-out;
-}
-.playing-card.drop-before::before { left: -6px; }
-.playing-card.drop-after::after { right: -6px; }
-
-/* grid drop indicator — mirror Roster's card-edge accent (a full-width line reads wrong in a grid) */
-.daily-card.drop-before::before,
-.daily-card.drop-after::after {
-  content: ''; position: absolute; top: 12%; height: 76%; width: 2px;
-  background: var(--accent); border-radius: 2px; animation: lineGlow 0.25s ease-out;
-}
-.daily-card.drop-before::before { left: -6px; }
-.daily-card.drop-after::after { right: -6px; }
-
-/* Company column switcher (lives at the right of the section header) */
-.col-switch { display: inline-flex; align-items: center; gap: 2px; margin-left: 12px; flex-shrink: 0; }
-.col-switch .cs-seg {
-  font-family: var(--label-font); font-size: 11px; line-height: 1;
-  min-width: 22px; padding: 0 6px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
-  color: var(--text-faint); cursor: pointer; border-radius: 6px;
-  border: 1px solid transparent; transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
-  user-select: none; white-space: nowrap;
-}
-.col-switch .cs-seg:hover { color: var(--accent); }
-.col-switch .cs-seg.active { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-faint); }
-
-/* Detail tag chips (flat multi-tag editor) */
-.detail-tag.tag-chip { display: inline-flex; align-items: center; gap: 6px; }
-.detail-tag .tag-x { color: var(--text-faint); font-size: 10px; cursor: pointer; }
-.detail-tag .tag-x:hover { color: var(--accent); }
-
-/* Multi-select tag palette */
-.tag-palette { max-width: min(86vw, 300px); }
-.tag-palette-grid {
-  display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 3px;
-  max-height: 236px; overflow-y: auto; overscroll-behavior: contain;
-}
-.tp-chip {
-  font-family: var(--body-font); font-size: 12.5px; letter-spacing: 0; text-transform: none;
-  padding: 5px 11px; border-radius: 999px; cursor: pointer; white-space: nowrap; user-select: none;
-  border: 1px solid var(--line-strong); color: var(--text-muted); background: transparent;
-  transition: background-color 0.14s, color 0.14s, border-color 0.14s;
-}
-.tp-chip:hover { border-color: var(--accent); color: var(--accent); }
-.tp-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-.tp-add { justify-content: flex-start; margin-top: 3px; border-top: 1px solid var(--line); padding-top: 9px; }
-.tp-add-input {
-  border: 1px solid var(--accent); background: var(--bg); border-radius: 7px;
-  padding: 7px 9px; font-family: var(--body-font); font-size: 13px; color: var(--text);
-  width: 100%; box-sizing: border-box; margin-top: 3px;
-}
-.tp-empty { font-size: 12px; color: var(--text-faint); padding: 6px 4px; }
 
 /* Playing — Roster-style cards, but 2 per row (larger than Roster's 4-up).
    Cream cards on the warm "ritual zone" panel, vertical layout like Roster, in a
@@ -1153,13 +1037,12 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 
 /* Picker popover (status pills) */
 .picker-menu {
-  position: fixed; z-index: 700;
+  position: fixed; z-index: 250;
   background: var(--bg); border: 1px solid var(--line-strong);
   border-radius: 8px; padding: 5px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   display: flex; flex-direction: column; gap: 1px;
   min-width: 140px;
-  max-height: min(60vh, 360px); overflow-y: auto; overscroll-behavior: contain;
   animation: pickerIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes pickerIn {
@@ -1189,7 +1072,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   font-family: var(--label-font); font-size: 11px;
   letter-spacing: 0.15em; padding: 11px 6px 11px 18px;
   border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-  z-index: 700; display: flex; align-items: center; gap: 4px;
+  z-index: 280; display: flex; align-items: center; gap: 4px;
   animation: toastIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   max-width: calc(100vw - 32px);
 }
@@ -1265,194 +1148,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   .save-dot-mini { top: 10px; right: 10px; }
   .toast { font-size: 12px; padding: 10px 5px 10px 16px; }
 }
-
-/* ====== Journey: detail modal + 历程 view ====== */
-/* ===== Detail modal (per-game full info + milestones) ===== */
-.detail-overlay{position:fixed;inset:0;background:rgba(42,36,28,0.34);backdrop-filter:blur(2px);z-index:600;display:flex;align-items:flex-start;justify-content:center;padding:48px 16px;overflow-y:auto;}
-.detail-card{background:var(--bg);width:100%;max-width:520px;border-radius:18px;box-shadow:0 18px 50px rgba(42,36,28,0.22);padding:22px 22px 26px;font-family:var(--body-font);animation:detailIn .22s ease;}
-@keyframes detailIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.detail-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:2px;}
-.detail-title{font-family:var(--display-font);font-size:19px;font-weight:600;color:var(--text);line-height:1.25;flex:1;}
-.detail-plat{font-size:11px;color:var(--text-faint);border:1px solid var(--line);border-radius:10px;padding:2px 8px;white-space:nowrap;align-self:flex-start;}
-.detail-close{cursor:pointer;color:var(--text-faint);font-size:21px;line-height:1;padding:0 2px;}
-.detail-close:hover{color:var(--accent);}
-.detail-meta{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 20px;}
-.detail-tag{font-size:12px;color:var(--text-muted);background:var(--bg-deep);border-radius:10px;padding:4px 11px;cursor:pointer;border:1px solid transparent;}
-.detail-tag:hover{border-color:var(--accent-soft);}
-.detail-tag.empty{color:var(--text-faint);font-style:italic;}
-.detail-section-label{font-family:var(--label-font);font-size:11px;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-faint);margin:4px 0 11px;}
-.ms-list{display:flex;flex-direction:column;gap:8px;}
-.ms-row{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--bg-deep);border-radius:12px;}
-.ms-row .ms-main{flex:1;min-width:0;}
-.ms-headline{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;}
-.ms-type{font-size:13px;color:var(--text);font-weight:500;}
-.ms-inst{font-size:13px;color:var(--text-muted);}
-.ms-sub{font-size:11.5px;color:var(--text-faint);margin-top:4px;display:flex;gap:9px;flex-wrap:wrap;align-items:center;}
-.ms-date{font-size:11.5px;color:var(--text-faint);white-space:nowrap;}
-.ms-rating{font-size:11.5px;color:var(--accent);font-weight:500;}
-.ms-note{font-size:11.5px;color:var(--text-muted);font-style:italic;}
-.ms-row-actions{display:flex;flex-direction:column;gap:6px;align-items:center;}
-.ms-act{cursor:pointer;color:var(--text-faint);font-size:13px;line-height:1;}
-.ms-act:hover{color:var(--accent);}
-.ms-act.del:hover{color:#b0563e;}
-.ms-empty{font-size:12.5px;color:var(--text-faint);text-align:center;padding:16px 0;font-style:italic;}
-.ms-add-btn{margin-top:13px;width:100%;border:1px dashed var(--line-strong);background:transparent;border-radius:12px;padding:11px;color:var(--text-muted);font-family:var(--body-font);font-size:13px;cursor:pointer;transition:.15s;}
-.ms-add-btn:hover{border-color:var(--accent);color:var(--accent);}
-.ms-form{margin-top:13px;background:var(--bg-deep);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:11px;}
-.ms-form .mf-row{display:flex;gap:9px;flex-wrap:wrap;}
-.ms-field{flex:1;min-width:108px;}
-.ms-field label{display:block;font-family:var(--label-font);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-faint);margin-bottom:4px;}
-.ms-field .mf-pick,.ms-field input{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:8px 10px;font-family:var(--body-font);font-size:13px;color:var(--text);}
-.ms-field .mf-pick{cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
-.ms-field .mf-pick.empty{color:var(--text-faint);}
-.ms-field input{cursor:text;}
-.ms-form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:2px;}
-.mf-btn{border:none;border-radius:9px;padding:8px 17px;font-family:var(--body-font);font-size:13px;cursor:pointer;}
-.mf-btn.primary{background:var(--accent);color:#fff;}
-.mf-btn.primary:disabled{opacity:.45;cursor:default;}
-.mf-btn.ghost{background:transparent;color:var(--text-muted);}
-
-/* ===== Journey view (里程碑历程) ===== */
-.journey-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-.journey-back{cursor:pointer;color:var(--text-muted);font-size:14px;font-family:var(--body-font);}
-.journey-back:hover{color:var(--accent);}
-.journey-title{font-family:var(--display-font);font-size:20px;font-weight:600;color:var(--text);}
-.journey-sub{font-size:12.5px;color:var(--text-faint);margin-bottom:18px;}
-.journey-filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;}
-.jf-chip{font-size:12px;padding:5px 11px;border-radius:14px;border:1px solid var(--line);background:transparent;color:var(--text-muted);cursor:pointer;font-family:var(--body-font);}
-.jf-chip:hover{border-color:var(--accent-soft);}
-.jf-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-.jf-group-label{font-family:var(--label-font);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-faint);align-self:center;margin-right:2px;}
-/* shared month capsule — list / river / star speak one month language */
-.month-cap-wrap{display:flex;align-items:center;gap:8px;}
-.month-cap-wrap.vert{flex-direction:column;align-items:flex-start;gap:4px;}
-.month-cap{color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:11px;letter-spacing:.02em;line-height:1.1;white-space:nowrap;}
-.month-cap-year{font-size:10px;color:var(--text-faint);letter-spacing:.04em;}
-.month-cap-wrap.vert .month-cap-year{font-size:9px;padding-left:3px;}
-.jlist-month{margin:22px 0 10px;}
-.journey-row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
-.journey-row:hover{background:var(--accent-faint);}
-.jr-date{font-size:12px;color:var(--text-faint);width:42px;flex-shrink:0;text-align:right;}
-.jr-mid{flex:1;min-width:0;}
-.jr-game{font-size:14px;color:var(--text);font-weight:500;}
-.jr-node{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-.jr-empty{text-align:center;color:var(--text-faint);padding:48px 0;font-style:italic;}
-
-/* ===== Journey view switcher (列表/陈列/长河/星图) ===== */
-.journey-switcher{display:flex;gap:2px;background:var(--bg-deep);border-radius:12px;padding:3px;margin-bottom:16px;width:fit-content;}
-.jv-seg{font-size:12.5px;padding:6px 14px;border-radius:9px;color:var(--text-muted);cursor:pointer;font-family:var(--body-font);transition:.15s;}
-.jv-seg:hover{color:var(--text);}
-.jv-seg.active{background:var(--bg);color:var(--accent);box-shadow:0 1px 3px rgba(42,36,28,0.1);font-weight:500;}
-.journey-body{padding-bottom:40px;}
-
-/* ===== 陈列 (奖杯墙) ===== */
-.shelf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:13px;}
-.shelf-card{background:var(--bg-deep);border-radius:14px;padding:14px 15px 15px;border-left:3px solid var(--gc,var(--accent));cursor:pointer;transition:.16s;}
-.shelf-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(42,36,28,0.1);}
-.shelf-top{display:flex;align-items:flex-start;gap:8px;}
-.shelf-name{font-family:var(--display-font);font-size:15.5px;font-weight:600;color:var(--text);line-height:1.25;flex:1;}
-.shelf-seal{color:var(--gc,var(--accent));font-size:14px;flex-shrink:0;}
-.shelf-year{font-size:10.5px;color:var(--text-faint);letter-spacing:0.03em;flex-shrink:0;align-self:center;}
-.shelf-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;}
-.shelf-tag{font-size:10.5px;color:var(--text-faint);background:var(--bg);border-radius:8px;padding:2px 7px;}
-.shelf-badges{display:flex;flex-direction:column;gap:5px;margin-top:11px;}
-.shelf-badge{display:flex;align-items:center;gap:7px;font-size:11.5px;padding:5px 8px;border-radius:8px;background:var(--bg);}
-.shelf-badge[data-status="beaten"]{background:rgba(232,200,120,0.16);}
-.shelf-badge[data-status="completed"]{background:rgba(206,190,228,0.18);}
-.shelf-badge[data-status="sated"]{background:rgba(176,196,222,0.16);}
-.shelf-badge[data-status="abandoned"]{background:rgba(150,142,130,0.1);}
-.sb-label{flex:1;min-width:0;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sb-date{color:var(--text-faint);font-size:10.5px;flex-shrink:0;}
-
-/* ===== 长河 (时间线) ===== */
-.river-wrap{position:relative;margin-top:4px;}
-.river-svg{position:absolute;top:0;overflow:visible;}
-.river-row{position:absolute;right:0;display:flex;align-items:center;gap:11px;padding:0 4px;box-sizing:border-box;cursor:pointer;border-radius:8px;}
-.river-row:hover{background:var(--accent-faint);}
-.river-month{position:absolute;left:0;display:flex;align-items:center;padding-left:2px;box-sizing:border-box;}
-.river-date{font-size:12px;color:var(--text-faint);width:42px;flex-shrink:0;}
-.river-game{font-size:14px;color:var(--text);font-weight:500;flex-shrink:0;}
-.river-node{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;}
-.river-node span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-
-/* ===== 星图 (到达热力) ===== */
-.star-months{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:26px 36px;align-items:start;}
-.star-month{margin-bottom:0;}
-.star-month-cap{margin-bottom:12px;}
-.star-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:300px;}
-.star-wd{font-size:10px;color:var(--text-faint);text-align:center;padding-bottom:2px;}
-.star-cell{position:relative;aspect-ratio:1;border-radius:7px;background:var(--bg-deep);display:flex;align-items:flex-start;justify-content:flex-end;}
-.star-cell.empty{background:transparent;}
-.star-cell.lit{cursor:pointer;transition:transform .12s;}
-.star-cell.lit:hover{transform:scale(1.08);}
-.star-num{font-size:9px;color:var(--text-faint);padding:3px 4px;line-height:1;}
-.star-cell.lit .star-num{color:rgba(60,50,40,0.55);}
-.star-n{position:absolute;left:4px;bottom:3px;font-size:9px;font-weight:600;color:rgba(60,50,40,0.7);}
-.star-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;padding-top:14px;border-top:1px solid var(--line);}
-.star-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);}
-.star-legend-dot{width:11px;height:11px;border-radius:3px;display:inline-block;}
-
-/* ====== Sort bar (per-group sort chains) ====== */
-/* --g-name = the region's accent. Roster groups inherit it from .roster-group;
-   Daily/Playing get it set on their sortbar containers below. Fallback: --accent. */
-#sortbar-tier1{--g-name:var(--day-name);}
-#sortbar-tier2{--g-name:var(--play-name);}
-
-.sortbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:2px 0 14px;font-family:var(--body-font);}
-
-/* collapsed entry — lives in the title row, muted until hovered */
-.sort-headentry{display:inline-flex;align-items:center;gap:3px;align-self:center;flex-shrink:0;}
-.she-main,.she-resort{border:1px solid transparent;background:none;cursor:pointer;font-family:var(--body-font);color:var(--text-faint);transition:color .15s,background-color .15s;}
-.she-main{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:3px 9px;border-radius:11px;letter-spacing:.02em;}
-.she-resort{font-size:13px;line-height:1;padding:3px 7px;border-radius:9px;}
-.she-main:hover,.she-resort:hover{color:var(--g-name,var(--accent));background:color-mix(in srgb, var(--g-name,var(--accent)) 9%, transparent);}
-.she-icon{font-size:12px;opacity:.7;}
-.she-sum{letter-spacing:.03em;}
-.she-dirty{font-style:italic;opacity:.85;}
-
-/* expanded fold toggle (leads the dropped-down bar) */
-.sort-toggle{display:inline-flex;align-items:center;gap:6px;border:1px solid color-mix(in srgb, var(--g-name,var(--accent)) 30%, transparent);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--g-name,var(--accent));padding:4px 9px;border-radius:13px;letter-spacing:.01em;}
-.sort-resort{display:inline-flex;align-items:center;justify-content:center;border:1px solid color-mix(in srgb, var(--g-name,var(--accent)) 30%, transparent);background:none;cursor:pointer;color:var(--g-name,var(--accent));font-size:14px;line-height:1;padding:3px 9px;border-radius:13px;}
-.sort-resort:hover{background:color-mix(in srgb, var(--g-name,var(--accent)) 12%, transparent);}
-.sort-toggle:hover{background:color-mix(in srgb, var(--g-name,var(--accent)) 12%, transparent);}
-.sort-tg-icon{font-size:13px;opacity:.85;}
-
-.sort-sep{color:var(--g-name,var(--text-faint));opacity:0.5;font-size:12px;}
-.sort-chip{position:relative;display:inline-flex;align-items:center;gap:2px;background:color-mix(in srgb, var(--g-name,var(--accent)) 13%, transparent);border-radius:13px;padding:0 4px 0 2px;}
-.sort-chip.chip-dragging{opacity:.4;}
-.drag-ghost-chip{position:fixed;z-index:9999;pointer-events:none;display:inline-flex;align-items:center;background:color-mix(in srgb, var(--g-name,var(--accent)) 24%, #fff);color:var(--g-name,var(--accent));padding:4px 10px;border-radius:13px;font-family:var(--body-font);font-size:12px;box-shadow:0 5px 16px rgba(80,60,45,.18);}
-.sort-chip.chip-drop-before::before,.sort-chip.chip-drop-after::after{content:'';position:absolute;top:-2px;bottom:-2px;width:2px;border-radius:2px;background:var(--g-name,var(--accent));}
-.sort-chip.chip-drop-before::before{left:-4px;}
-.sort-chip.chip-drop-after::after{right:-4px;}
-body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
-.sort-chip-lab{border:none;background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--g-name,var(--accent));padding:4px 6px 4px 9px;border-radius:13px;letter-spacing:.01em;}
-.sort-chip-lab:hover{background:color-mix(in srgb, var(--g-name,var(--accent)) 20%, transparent);}
-.sort-arrow{font-weight:700;font-size:11px;}
-.sort-chip-x{border:none;background:none;cursor:pointer;color:var(--g-name,var(--accent));opacity:.5;font-size:10px;padding:2px 4px;border-radius:8px;line-height:1;}
-.sort-chip-x:hover{opacity:1;background:color-mix(in srgb, var(--g-name,var(--accent)) 20%, transparent);}
-.sort-add{border:1px dashed color-mix(in srgb, var(--g-name,var(--accent)) 45%, transparent);background:none;cursor:pointer;font-family:var(--label-font);font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:color-mix(in srgb, var(--g-name,var(--accent)) 75%, var(--text-faint));padding:6px 10px;border-radius:13px;}
-.sort-add:hover{border-color:var(--g-name,var(--accent));color:var(--g-name,var(--accent));}
-.sort-dirty{font-size:11px;color:var(--text-faint);letter-spacing:.02em;padding-left:2px;font-style:italic;}
-.sort-spacer{flex:1 1 12px;}
-.sort-ctrl{border:1px solid color-mix(in srgb, var(--g-name,var(--accent)) 30%, transparent);background:none;cursor:pointer;font-family:var(--label-font);font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:var(--g-name,var(--accent));padding:6px 11px;border-radius:13px;display:inline-flex;align-items:center;gap:4px;}
-.sort-ctrl:hover{background:color-mix(in srgb, var(--g-name,var(--accent)) 12%, transparent);}
-.sort-ctrl .ctrl-caret{font-size:9px;opacity:.6;}
-.sort-ctrl.disabled{opacity:.4;cursor:default;}
-.sort-ctrl.disabled:hover{background:none;}
-
-/* range-apply popover — each pill wears the colour of the region it represents */
-.rng-title{font-size:12px;color:var(--text-faint);padding:4px 10px 8px;letter-spacing:.02em;}
-.rng-pills{display:flex;flex-wrap:wrap;gap:6px;padding:0 10px 10px;max-width:260px;}
-.rng-pill{border:1px solid color-mix(in srgb, var(--pill-c,var(--accent)) 42%, transparent);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--pill-c,var(--text));padding:4px 11px;border-radius:13px;}
-.rng-pill.on{background:var(--pill-c,var(--accent));border-color:var(--pill-c,var(--accent));color:#fff;}
-.rng-actions{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-top:1px solid var(--line);}
-.rng-act{border:1px solid var(--line);background:none;cursor:pointer;font-family:var(--body-font);font-size:12px;color:var(--text);padding:5px 14px;border-radius:11px;}
-.rng-act:hover{border-color:var(--accent);color:var(--accent);}
-.rng-act.primary{background:var(--pill-c,var(--accent));border-color:var(--pill-c,var(--accent));color:#fff;}
-.rng-act.primary:hover{color:#fff;opacity:.9;}
-
-:root{ --day-name:#c0883c; --play-name:#b56a61; }
-
 </style>
 </head>
 <body>
@@ -1513,6 +1208,7 @@ const DEFAULT_CONFIG = {
   ],
   // Roster (tier3) UI preferences — persisted in config, purely presentational
   rosterGrouped: true,
+  rosterSort: 'manual',
   rosterGroupFold: { up_next: false, considering: false, backlog: true },
   finishedFold: { beaten: true, completed: true, sated: true, abandoned: true }
 };
@@ -1555,13 +1251,8 @@ function migrate(state) {
       else if (typeof base.hiddenAt !== 'string') base.hiddenAt = todayKey();
       // Tier 2: optional completion status (preserved across tier moves)
       if (typeof base.completion !== 'string') base.completion = '';
-      // Last meaningful milestone date — DERIVED from milestones (write-through)
+      // Last meaningful milestone date (route ending / overall ending / 100%) — light, optional
       if (typeof base.lastMilestone !== 'string') base.lastMilestone = '';
-      // Journey: media/sub tags + milestones[] (reaches). completion/lastMilestone derived from these.
-      // Tags: flatten legacy single media/sub into a flat multi-tag array (idempotent)
-      if (!Array.isArray(base.tags)) base.tags = [...new Set([base.media, base.sub].filter(Boolean))];
-      delete base.media; delete base.sub;
-      if (!Array.isArray(base.milestones)) base.milestones = [];
       // Tier 3: roster status (preserved but only displayed when currently in Tier 3)
       if (typeof base.status !== 'string') base.status = 'considering';
       // Tier 1 subtasks: ensure hidden field
@@ -1575,13 +1266,15 @@ function migrate(state) {
       if (!Array.isArray(base.tierResidence) || base.tierResidence.length === 0) {
         base.tierResidence = [{ tier, from: base.createdAt || GENESIS, to: null }];
       }
-      recomputeGame(base);
       return base;
     });
   });
 
   // Roster (tier3) UI preferences — backward-compatible defaults
   if (typeof state.config.rosterGrouped !== 'boolean') state.config.rosterGrouped = true;
+  if (state.config.rosterSort !== 'manual' && state.config.rosterSort !== 'added' && state.config.rosterSort !== 'name') {
+    state.config.rosterSort = 'manual';
+  }
   if (!state.config.rosterGroupFold || typeof state.config.rosterGroupFold !== 'object') {
     state.config.rosterGroupFold = { up_next: false, considering: false, backlog: true };
   } else {
@@ -1600,27 +1293,6 @@ function migrate(state) {
       if (typeof state.config.finishedFold[k] !== 'boolean') state.config.finishedFold[k] = ffDefaults[k];
     });
   }
-
-  // Journey source lists — editable, expandable. Seed once if absent.
-  if (!Array.isArray(state.config.nodeTypes) || !state.config.nodeTypes.length)
-    state.config.nodeTypes = ['整体', '路线', '主线', '支线', 'DLC', '全收集', '白金', '全成就', '多周目', '重温'];
-  if (!Array.isArray(state.config.mediaList) || !state.config.mediaList.length)
-    state.config.mediaList = ['视觉小说', '角色扮演', '动作冒险', '平台动作', '模拟经营', '策略', '解谜', '竞速', '互动电影', '工具'];
-  if (!Array.isArray(state.config.subList) || !state.config.subList.length)
-    state.config.subList = ['乙女', '开放世界', '箱庭', '线性', 'JRPG', 'Roguelike', '银河城', '多结局', '抽卡养成', '割草', '推理', '沙盒'];
-
-  // Flat tag pool — merge the legacy media/sub pools into one. Seeded ONCE: once
-  // tagList exists (even empty) it's never re-seeded, so a user who clears tags
-  // doesn't get the defaults back. The legacy lists remain only as this seed.
-  if (!Array.isArray(state.config.tagList)) {
-    const seed = [...(state.config.mediaList || []), ...(state.config.subList || [])];
-    state.config.tagList = [...new Set(seed.filter(Boolean))];
-  }
-
-  // Company (tier1) column-view preference: 1 / 2 / 4
-  if ([1, 2, 4].indexOf(state.config.companyColumns) === -1) state.config.companyColumns = 1;
-
-  ensureGroupSort(state);
 
   return state;
 }
@@ -1929,30 +1601,6 @@ function toggleExtra(gameId) {
   }
   updateHeatmapCell(viewDate);
 }
-
-// 深入 for Playing/Roster — stored in the per-day `day.extra` map (created lazily so
-// untouched days stay clean). Does NOT touch tier1/heatmap. Updates the star in place.
-function toggleExtra2(gameId) {
-  const day = getDay(viewDate);
-  if (!day.extra) day.extra = {};
-  if (day.extra[gameId]) delete day.extra[gameId]; else day.extra[gameId] = true;
-  scheduleSave();
-  const on = !!(day.extra && day.extra[gameId]);
-  document.querySelectorAll(`#tier2-list [data-game-id="${gameId}"] .extra-toggle, #tier3-list [data-game-id="${gameId}"] .extra-toggle`).forEach(el => {
-    el.classList.toggle('active', on);
-    el.innerHTML = on ? '✦' : '✧';
-  });
-}
-
-function buildDeepStar(game, day) {
-  const on = !!(day.extra && day.extra[game.id]);
-  const el = document.createElement('div');
-  el.className = 'extra-toggle' + (on ? ' active' : '');
-  el.innerHTML = on ? '✦' : '✧';
-  el.title = '深入玩了一下（可排序）';
-  el.onclick = (e) => { e.stopPropagation(); toggleExtra2(game.id); };
-  return el;
-}
 function toggleTier2(gameId) {
   const day = getDay(viewDate);
   day.tier2[gameId] = !day.tier2[gameId];
@@ -1971,12 +1619,6 @@ function updateTier1Row(gameId) {
   const item = document.querySelector(`#tier1-list [data-game-id="${gameId}"]`);
   if (!item) return;
   item.querySelector('.checkbox').classList.toggle('checked', !!gd.checkedIn);
-  const checkin = item.querySelector('.pc-checkin');
-  if (checkin) {
-    checkin.classList.toggle('on', !!gd.checkedIn);
-    const lbl = checkin.querySelector('.pc-checkin-label');
-    if (lbl) lbl.textContent = gd.checkedIn ? '今日已玩' : '打卡';
-  }
   const name = item.querySelector('.pc-name');
   if (name) name.classList.toggle('checked', !!gd.checkedIn);
   item.querySelectorAll('.subtask').forEach(sub => {
@@ -1984,6 +1626,7 @@ function updateTier1Row(gameId) {
     if (sid) sub.classList.toggle('checked', !!gd.subtasks[sid]);
   });
   updateStreak(item, gameId);
+  updateProgress();
   updateHeatmapCell(viewDate);
 }
 function updateTier2Row(gameId) {
@@ -2033,6 +1676,14 @@ function updateStreak(rowEl, gameId) {
     void el.offsetWidth;
     el.style.animation = 'streakPop 0.45s cubic-bezier(0.16, 1, 0.3, 1)';
   }
+}
+
+function updateProgress() {
+  const pct = getDayProgress(viewDate);
+  const pctEl = document.getElementById('progress-pct');
+  const fillEl = document.getElementById('progress-fill');
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (fillEl) fillEl.style.width = pct + '%';
 }
 
 function updateHeatmapCell(dateStr) {
@@ -2103,10 +1754,9 @@ function addGame(tier, name) {
   const id = 'game_' + Date.now();
   const today = todayKey();
   const residence = [{ tier, from: today, to: null }];
-  const jf = { media: '', sub: '', milestones: [], lastMilestone: '' };
-  if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [], hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence, ...jf });
-  else if (tier === 'tier2') state.config.tier2.push({ id, name, hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence, ...jf });
-  else state.config.tier3.push({ id, name, status: 'considering', hidden: false, hiddenAt: null, note: '', completion: '', createdAt: today, tierResidence: residence, ...jf });
+  if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [], hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence });
+  else if (tier === 'tier2') state.config.tier2.push({ id, name, hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence });
+  else state.config.tier3.push({ id, name, status: 'considering', hidden: false, hiddenAt: null, note: '', completion: '', createdAt: today, tierResidence: residence });
   scheduleSave(); smoothRender();
 }
 function renameGame(tier, gameId, newName) {
@@ -2283,7 +1933,7 @@ function markSourceAsDragging(on) {
 function clearDropIndicators() {
   document.querySelectorAll('.drop-line, .subtask-drop-marker').forEach(el => el.remove());
   document.querySelectorAll('.section.drop-target').forEach(el => el.classList.remove('drop-target'));
-  document.querySelectorAll('.drop-before, .drop-after').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+  document.querySelectorAll('.roster-card.drop-before, .roster-card.drop-after').forEach(el => el.classList.remove('drop-before', 'drop-after'));
   drag.currentDropTarget = null;
 }
 
@@ -2345,26 +1995,6 @@ function updateGameDropIndicator(clientX, clientY) {
   const list = document.getElementById(`${targetTier}-list`);
   if (!list) return;
   const items = Array.from(list.querySelectorAll(`[data-game-id]`)).filter(el => !el.classList.contains('dragging'));
-
-  // Multi-column Company: 2D reading-order hit-test with a card-edge marker,
-  // mirroring Roster (a full-width drop-line reads wrong inside a grid). Single
-  // column keeps the original horizontal drop-line. dropIndex semantics are
-  // identical either way, so commitGameMove is unchanged.
-  if ((targetTier === 'tier1' || targetTier === 'tier2') && sectionColumns(targetTier) > 1) {
-    let dropIndex = items.length, targetCard = null;
-    for (let i = 0; i < items.length; i++) {
-      const r = items[i].getBoundingClientRect();
-      const inRow = clientY >= r.top - 6 && clientY <= r.bottom + 6;
-      if ((inRow && clientX < r.left + r.width / 2) || clientY < r.top - 6) {
-        targetCard = items[i]; dropIndex = i; break;
-      }
-    }
-    if (targetCard) targetCard.classList.add('drop-before');
-    else if (items.length > 0) items[items.length - 1].classList.add('drop-after');
-    drag.currentDropTarget = { tier: targetTier, index: dropIndex };
-    return;
-  }
-
   let dropIndex = items.length;
   for (let i = 0; i < items.length; i++) {
     const rect = items[i].getBoundingClientRect();
@@ -2433,15 +2063,11 @@ function commitGameMove(fromTier, gameId, toTier, toIndex) {
   const game = fromList[fromIndex];
 
   // === Same-tier reorder: no residence change ===
-  // toIndex is computed over the list with the dragged card filtered OUT — i.e.
-  // it already indexes the array as it will look after removal — so it is the
-  // correct insertion point directly. (An earlier version subtracted 1 on
-  // downward moves, which double-corrected and dropped the card one slot short
-  // of the indicator. Removed so single-column and grid both land on the line.)
   if (fromTier === toTier) {
     fromList.splice(fromIndex, 1);
-    state.config[toTier].splice(toIndex, 0, game);
-    markGroupDirtyByGame(toTier, game);
+    let adjustedIndex = toIndex;
+    if (fromIndex < toIndex) adjustedIndex = toIndex - 1;
+    state.config[toTier].splice(adjustedIndex, 0, game);
     scheduleSave();
     return;
   }
@@ -2485,7 +2111,7 @@ function commitGameMove(fromTier, gameId, toTier, toIndex) {
   scheduleSave();
 
   // Tell user what happened, give them undo
-  const tierLabels = { tier1: 'Company', tier2: 'Playing', tier3: 'Roster' };
+  const tierLabels = { tier1: 'Daily', tier2: 'Playing', tier3: 'Roster' };
   const baseMsg = `Moved "${game.name}" → ${tierLabels[toTier]}`;
   const msg = lostSubtasks > 0 ? `${baseMsg} · removed ${lostSubtasks} sub-task${lostSubtasks > 1 ? 's' : ''}` : baseMsg;
   showUndoToast(msg, snap);
@@ -2525,7 +2151,6 @@ function commitRosterReorder(gameId, insertBeforeId, grouped) {
     insertIndex = arr.length; // ungrouped: append to flat list
   }
   arr.splice(insertIndex, 0, moved);
-  markGroupDirtyByGame('tier3', moved);
   scheduleSave();
 }
 
@@ -2603,20 +2228,6 @@ function currentTier(game) {
   return tierOnDate(game, todayKey());
 }
 
-function getDayCompanions(dateStr) {
-  const day = state.history[dateStr];
-  if (!day) return 0;
-  const relevant = gamesInTierOnDate('tier1', dateStr);
-  let checked = 0;
-  relevant.forEach(g => {
-    if (day.tier1 && day.tier1[g.id] && day.tier1[g.id].checkedIn) checked++;
-  });
-  return checked;
-}
-
-// Retained for possible future use: completion % (checked / total Company games on
-// a day). Not currently surfaced — the header uses an ambient colour band instead —
-// but kept so a percentage view can be re-introduced without rebuilding the logic.
 function getDayProgress(dateStr) {
   const day = state.history[dateStr];
   if (!day) return 0;
@@ -2624,7 +2235,9 @@ function getDayProgress(dateStr) {
   const total = relevant.length;
   if (total === 0) return 0;
   let checked = 0;
-  relevant.forEach(g => { if (day.tier1 && day.tier1[g.id] && day.tier1[g.id].checkedIn) checked++; });
+  relevant.forEach(g => {
+    if (day.tier1 && day.tier1[g.id] && day.tier1[g.id].checkedIn) checked++;
+  });
   return Math.round((checked / total) * 100);
 }
 
@@ -2783,7 +2396,6 @@ function render() {
   if (!session) { renderSignIn(); return; }
   if (!state) { renderLoading(); return; }
   applyWeekTheme();
-  if (journeyOpen) { renderJourney(); return; }
   if (reviewOpen) { renderReview(); return; }
   // First time the app proper renders → enable section entry animation
   if (_firstAppRender) {
@@ -2834,10 +2446,6 @@ function renderApp() {
           </svg>
           回顾
         </button>
-        <button class="review-entry" id="journey-entry" title="里程碑历程" style="margin-left:14px">
-          <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><path d="M6.5 0.8 L8.1 4.9 L12.2 5 L8.9 7.7 L10.1 11.8 L6.5 9.3 L2.9 11.8 L4.1 7.7 L0.8 5 L4.9 4.9 Z" fill="var(--accent)" opacity="0.82"></path></svg>
-          历程
-        </button>
       </div>
       <div class="date-nav">
         <div class="date-arrow" id="prev-day" title="Previous day">‹</div>
@@ -2845,33 +2453,36 @@ function renderApp() {
         <div class="date-arrow" id="next-day" title="Next day">›</div>
         <div class="today-link" id="today-link" style="display:none">↩ Today</div>
       </div>
+      <div class="progress-label-row">
+        <div class="progress-label">完成度</div>
+        <div class="display-font progress-percentage" id="progress-pct">0%</div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width: 0%"></div></div>
     </header>
 
     <section class="section narrow" id="section-tier1">
-      <div class="section-header"><div class="section-title">Company</div><div class="section-line"></div><div class="col-switch" id="col-switch-tier1"></div></div>
-      <div id="sortbar-tier1"></div>
+      <div class="section-header"><div class="section-title">Daily</div><div class="section-line"></div></div>
       <div id="tier1-list"></div>
       <div class="add-row" id="add-tier1-container"></div>
       <div id="hidden-tier1"></div>
     </section>
 
     <section class="section narrow" id="section-tier2">
-      <div class="section-header"><div class="section-title">Playing</div><div class="section-line"></div><div class="col-switch" id="col-switch-tier2"></div></div>
-      <div id="sortbar-tier2"></div>
+      <div class="section-header"><div class="section-title">Playing</div><div class="section-line"></div></div>
       <div id="tier2-list"></div>
       <div class="add-row" id="add-tier2-container"></div>
       <div id="hidden-tier2"></div>
     </section>
 
     <section class="section wide" id="section-tier3">
-      <div class="section-header"><div class="section-title">Roster</div><div class="section-line"></div><div class="col-switch" id="col-switch-tier3"></div></div>
+      <div class="section-header"><div class="section-title">Roster</div><div class="section-line"></div></div>
       <div id="tier3-list"></div>
       <div class="add-row" id="add-tier3-container"></div>
       <div id="hidden-tier3"></div>
     </section>
 
     <section class="section wide" id="section-finished">
-      <div class="section-header"><div class="section-title">Finished</div><div class="section-line"></div><div class="col-switch" id="col-switch-finished"></div></div>
+      <div class="section-header"><div class="section-title">Finished</div><div class="section-line"></div></div>
       <div id="finished-list"></div>
     </section>
 
@@ -2897,12 +2508,7 @@ function renderApp() {
   document.getElementById('import-btn').onclick = importData;
   document.getElementById('signout-btn').onclick = signOut;
   document.getElementById('review-entry').onclick = openReview;
-  var _je = document.getElementById('journey-entry'); if (_je) _je.onclick = openJourney;
 }
-
-// ── Companion band — removed (header progress bar deleted). The check-in history
-// in state.history is untouched, and getDayProgress / getDayCompanions remain, so
-// any header summary can be re-added later without rebuilding the data layer.
 
 function renderHeader() {
   const d = parseDateKey(viewDate);
@@ -2913,6 +2519,9 @@ function renderHeader() {
   document.getElementById('date').className = 'date' + (isViewingToday() ? '' : ' past');
   document.getElementById('next-day').className = 'date-arrow' + (isViewingToday() ? ' disabled' : '');
   document.getElementById('today-link').style.display = isViewingToday() ? 'none' : '';
+  const pct = getDayProgress(viewDate);
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-fill').style.width = pct + '%';
 }
 
 // === Build editable name + note column ===
@@ -2990,123 +2599,12 @@ function buildPcBody(tier, game, isChecked) {
   return body;
 }
 
-// Per-section column preference (1 / 2 / 4). tier1 keeps its original config key
-// for backward-compat; the other sections get their own. An unset key falls back
-// to that section's default.
-const COLS_KEY = { tier1: 'companyColumns', tier2: 'tier2Columns', tier3: 'tier3Columns', finished: 'finishedColumns' };
-// Roster & Finished were responsive auto-fill grids; 'auto' keeps that and is their
-// default, with fixed 1/2/4 opt-in. Company & Playing are fixed-count only.
-const COLS_OPTIONS = { tier1: [1, 2, 4], tier2: [1, 2, 4], tier3: ['auto', 1, 2, 4], finished: ['auto', 1, 2, 4] };
-const COLS_DEFAULT = { tier1: 1, tier2: 2, tier3: 'auto', finished: 'auto' };
-function sectionColumns(tier) {
-  const c = state.config[COLS_KEY[tier]];
-  return COLS_OPTIONS[tier].indexOf(c) !== -1 ? c : COLS_DEFAULT[tier];
-}
-function setSectionColumns(tier, n) {
-  state.config[COLS_KEY[tier]] = n;
-  scheduleSave();
-  smoothRender();
-}
-function companyColumns() { const c = sectionColumns('tier1'); return c === 'auto' ? 1 : c; }  // back-compat
-function colsClass(tier) {
-  const c = sectionColumns(tier);
-  return c === 'auto' ? '' : ('cols-' + c);   // 'auto' → no class, keeps the base auto-fill grid
-}
-function renderColumnSwitch(tier) {
-  const host = document.getElementById('col-switch-' + tier);
-  if (!host) return;
-  host.innerHTML = '';
-  const cur = sectionColumns(tier);
-  COLS_OPTIONS[tier].forEach(n => {
-    const seg = document.createElement('span');
-    seg.className = 'cs-seg' + (cur === n ? ' active' : '') + (n === 'auto' ? ' cs-auto' : '');
-    seg.textContent = n === 'auto' ? '自动' : n;
-    seg.title = n === 'auto' ? '自动铺满' : (n + ' 列');
-    seg.onclick = () => { if (sectionColumns(tier) !== n) setSectionColumns(tier, n); };
-    host.appendChild(seg);
-  });
-}
-
-// Vertical Company tile — used in multi-column (2/4) grid views. Mirrors the
-// Playing/Roster three-segment card (head: drag · star · menu · body: name/note ·
-// foot: platform/streak · check-in) so the grid reads consistent with the other
-// sections. Single column keeps the compact horizontal row (built inline below).
-function buildCompanyTile(game, gd, streak, parsed) {
-  const card = document.createElement('div');
-  card.className = 'daily-card company-tile';
-  card.dataset.gameId = game.id;
-
-  // Head: drag · star (sits in the status-pill slot so the top row is balanced
-  // like Roster/Playing — left filled, menu right) · spacer · menu
-  const head = document.createElement('div');
-  head.className = 'rc-head';
-  const handle = makeDragHandle('game', 'tier1', game.id, game.name);
-  handle.className = 'rc-drag';
-  handle.innerHTML = '⋮⋮';
-  handle.title = 'Drag to reorder';
-  head.appendChild(handle);
-  const extra = document.createElement('div');
-  extra.className = 'extra-toggle' + (gd.extra ? ' active' : '');
-  extra.innerHTML = gd.extra ? '✦' : '✧';
-  extra.title = '今天深入玩了一下';
-  extra.onclick = (e) => { e.stopPropagation(); toggleExtra(game.id); };
-  head.appendChild(extra);
-  const spacer = document.createElement('div');
-  spacer.className = 'rc-spacer';
-  head.appendChild(spacer);
-  const menu = document.createElement('div');
-  menu.className = 'rc-menu-btn';
-  menu.innerHTML = '⋯';
-  menu.title = 'More actions';
-  menu.onclick = (e) => { e.stopPropagation(); openDailyCardMenu(menu, game); };
-  head.appendChild(menu);
-  card.appendChild(head);
-
-  // Name + note (shared)
-  card.appendChild(buildPcBody('tier1', game, gd.checkedIn));
-
-  // Foot: check-in + streak (left) · platform (right) — same order as Roster
-  const foot = document.createElement('div');
-  foot.className = 'rc-foot';
-  const footLeft = document.createElement('div');
-  footLeft.className = 'pc-foot-left';
-  const checkin = document.createElement('div');
-  checkin.className = 'pc-checkin' + (gd.checkedIn ? ' on' : '');
-  const cb = document.createElement('div');
-  cb.className = 'checkbox' + (gd.checkedIn ? ' checked' : '');
-  checkin.appendChild(cb);
-  const lbl = document.createElement('div');
-  lbl.className = 'pc-checkin-label';
-  lbl.textContent = gd.checkedIn ? '今日已玩' : '打卡';
-  checkin.appendChild(lbl);
-  checkin.onclick = () => toggleTier1(game.id);
-  footLeft.appendChild(checkin);
-  const streakEl = document.createElement('div');
-  streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
-  streakEl.textContent = streak > 0 ? streak + 'd' : '·';
-  footLeft.appendChild(streakEl);
-  foot.appendChild(footLeft);
-
-  if (parsed.platform) {
-    const plat = document.createElement('div');
-    plat.className = 'rc-platform';
-    plat.textContent = parsed.platform;
-    foot.appendChild(plat);
-  }
-
-  card.appendChild(foot);
-  return card;
-}
-
 function renderTier1() {
   const day = getDay(viewDate);
   const container = document.getElementById('tier1-list');
   container.innerHTML = '';
-  container.className = colsClass('tier1');
 
   const visible = state.config.tier1.filter(g => !g.hidden);
-  renderSortControls('tier1', document.querySelector('#section-tier1 .section-header'), document.getElementById('sortbar-tier1'), visible.length);
-  renderColumnSwitch('tier1');
   visible.forEach(game => {
     const gd = day.tier1[game.id] || { checkedIn: false, subtasks: {}, extra: false };
     const streak = getStreak(game.id, 'tier1');
@@ -3116,11 +2614,6 @@ function renderTier1() {
     const isAddingSub = addSubtaskGameId === game.id;
 
     const parsed = parsePlatform(game.name);
-
-    if (companyColumns() !== 1) {
-      container.appendChild(buildCompanyTile(game, gd, streak, parsed));
-      return;
-    }
 
     const item = document.createElement('div');
     item.className = 'daily-card';
@@ -3155,7 +2648,7 @@ function renderTier1() {
     const extra = document.createElement('div');
     extra.className = 'extra-toggle' + (gd.extra ? ' active' : '');
     extra.innerHTML = gd.extra ? '✦' : '✧';
-    extra.title = '今天深入玩了一下';
+    extra.title = '今天多玩了一下';
     extra.onclick = (e) => { e.stopPropagation(); toggleExtra(game.id); };
     right.appendChild(extra);
 
@@ -3273,7 +2766,6 @@ function renderTier1() {
 
 function openDailyCardMenu(anchor, game) {
   const items = [
-    { value: 'detail', label: 'DETAILS · MILESTONES' },
     { value: 'rename', label: 'Rename' },
     { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
     { value: 'addtask', label: 'Add task' },
@@ -3282,8 +2774,7 @@ function openDailyCardMenu(anchor, game) {
     { value: 'hide', label: 'Hide', clear: true }
   ];
   showPicker(anchor, items, null, v => {
-    if (v === 'detail') openDetail(game.id);
-    else if (v === 'rename') { editingGameId = { tier: 'tier1', id: game.id }; render(); }
+    if (v === 'rename') { editingGameId = { tier: 'tier1', id: game.id }; render(); }
     else if (v === 'note') {
       if (game.note && game.note.length) editingNoteFor = { tier: 'tier1', id: game.id };
       else addingNoteFor = { tier: 'tier1', id: game.id };
@@ -3306,11 +2797,8 @@ function renderTier2() {
   const day = getDay(viewDate);
   const container = document.getElementById('tier2-list');
   container.innerHTML = '';
-  container.className = colsClass('tier2');
 
   const visible = state.config.tier2.filter(g => !g.hidden && !g.completion);
-  renderSortControls('tier2', document.querySelector('#section-tier2 .section-header'), document.getElementById('sortbar-tier2'), visible.length);
-  renderColumnSwitch('tier2');
   visible.forEach(game => container.appendChild(buildPlayingCard(game, day)));
 
   renderAddRow('tier2');
@@ -3393,7 +2881,6 @@ function buildPlayingCard(game, day) {
   lbl.textContent = checked ? '今日已玩' : '打卡';
   checkin.appendChild(lbl);
   checkin.onclick = () => toggleTier2(game.id);
-  foot.appendChild(buildDeepStar(game, day));
   foot.appendChild(checkin);
 
   card.appendChild(foot);
@@ -3402,17 +2889,15 @@ function buildPlayingCard(game, day) {
 
 function openPlayingCardMenu(anchor, game) {
   const items = [
-    { value: 'detail', label: 'DETAILS · MILESTONES' },
     { value: 'rename', label: 'Rename' },
     { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
     { value: 'status', label: 'Set completion' },
     { value: 'roster', label: 'Move to Roster' },
-    { value: 'daily', label: 'Move to Company' },
+    { value: 'daily', label: 'Move to Daily' },
     { value: 'hide', label: 'Hide', clear: true }
   ];
   showPicker(anchor, items, null, v => {
-    if (v === 'detail') openDetail(game.id);
-    else if (v === 'rename') { editingGameId = { tier: 'tier2', id: game.id }; render(); }
+    if (v === 'rename') { editingGameId = { tier: 'tier2', id: game.id }; render(); }
     else if (v === 'note') {
       if (game.note && game.note.length) editingNoteFor = { tier: 'tier2', id: game.id };
       else addingNoteFor = { tier: 'tier2', id: game.id };
@@ -3461,18 +2946,31 @@ function rosterPrefs() {
   const c = state.config;
   return {
     grouped: c.rosterGrouped !== false,
+    sort: (c.rosterSort === 'added' || c.rosterSort === 'name') ? c.rosterSort : 'manual',
     fold: Object.assign({ up_next: false, considering: false, backlog: true }, c.rosterGroupFold || {})
   };
+}
+
+function sortRosterGames(games, sort) {
+  const arr = games.slice();
+  if (sort === 'name') {
+    arr.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh'));
+  } else if (sort === 'added') {
+    arr.sort((a, b) => {
+      const ca = a.createdAt || '1970-01-01', cb = b.createdAt || '1970-01-01';
+      if (ca !== cb) return ca < cb ? 1 : -1; // newer (greater date) first
+      return 0;
+    });
+  }
+  return arr; // 'manual' keeps config order
 }
 
 function renderTier3() {
   const container = document.getElementById('tier3-list');
   container.innerHTML = '';
-  container.className = colsClass('tier3');
 
   const visible = state.config.tier3.filter(g => !g.hidden);
   const prefs = rosterPrefs();
-  renderColumnSwitch('tier3');
 
   if (visible.length > 0) {
     container.appendChild(buildRosterControls(prefs));
@@ -3480,12 +2978,12 @@ function renderTier3() {
 
   if (prefs.grouped) {
     ROSTER_GROUP_ORDER.forEach(status => {
-      const games = visible.filter(g => (g.status || 'considering') === status);
+      const games = sortRosterGames(visible.filter(g => (g.status || 'considering') === status), prefs.sort);
       if (games.length === 0) return; // empty groups show no header
       container.appendChild(buildRosterGroup(status, games, prefs));
     });
   } else {
-    const games = visible;
+    const games = sortRosterGames(visible, prefs.sort);
     const grid = document.createElement('div');
     grid.className = 'roster-grid ungrouped';
     games.forEach(g => grid.appendChild(buildRosterCard(g, prefs, g.status || 'considering')));
@@ -3510,18 +3008,22 @@ function buildRosterControls(prefs) {
   };
   bar.appendChild(groupBtn);
 
-  ensureGroupSort();
-  const _anyOpen = GROUP_DEFS.some(d => state.config.groupSort[d.key] && state.config.groupSort[d.key].barOpen);
-  const foldAllBtn = document.createElement('button');
-  foldAllBtn.className = 'roster-ctrl';
-  foldAllBtn.innerHTML = `⇅ ${_anyOpen ? 'Hide' : 'Sort'}`;
-  foldAllBtn.title = '展开 / 收起所有组的排序条';
-  foldAllBtn.onclick = () => {
-    const target = !_anyOpen;
-    GROUP_DEFS.forEach(d => { state.config.groupSort[d.key].barOpen = target; });
-    scheduleSave(); smoothRender();
+  const sortLabels = { manual: 'Manual', added: 'Recently added', name: 'A–Z' };
+  const sortBtn = document.createElement('button');
+  sortBtn.className = 'roster-ctrl';
+  sortBtn.innerHTML = `Sort · ${sortLabels[prefs.sort]}<span class="ctrl-caret">▾</span>`;
+  sortBtn.title = 'Sort within group';
+  sortBtn.onclick = () => {
+    showPicker(sortBtn, [
+      { value: 'manual', label: 'Manual' },
+      { value: 'added', label: 'Recently added' },
+      { value: 'name', label: 'A–Z' }
+    ], prefs.sort, v => {
+      state.config.rosterSort = v;
+      scheduleSave(); smoothRender();
+    });
   };
-  bar.appendChild(foldAllBtn);
+  bar.appendChild(sortBtn);
 
   return bar;
 }
@@ -3550,12 +3052,6 @@ function buildRosterGroup(status, games, prefs) {
   };
   wrap.appendChild(head);
 
-  if (!folded) {
-    const _gk = 'tier3:' + status;
-    if (groupSortState(_gk).barOpen) wrap.appendChild(buildSortBar(_gk));
-    else head.appendChild(buildSortHeadEntry(_gk));
-  }
-
   const grid = document.createElement('div');
   grid.className = 'roster-grid';
   if (folded) grid.style.display = 'none';
@@ -3579,7 +3075,7 @@ function buildRosterCard(game, prefs, status) {
   const head = document.createElement('div');
   head.className = 'rc-head';
 
-  {
+  if (prefs.sort === 'manual') {
     const handle = makeDragHandle('game', 'tier3', game.id, game.name);
     handle.className = 'rc-drag';
     handle.innerHTML = '⋮⋮';
@@ -3684,7 +3180,6 @@ function buildRosterCard(game, prefs, status) {
   const footLeft = document.createElement('div');
   footLeft.className = 'rc-foot-left';
   footLeft.appendChild(played);
-  if (status === 'up_next' || status === 'considering' || status === 'backlog') footLeft.appendChild(buildDeepStar(game, day));
 
   const rstreak = getStreak(game.id, 'tier3');
   const streakEl = document.createElement('div');
@@ -3709,16 +3204,14 @@ function buildRosterCard(game, prefs, status) {
 
 function openRosterCardMenu(anchor, game) {
   const items = [
-    { value: 'detail', label: 'DETAILS · MILESTONES' },
     { value: 'rename', label: 'Rename' },
     { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
     { value: 'playing', label: 'Move to Playing' },
-    { value: 'daily', label: 'Move to Company' },
+    { value: 'daily', label: 'Move to Daily' },
     { value: 'hide', label: 'Hide', clear: true }
   ];
   showPicker(anchor, items, null, v => {
-    if (v === 'detail') openDetail(game.id);
-    else if (v === 'rename') { editingGameId = { tier: 'tier3', id: game.id }; render(); }
+    if (v === 'rename') { editingGameId = { tier: 'tier3', id: game.id }; render(); }
     else if (v === 'note') {
       if (game.note && game.note.length) editingNoteFor = { tier: 'tier3', id: game.id };
       else addingNoteFor = { tier: 'tier3', id: game.id };
@@ -3741,6 +3234,7 @@ function moveRosterTo(gameId, toTier) {
 // Finished shelf — derived from tier2 `completion` (Beaten / Completed / Abandoned)
 // ============================================================
 const FINISHED_GROUP_ORDER = ['beaten', 'completed', 'sated', 'abandoned'];
+let editingMilestoneFor = null; // { id }
 
 function finishedFold() {
   return Object.assign({ beaten: true, completed: true, sated: true, abandoned: true }, state.config.finishedFold || {});
@@ -3755,8 +3249,6 @@ function renderFinished() {
   const all = state.config.tier2.filter(g => !!g.completion);
   if (all.length === 0) { section.style.display = 'none'; return; }
   section.style.display = '';
-  container.className = colsClass('finished');
-  renderColumnSwitch('finished');
 
   const fold = finishedFold();
   FINISHED_GROUP_ORDER.forEach(status => {
@@ -3844,13 +3336,24 @@ function buildFinishedCard(game, status) {
     card.appendChild(nameEl);
   }
 
-  // Last milestone date (derived) — click opens detail
-  if (game.lastMilestone) {
+  // Last milestone date (light, editable)
+  const editingMs = editingMilestoneFor && editingMilestoneFor.id === game.id;
+  if (editingMs) {
+    const input = document.createElement('input');
+    input.className = 'rc-note-edit'; input.type = 'text';
+    input.value = game.lastMilestone || ''; input.placeholder = 'YYYY-MM-DD';
+    let committed = false;
+    const commit = () => { if (committed) return; committed = true; setMilestone(game.id, input.value); editingMilestoneFor = null; render(); };
+    input.onkeydown = (e) => { if (e.key === 'Enter') commit(); else if (e.key === 'Escape') { committed = true; editingMilestoneFor = null; render(); } };
+    input.onblur = commit;
+    card.appendChild(input);
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+  } else if (game.lastMilestone) {
     const ms = document.createElement('div');
     ms.className = 'rc-milestone';
     ms.textContent = '◷ ' + game.lastMilestone;
-    ms.title = '里程碑 · 点击查看';
-    ms.onclick = (e) => { e.stopPropagation(); openDetail(game.id); };
+    ms.title = 'Last milestone · click to edit';
+    ms.onclick = (e) => { e.stopPropagation(); editingMilestoneFor = { id: game.id }; render(); };
     card.appendChild(ms);
   }
 
@@ -3873,7 +3376,7 @@ function openFinishedCardMenu(anchor, game, status) {
   if (status === 'beaten') {
     items = [
       { value: 'completed', label: 'Mark Completed' },
-      { value: 'milestone', label: 'DETAILS · MILESTONES' },
+      { value: 'milestone', label: game.lastMilestone ? 'Edit milestone date' : 'Add milestone date' },
       { value: 'rename', label: 'Rename' },
       { value: 'playing', label: 'Move to Playing' },
       { value: 'abandon', label: 'Abandon', clear: true }
@@ -3881,7 +3384,7 @@ function openFinishedCardMenu(anchor, game, status) {
   } else if (status === 'completed') {
     items = [
       { value: 'beaten', label: 'Back to Beaten' },
-      { value: 'milestone', label: 'DETAILS · MILESTONES' },
+      { value: 'milestone', label: game.lastMilestone ? 'Edit milestone date' : 'Add milestone date' },
       { value: 'rename', label: 'Rename' },
       { value: 'playing', label: 'Move to Playing', clear: true }
     ];
@@ -3890,14 +3393,14 @@ function openFinishedCardMenu(anchor, game, status) {
       { value: 'playing', label: 'Move to Playing' },
       { value: 'beaten', label: 'Mark Beaten' },
       { value: 'completed', label: 'Mark Completed' },
-      { value: 'milestone', label: 'DETAILS · MILESTONES' },
+      { value: 'milestone', label: game.lastMilestone ? 'Edit milestone date' : 'Add milestone date' },
       { value: 'rename', label: 'Rename' },
       { value: 'abandon', label: 'Abandon', clear: true }
     ];
   } else { // abandoned
     items = [
       { value: 'playing', label: 'Move back to Playing' },
-      { value: 'milestone', label: 'DETAILS · MILESTONES' },
+      { value: 'milestone', label: game.lastMilestone ? 'Edit milestone date' : 'Add milestone date' },
       { value: 'rename', label: 'Rename' }
     ];
   }
@@ -3906,9 +3409,14 @@ function openFinishedCardMenu(anchor, game, status) {
     else if (v === 'beaten') setTier2Completion(game.id, 'beaten');
     else if (v === 'abandon') setTier2Completion(game.id, 'abandoned');
     else if (v === 'playing') finishedToPlaying(game.id);
-    else if (v === 'milestone') { openDetail(game.id); }
+    else if (v === 'milestone') { editingMilestoneFor = { id: game.id }; render(); }
     else if (v === 'rename') { editingGameId = { tier: 'tier2', id: game.id }; render(); }
   });
+}
+
+function setMilestone(gameId, val) {
+  const g = state.config.tier2.find(x => x.id === gameId);
+  if (g) { g.lastMilestone = (val || '').trim(); scheduleSave(); }
 }
 
 function finishedToPlaying(gameId) {
@@ -4405,10 +3913,10 @@ function renderReviewDetail() {
   host.style.setProperty('--rv-day-soft', `rgba(${Math.round(mb[0])},${Math.round(mb[1])},${Math.round(mb[2])},0.30)`);
   const day = state.history[key];
   const dailyGames = gamesInTierOnDate('tier1', key);
-  const companions = getDayCompanions(key);
+  const pct = getDayProgress(key);
 
   let html = `<div class="rv-dt-head"><div class="rv-dt-date">${d.getFullYear()} · ${RV_MONTH[d.getMonth()]}${d.getDate()}日 · ${RV_WK[d.getDay()]}</div>`;
-  if (dailyGames.length) html += `<div class="rv-dt-pct">${companions} 位小伙伴</div>`;
+  if (dailyGames.length) html += `<div class="rv-dt-pct">完成度 ${pct}%</div>`;
   html += `<button class="rv-dt-jump" id="rv-dt-jump">在主视图打开 ›</button></div>`;
 
   // Milestone celebration — a game whose recorded completion lands on this day
@@ -4438,7 +3946,7 @@ function renderReviewDetail() {
         (subs ? `<div class="rv-dt-subs">${subs}</div>` : '') +
       `</div></div>`;
   });
-  if (!dailyGames.length) rows = '<div class="rv-detail-empty">这天 Company 档还没有游戏</div>';
+  if (!dailyGames.length) rows = '<div class="rv-detail-empty">这天 Daily 档还没有游戏</div>';
   html += `<div class="rv-dt-list">${rows}</div>`;
 
   const also = [];
@@ -4563,9 +4071,7 @@ function exportData() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const _n = new Date();
-  const _stamp = todayKey() + '-' + pad(_n.getHours()) + pad(_n.getMinutes());
-  a.href = url; a.download = 'daily-ritual-' + _stamp + '.json'; a.click();
+  a.href = url; a.download = 'daily-ritual-' + todayKey() + '.json'; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -4612,1334 +4118,6 @@ async function init() {
 }
 
 init();
-
-// ====== Journey feature (milestones + detail + 历程) ======
-// ============================================================
-// Journey: milestones (nodes) — data layer
-// ============================================================
-// A milestone (节点) = a reached point. Shape:
-//   { id, type, inst, outcome, date, ending, rating, note }
-// Lives on game.milestones[] for ANY tier. completion + lastMilestone
-// are DERIVED from it (write-through). Heartbeat owns "playing"; this owns "reached".
-
-const OUTCOME_RANK = { completed: 4, beaten: 3, sated: 2, abandoned: 1 };
-// Only these node types "finish" a game (drive the Finished shelf / completion).
-// A single route/side milestone does NOT mark the whole game done.
-const FINISHING_TYPES = ['整体', '主线'];
-
-function findGameAnywhere(gameId) {
-  for (const tier of ['tier1', 'tier2', 'tier3']) {
-    const game = state.config[tier].find(x => x.id === gameId);
-    if (game) return { game, tier };
-  }
-  return null;
-}
-
-// Recompute derived completion + lastMilestone from milestones (write-through).
-// No milestones → leave existing (manual/legacy) completion untouched.
-function recomputeGame(game) {
-  const ms = (game.milestones || []).filter(m => m && m.outcome);
-  const dates = ms.map(m => m.date).filter(Boolean).sort();
-  if (dates.length) game.lastMilestone = dates[dates.length - 1];
-
-  const finishing = ms.filter(m => FINISHING_TYPES.indexOf(m.type) !== -1);
-  if (finishing.length) {
-    const best = finishing.slice().sort((a, b) => {
-      const ra = OUTCOME_RANK[a.outcome] || 0, rb = OUTCOME_RANK[b.outcome] || 0;
-      if (ra !== rb) return rb - ra;
-      return (a.date || '') < (b.date || '') ? 1 : -1;
-    })[0];
-    game.completion = best.outcome;
-  } else if (ms.length) {
-    // has route/side reaches but nothing that finishes the game → not on the shelf
-    game.completion = '';
-  }
-}
-
-function nodeTypes() { return state.config.nodeTypes || []; }
-function tagList() { return state.config.tagList || []; }
-
-function addToConfigList(key, val) {
-  val = (val || '').trim();
-  if (!val) return;
-  if (!Array.isArray(state.config[key])) state.config[key] = [];
-  if (state.config[key].indexOf(val) === -1) { state.config[key].push(val); scheduleSave(); }
-}
-
-function addMilestone(gameId, m) {
-  const found = findGameAnywhere(gameId);
-  if (!found) return;
-  if (!Array.isArray(found.game.milestones)) found.game.milestones = [];
-  found.game.milestones.push(Object.assign({ id: 'ms_' + Date.now() }, m));
-  recomputeGame(found.game);
-  scheduleSave();
-}
-
-function updateMilestone(gameId, msId, patch) {
-  const found = findGameAnywhere(gameId);
-  if (!found) return;
-  const m = (found.game.milestones || []).find(x => x.id === msId);
-  if (!m) return;
-  Object.assign(m, patch);
-  recomputeGame(found.game);
-  scheduleSave();
-}
-
-function deleteMilestone(gameId, msId) {
-  const found = findGameAnywhere(gameId);
-  if (!found || !Array.isArray(found.game.milestones)) return;
-  const before = JSON.parse(JSON.stringify(found.game.milestones));
-  const removed = found.game.milestones.find(x => x.id === msId);
-  found.game.milestones = found.game.milestones.filter(x => x.id !== msId);
-  recomputeGame(found.game);
-  // If this removed the last milestone, clear the derived shelf state too
-  // (so deleting an 整体 reach takes the game back off the Finished shelf).
-  if (found.game.milestones.length === 0) { found.game.completion = ''; found.game.lastMilestone = ''; }
-  scheduleSave();
-  buildDetail();
-  smoothRender();
-  showToast({
-    message: '已删除一条里程碑',
-    onAction: () => {
-      const f = findGameAnywhere(gameId);
-      if (f) { f.game.milestones = before; recomputeGame(f.game); scheduleSave(); buildDetail(); smoothRender(); }
-    }
-  });
-}
-
-// ============================================================
-// Journey: per-game detail modal (full info + milestone log)
-// ============================================================
-// _detailState: { gameId, mode: 'view'|'add'|'edit', editId, draft }
-let _detailState = null;
-
-function openDetail(gameId) {
-  _detailState = { gameId, mode: 'view', editId: null, draft: null };
-  buildDetail();
-}
-
-function closeDetail() {
-  _detailState = null;
-  const ov = document.querySelector('.detail-overlay');
-  if (ov) ov.remove();
-}
-
-function emptyDraft() {
-  return { type: '', inst: '', outcome: '', date: todayKey(), ending: '', rating: '', note: '' };
-}
-
-function buildDetail() {
-  document.querySelectorAll('.detail-overlay').forEach(el => el.remove());
-  if (!_detailState) return;
-  const found = findGameAnywhere(_detailState.gameId);
-  if (!found) { _detailState = null; return; }
-  const game = found.game;
-  const parsed = parsePlatform(game.name);
-
-  const overlay = document.createElement('div');
-  overlay.className = 'detail-overlay';
-  overlay.onclick = (e) => { if (e.target === overlay) closeDetail(); };
-
-  const card = document.createElement('div');
-  card.className = 'detail-card';
-  overlay.appendChild(card);
-
-  // ---- Head ----
-  const head = document.createElement('div');
-  head.className = 'detail-head';
-  const title = document.createElement('div');
-  title.className = 'detail-title';
-  title.textContent = parsed.base;
-  head.appendChild(title);
-  if (parsed.platform) {
-    const plat = document.createElement('div');
-    plat.className = 'detail-plat';
-    plat.textContent = parsed.platform;
-    head.appendChild(plat);
-  }
-  const close = document.createElement('div');
-  close.className = 'detail-close';
-  close.textContent = '×';
-  close.onclick = closeDetail;
-  head.appendChild(close);
-  card.appendChild(head);
-
-  // ---- Meta: flat tags (multi-select) ----
-  card.appendChild(buildTagEditor(game));
-
-  // ---- Milestones ----
-  const label = document.createElement('div');
-  label.className = 'detail-section-label';
-  label.textContent = '里程碑';
-  card.appendChild(label);
-
-  const list = document.createElement('div');
-  list.className = 'ms-list';
-  const ms = (game.milestones || []).slice().sort((a, b) => (a.date || '') < (b.date || '') ? 1 : -1);
-  if (ms.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'ms-empty';
-    empty.textContent = '还没有里程碑';
-    list.appendChild(empty);
-  } else {
-    ms.forEach(m => list.appendChild(buildMilestoneRow(game.id, m)));
-  }
-  card.appendChild(list);
-
-  // ---- Add / edit form, or add button ----
-  if (_detailState.mode === 'add' || _detailState.mode === 'edit') {
-    card.appendChild(buildMilestoneForm(game.id));
-  } else {
-    const addBtn = document.createElement('button');
-    addBtn.className = 'ms-add-btn';
-    addBtn.textContent = '＋ 记一条里程碑';
-    addBtn.onclick = () => { _detailState.mode = 'add'; _detailState.editId = null; _detailState.draft = emptyDraft(); buildDetail(); };
-    card.appendChild(addBtn);
-  }
-
-  document.body.appendChild(overlay);
-}
-
-function buildTagEditor(game) {
-  const wrap = document.createElement('div');
-  wrap.className = 'detail-meta';
-  const tags = Array.isArray(game.tags) ? game.tags : [];
-  tags.forEach(t => {
-    const chip = document.createElement('div');
-    chip.className = 'detail-tag tag-chip';
-    const lab = document.createElement('span'); lab.textContent = t; chip.appendChild(lab);
-    const x = document.createElement('span'); x.className = 'tag-x'; x.textContent = '✕';
-    x.onclick = (e) => { e.stopPropagation(); removeGameTag(game.id, t); buildDetail(); };
-    chip.appendChild(x);
-    wrap.appendChild(chip);
-  });
-  const add = document.createElement('div');
-  add.className = 'detail-tag empty';
-  add.textContent = tags.length ? '＋' : '＋ 标签';
-  add.onclick = (e) => { e.stopPropagation(); showTagPalette(add, game); };
-  wrap.appendChild(add);
-  return wrap;
-}
-
-// Multi-select tag palette: every tag in the pool as a toggle chip (selected =
-// filled). Stays open so several can be toggled in a row; closing syncs the card.
-// "New tag" is entered inline inside the panel so it never steals focus/dismisses.
-function showTagPalette(anchorEl, game) {
-  closePicker();
-  const host = document.getElementById('picker-host');
-  const menu = document.createElement('div');
-  menu.className = 'picker-menu tag-palette';
-
-  const renderPalette = () => {
-    menu.innerHTML = '';
-    const selected = Array.isArray(game.tags) ? game.tags : [];
-    const grid = document.createElement('div');
-    grid.className = 'tag-palette-grid';
-    const pool = tagList();
-    if (pool.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'tp-empty';
-      empty.textContent = '还没有标签，先新增一个吧';
-      grid.appendChild(empty);
-    }
-    pool.forEach(t => {
-      const on = selected.indexOf(t) !== -1;
-      const chip = document.createElement('div');
-      chip.className = 'tp-chip' + (on ? ' on' : '');
-      chip.textContent = t;
-      chip.onclick = (e) => {
-        e.stopPropagation();
-        if (on) removeGameTag(game.id, t); else addGameTag(game.id, t);
-        renderPalette();
-      };
-      grid.appendChild(chip);
-    });
-    menu.appendChild(grid);
-
-    const addNew = document.createElement('div');
-    addNew.className = 'picker-item tp-add';
-    addNew.innerHTML = '<span>＋ 新增标签…</span>';
-    addNew.onclick = (e) => {
-      e.stopPropagation();
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'tp-add-input';
-      input.placeholder = '新标签…';
-      let done = false;
-      const commit = (save) => {
-        if (done) return; done = true;
-        const v = input.value.trim();
-        if (save && v) { addToConfigList('tagList', v); addGameTag(game.id, v); }
-        renderPalette();
-      };
-      input.onkeydown = (ev) => {
-        ev.stopPropagation();
-        if (ev.key === 'Enter') commit(true);
-        else if (ev.key === 'Escape') commit(false);
-      };
-      input.onclick = (ev) => ev.stopPropagation();
-      input.onblur = () => commit(true);
-      menu.replaceChild(input, addNew);
-      setTimeout(() => input.focus(), 0);
-    };
-    menu.appendChild(addNew);
-  };
-  renderPalette();
-  host.appendChild(menu);
-
-  // Position: below the anchor, flip up if it would overflow, clamp to viewport.
-  const rect = anchorEl.getBoundingClientRect();
-  const mw = menu.offsetWidth, mh = menu.offsetHeight;
-  let top = rect.bottom + 6, left = rect.left;
-  if (left + mw > window.innerWidth - 12) left = window.innerWidth - mw - 12;
-  if (left < 12) left = 12;
-  if (top + mh > window.innerHeight - 12) top = Math.max(12, rect.top - mh - 6);
-  menu.style.top = top + 'px';
-  menu.style.left = left + 'px';
-
-  // Dismiss on outside click / Escape; refresh the card's chips on close.
-  const onDocClick = (e) => { if (!menu.contains(e.target)) closePicker(); };
-  const onKey = (e) => { if (e.key === 'Escape') closePicker(); };
-  setTimeout(() => {
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onKey);
-  }, 0);
-  menu._cleanup = () => {
-    document.removeEventListener('mousedown', onDocClick);
-    document.removeEventListener('keydown', onKey);
-    buildDetail();
-  };
-}
-
-function addGameTag(gameId, tag) {
-  tag = (tag || '').trim(); if (!tag) return;
-  const found = findGameAnywhere(gameId); if (!found) return;
-  if (!Array.isArray(found.game.tags)) found.game.tags = [];
-  if (found.game.tags.indexOf(tag) === -1) { found.game.tags.push(tag); scheduleSave(); }
-}
-function removeGameTag(gameId, tag) {
-  const found = findGameAnywhere(gameId); if (!found) return;
-  if (Array.isArray(found.game.tags)) found.game.tags = found.game.tags.filter(t => t !== tag);
-  scheduleSave();
-}
-
-// Inline "add new option" input (custom, no native prompt)
-function promptNewValue(anchor, listKey, onDone) {
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'mf-inline-add';
-  input.style.cssText = 'position:absolute;z-index:700;border:1px solid var(--accent);background:var(--bg);border-radius:9px;padding:7px 9px;font-family:var(--body-font);font-size:13px;color:var(--text);min-width:140px;';
-  const r = anchor.getBoundingClientRect();
-  input.style.left = r.left + 'px';
-  input.style.top = (r.bottom + 6) + 'px';
-  let done = false;
-  const commit = (save) => {
-    if (done) return; done = true;
-    const v = input.value.trim();
-    input.remove();
-    if (save && v) { addToConfigList(listKey, v); onDone(v); }
-  };
-  input.onkeydown = (e) => { if (e.key === 'Enter') commit(true); else if (e.key === 'Escape') commit(false); };
-  input.onblur = () => commit(true);
-  document.body.appendChild(input);
-  setTimeout(() => input.focus(), 0);
-}
-
-function buildMilestoneRow(gameId, m) {
-  const row = document.createElement('div');
-  row.className = 'ms-row';
-
-  const main = document.createElement('div');
-  main.className = 'ms-main';
-
-  const headline = document.createElement('div');
-  headline.className = 'ms-headline';
-  const type = document.createElement('span');
-  type.className = 'ms-type';
-  type.textContent = m.type || '—';
-  headline.appendChild(type);
-  if (m.inst) {
-    const inst = document.createElement('span');
-    inst.className = 'ms-inst';
-    inst.textContent = '· ' + m.inst;
-    headline.appendChild(inst);
-  }
-  main.appendChild(headline);
-
-  const sub = document.createElement('div');
-  sub.className = 'ms-sub';
-  if (m.outcome) {
-    const pill = document.createElement('span');
-    pill.className = 'status-pill';
-    pill.dataset.status = m.outcome;
-    pill.textContent = TIER2_COMPLETION_LABELS[m.outcome] || m.outcome;
-    sub.appendChild(pill);
-  }
-  if (m.ending) { const e = document.createElement('span'); e.textContent = m.ending; sub.appendChild(e); }
-  if (m.date) { const d = document.createElement('span'); d.className = 'ms-date'; d.textContent = '◷ ' + m.date; sub.appendChild(d); }
-  if (m.rating !== '' && m.rating != null) { const r = document.createElement('span'); r.className = 'ms-rating'; r.textContent = '★ ' + m.rating; sub.appendChild(r); }
-  main.appendChild(sub);
-  if (m.note) { const n = document.createElement('div'); n.className = 'ms-note'; n.textContent = m.note; main.appendChild(n); }
-
-  row.appendChild(main);
-
-  const actions = document.createElement('div');
-  actions.className = 'ms-row-actions';
-  const edit = document.createElement('span');
-  edit.className = 'ms-act'; edit.textContent = '✎'; edit.title = '编辑';
-  edit.onclick = () => { _detailState.mode = 'edit'; _detailState.editId = m.id; _detailState.draft = Object.assign(emptyDraft(), m); buildDetail(); };
-  actions.appendChild(edit);
-  const del = document.createElement('span');
-  del.className = 'ms-act del'; del.textContent = '🗑'; del.title = '删除';
-  del.onclick = () => deleteMilestone(gameId, m.id);
-  actions.appendChild(del);
-  row.appendChild(actions);
-
-  return row;
-}
-
-function buildMilestoneForm(gameId) {
-  const d = _detailState.draft || emptyDraft();
-  const form = document.createElement('div');
-  form.className = 'ms-form';
-
-  // Row 1: 类型 + outcome
-  const row1 = document.createElement('div');
-  row1.className = 'mf-row';
-  row1.appendChild(makePickField('类型', d.type, '选类型', nodeTypes(), 'nodeTypes', v => { d.type = v; }));
-  const outcomeItems = ['beaten', 'completed', 'sated', 'abandoned'];
-  row1.appendChild(makePickField('了结', d.outcome ? (TIER2_COMPLETION_LABELS[d.outcome] || d.outcome) : '', '选了结', outcomeItems.map(o => TIER2_COMPLETION_LABELS[o]), null,
-    label => { const k = outcomeItems.find(o => TIER2_COMPLETION_LABELS[o] === label); d.outcome = k || ''; }, true));
-  form.appendChild(row1);
-
-  // Row 2: 具体 + 到达日期
-  const row2 = document.createElement('div');
-  row2.className = 'mf-row';
-  row2.appendChild(makeInputField('具体（线路/章节，可空）', d.inst, 'YYYY 例：艾伦线', v => { d.inst = v; }));
-  row2.appendChild(makeInputField('到达日期', d.date, 'YYYY-MM-DD', v => { d.date = v; }));
-  form.appendChild(row2);
-
-  // Row 3: 结局名 + 评分
-  const row3 = document.createElement('div');
-  row3.className = 'mf-row';
-  row3.appendChild(makeInputField('结局名（乙女，可空）', d.ending, '例：Best End', v => { d.ending = v; }));
-  row3.appendChild(makeInputField('评分（可空 0–10）', d.rating, '8.5', v => { d.rating = v; }));
-  form.appendChild(row3);
-
-  // Row 4: note
-  const row4 = document.createElement('div');
-  row4.className = 'mf-row';
-  row4.appendChild(makeInputField('备注（可空）', d.note, '', v => { d.note = v; }));
-  form.appendChild(row4);
-
-  // Actions
-  const actions = document.createElement('div');
-  actions.className = 'ms-form-actions';
-  const cancel = document.createElement('button');
-  cancel.className = 'mf-btn ghost'; cancel.textContent = '取消';
-  cancel.onclick = () => { _detailState.mode = 'view'; _detailState.editId = null; _detailState.draft = null; buildDetail(); };
-  actions.appendChild(cancel);
-  const save = document.createElement('button');
-  save.className = 'mf-btn primary'; save.textContent = '保存';
-  const valid = () => d.type && d.outcome && d.date;
-  save.disabled = !valid();
-  save.onclick = () => {
-    if (!valid()) return;
-    const payload = { type: d.type, inst: (d.inst || '').trim(), outcome: d.outcome, date: (d.date || '').trim(), ending: (d.ending || '').trim(), rating: (d.rating || '').toString().trim(), note: (d.note || '').trim() };
-    if (_detailState.mode === 'edit' && _detailState.editId) updateMilestone(gameId, _detailState.editId, payload);
-    else addMilestone(gameId, payload);
-    _detailState.mode = 'view'; _detailState.editId = null; _detailState.draft = null;
-    buildDetail(); smoothRender();
-  };
-  actions.appendChild(save);
-  form.appendChild(actions);
-
-  // keep draft + re-validate save button live
-  _detailState.draft = d;
-  form.addEventListener('input', () => { save.disabled = !valid(); });
-  return form;
-}
-
-function makePickField(labelText, current, placeholder, list, listKey, onPick, isOutcome) {
-  const wrap = document.createElement('div');
-  wrap.className = 'ms-field';
-  const lab = document.createElement('label'); lab.textContent = labelText; wrap.appendChild(lab);
-  const pick = document.createElement('div');
-  pick.className = 'mf-pick' + (current ? '' : ' empty');
-  pick.innerHTML = `<span>${escapeHtml(current || placeholder)}</span><span style="color:var(--text-faint)">▾</span>`;
-  pick.onclick = () => {
-    const items = list.map(v => ({ value: v, label: v }));
-    if (listKey) items.push({ value: '__add__', label: '＋ 新增…' });
-    showPicker(pick, items, current, v => {
-      if (v === '__add__') { promptNewValue(pick, listKey, nv => { onPick(nv); pick.querySelector('span').textContent = nv; pick.classList.remove('empty'); }); return; }
-      onPick(v);
-      pick.querySelector('span').textContent = v;
-      pick.classList.toggle('empty', !v);
-      pick.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-  };
-  wrap.appendChild(pick);
-  return wrap;
-}
-
-function makeInputField(labelText, value, placeholder, onInput) {
-  const wrap = document.createElement('div');
-  wrap.className = 'ms-field';
-  const lab = document.createElement('label'); lab.textContent = labelText; wrap.appendChild(lab);
-  const input = document.createElement('input');
-  input.type = 'text'; input.value = value || ''; input.placeholder = placeholder || '';
-  input.oninput = () => onInput(input.value);
-  wrap.appendChild(input);
-  return wrap;
-}
-
-// ============================================================
-// Journey view (历程) — four surfaces over the same milestone set
-//   列表 list · 陈列 shelf · 长河 river · 星图 star
-// ============================================================
-let journeyOpen = false;
-let _journeyFilter = { type: '', outcome: '', tag: '' };
-
-function journeyView() {
-  const v = state.config.journeyView;
-  return (v === 'shelf' || v === 'river' || v === 'star') ? v : 'list';
-}
-function setJourneyView(v) { state.config.journeyView = v; scheduleSave(); render(); }
-
-function openJourney() { journeyOpen = true; reviewOpen = false; _journeyFilter = { type: '', outcome: '', tag: '' }; render(); }
-function closeJourney() { journeyOpen = false; render(); }
-
-// Stable warm color per game (cross-refresh consistent) — drives river/star/shelf accents.
-const GAME_PALETTE = ['#d2856b', '#c79a5b', '#b8763e', '#cf9f6f', '#bb8a6a', '#c98a7d', '#a98c5a', '#d0a07a', '#b5705a', '#c2a06b'];
-function gameColor(id) {
-  let h = 0; const s = id || '';
-  for (let k = 0; k < s.length; k++) h = (h * 31 + s.charCodeAt(k)) >>> 0;
-  return GAME_PALETTE[h % GAME_PALETTE.length];
-}
-
-// TIME colour — shares the review page's macaron ring. The unifying language for
-// anything that marks a moment in time (month capsules, shelf accents).
-function timeColorRGB(y, m, d, factor) {
-  const mc = (typeof rvMacaron === 'function') ? rvMacaron(rvWeekT(new Date(y, m - 1, d))) : [184, 118, 62];
-  const f = (factor == null) ? 1 : factor;
-  return `rgb(${Math.round(mc[0] * f)},${Math.round(mc[1] * f)},${Math.round(mc[2] * f)})`;
-}
-// A month marker: time-coloured capsule (月) + year underneath/beside. Shared by
-// list / river / star so every view speaks the same month language.
-function makeMonthCapsule(ym, vertical) {
-  const p = (ym || '').split('-').map(Number);
-  const wrap = document.createElement('div');
-  wrap.className = 'month-cap-wrap' + (vertical ? ' vert' : '');
-  const cap = document.createElement('div');
-  cap.className = 'month-cap';
-  cap.style.background = timeColorRGB(p[0], p[1], 15, 0.66);
-  cap.textContent = p[1] + '月';
-  wrap.appendChild(cap);
-  const yr = document.createElement('div');
-  yr.className = 'month-cap-year'; yr.textContent = p[0];
-  wrap.appendChild(yr);
-  return wrap;
-}
-// Outcome fill for the star calendar (saturated forms of the pill palette).
-const OUTCOME_FILL = {
-  beaten: 'rgba(228,193,105,0.92)',
-  completed: 'rgba(196,178,224,0.95)',
-  sated: 'rgba(168,190,220,0.9)',
-  abandoned: 'rgba(168,160,148,0.7)'
-};
-
-function collectMilestones() {
-  const out = [];
-  ['tier1', 'tier2', 'tier3'].forEach(tier => {
-    state.config[tier].forEach(g => {
-      if (g.hidden) return;
-      (g.milestones || []).forEach(m => {
-        out.push({ gameId: g.id, gameName: parsePlatform(g.name).base, platform: parsePlatform(g.name).platform, tags: Array.isArray(g.tags) ? g.tags : [], type: m.type || '', inst: m.inst || '', outcome: m.outcome || '', date: m.date || '', ending: m.ending || '', rating: m.rating, note: m.note || '', overall: (g.milestones || []).some(z => FINISHING_TYPES.indexOf(z.type) !== -1) });
-      });
-    });
-  });
-  return out;
-}
-
-function renderJourney() {
-  const root = document.getElementById('root');
-  root.innerHTML = '';
-
-  // ---- Header ----
-  const head = document.createElement('div');
-  head.className = 'journey-head narrow';
-  const back = document.createElement('span');
-  back.className = 'journey-back'; back.textContent = '‹ 返回';
-  back.onclick = closeJourney;
-  head.appendChild(back);
-  const title = document.createElement('div');
-  title.className = 'journey-title'; title.textContent = '历程';
-  head.appendChild(title);
-  root.appendChild(head);
-
-  const all = collectMilestones();
-  const view = journeyView();
-
-  // ---- View switcher ----
-  const switcher = document.createElement('div');
-  switcher.className = 'journey-switcher narrow';
-  [['list', '列表'], ['shelf', '陈列'], ['river', '长河'], ['star', '星图']].forEach(([v, label]) => {
-    const seg = document.createElement('span');
-    seg.className = 'jv-seg' + (view === v ? ' active' : '');
-    seg.textContent = label;
-    seg.onclick = () => { if (view !== v) setJourneyView(v); };
-    switcher.appendChild(seg);
-  });
-  root.appendChild(switcher);
-
-  // ---- Filters (shared) ----
-  const distinct = (key) => [...new Set(all.map(x => x[key]).filter(Boolean))];
-  const distinctTags = [...new Set(all.flatMap(x => x.tags || []))];
-  const filtersWrap = document.createElement('div');
-  filtersWrap.className = 'narrow';
-  const addFilterRow = (labelText, key, values, labelFn) => {
-    if (values.length < 2) return;
-    const rowEl = document.createElement('div');
-    rowEl.className = 'journey-filters';
-    const gl = document.createElement('span'); gl.className = 'jf-group-label'; gl.textContent = labelText; rowEl.appendChild(gl);
-    const mk = (val, text) => {
-      const chip = document.createElement('span');
-      chip.className = 'jf-chip' + (_journeyFilter[key] === val ? ' active' : '');
-      chip.textContent = text;
-      chip.onclick = () => { _journeyFilter[key] = (_journeyFilter[key] === val ? '' : val); render(); };
-      return chip;
-    };
-    rowEl.appendChild(mk('', '全部'));
-    values.forEach(v => rowEl.appendChild(mk(v, labelFn ? labelFn(v) : v)));
-    filtersWrap.appendChild(rowEl);
-  };
-  addFilterRow('类型', 'type', distinct('type'));
-  addFilterRow('了结', 'outcome', distinct('outcome'), o => TIER2_COMPLETION_LABELS[o] || o);
-  addFilterRow('标签', 'tag', distinctTags);
-  root.appendChild(filtersWrap);
-
-  const match = x =>
-    (!_journeyFilter.type || x.type === _journeyFilter.type) &&
-    (!_journeyFilter.outcome || x.outcome === _journeyFilter.outcome) &&
-    (!_journeyFilter.tag || (x.tags || []).indexOf(_journeyFilter.tag) !== -1);
-
-  // ---- Body (per view) ----
-  const body = document.createElement('div');
-  body.className = 'narrow journey-body';
-  root.appendChild(body);
-
-  if (all.length === 0) { journeyEmpty(body, '还没有里程碑'); return; }
-
-  if (view === 'list') renderJList(body, all.filter(match).sort(byDateDesc));
-  else if (view === 'shelf') renderJShelf(body, all, match);
-  else if (view === 'river') renderJRiver(body, all.filter(match).sort(byDateDesc));
-  else if (view === 'star') renderJStar(body, all.filter(match));
-}
-
-function byDateDesc(a, b) { return (a.date || '') < (b.date || '') ? 1 : -1; }
-function journeyEmpty(container, msg) {
-  const e = document.createElement('div'); e.className = 'jr-empty'; e.textContent = msg;
-  container.appendChild(e);
-}
-function outcomePill(outcome) {
-  const pill = document.createElement('span');
-  pill.className = 'status-pill'; pill.dataset.status = outcome;
-  pill.textContent = TIER2_COMPLETION_LABELS[outcome] || outcome;
-  return pill;
-}
-
-// ---- 列表 ----
-function renderJList(container, rows) {
-  if (rows.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
-  let curMonth = null;
-  rows.forEach(x => {
-    const month = (x.date || '????-??').slice(0, 7);
-    if (month !== curMonth) {
-      curMonth = month;
-      const mh = makeMonthCapsule(month, false); mh.classList.add('jlist-month');
-      container.appendChild(mh);
-    }
-    const row = document.createElement('div');
-    row.className = 'journey-row';
-    row.onclick = () => openDetail(x.gameId);
-    const date = document.createElement('div'); date.className = 'jr-date'; date.textContent = (x.date || '').slice(5);
-    row.appendChild(date);
-    const mid = document.createElement('div'); mid.className = 'jr-mid';
-    const gn = document.createElement('div'); gn.className = 'jr-game'; gn.textContent = x.gameName; mid.appendChild(gn);
-    const node = document.createElement('div'); node.className = 'jr-node';
-    let txt = x.type || ''; if (x.inst) txt += ' · ' + x.inst;
-    const ts = document.createElement('span'); ts.textContent = txt; node.appendChild(ts);
-    if (x.ending) { const e = document.createElement('span'); e.textContent = x.ending; node.appendChild(e); }
-    if (x.rating !== '' && x.rating != null) { const r = document.createElement('span'); r.className = 'ms-rating'; r.textContent = '★ ' + x.rating; node.appendChild(r); }
-    mid.appendChild(node); row.appendChild(mid);
-    if (x.outcome) row.appendChild(outcomePill(x.outcome));
-    container.appendChild(row);
-  });
-}
-
-// ---- 陈列 (奖杯墙) — game-level; whole card qualifies if any node matches ----
-function renderJShelf(container, all, match) {
-  const byGame = {};
-  all.forEach(x => {
-    if (!byGame[x.gameId]) byGame[x.gameId] = { id: x.gameId, name: x.gameName, platform: x.platform, tags: x.tags || [], overall: x.overall, nodes: [] };
-    byGame[x.gameId].nodes.push(x);
-  });
-  let games = Object.values(byGame).filter(g => g.nodes.some(match));
-  if (games.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
-  games.forEach(g => g.nodes.sort(byDateDesc));
-  games.sort((a, b) => (a.nodes[0].date || '') < (b.nodes[0].date || '') ? 1 : -1);
-
-  const grid = document.createElement('div'); grid.className = 'shelf-grid';
-  games.forEach(g => {
-    const card = document.createElement('div');
-    card.className = 'shelf-card';
-    const rd = (g.nodes[0] && g.nodes[0].date ? g.nodes[0].date : '').split('-').map(Number);
-    card.style.setProperty('--gc', rd.length === 3 ? timeColorRGB(rd[0], rd[1], rd[2], 0.9) : 'var(--accent)');
-    card.onclick = () => openDetail(g.id);
-
-    const top = document.createElement('div'); top.className = 'shelf-top';
-    const nm = document.createElement('div'); nm.className = 'shelf-name'; nm.textContent = g.name; top.appendChild(nm);
-    const years = [...new Set(g.nodes.map(n => (n.date || '').slice(0, 4)).filter(Boolean))].sort();
-    if (years.length) { const yr = document.createElement('span'); yr.className = 'shelf-year'; yr.textContent = years.length === 1 ? years[0] : years[0] + '–' + years[years.length - 1]; top.appendChild(yr); }
-    if (g.overall) { const seal = document.createElement('span'); seal.className = 'shelf-seal'; seal.textContent = '✦'; seal.title = '已通关'; top.appendChild(seal); }
-    card.appendChild(top);
-
-    if (g.platform || (g.tags && g.tags.length)) {
-      const tags = document.createElement('div'); tags.className = 'shelf-tags';
-      [...(g.tags || []), g.platform].filter(Boolean).forEach(t => { const s = document.createElement('span'); s.className = 'shelf-tag'; s.textContent = t; tags.appendChild(s); });
-      card.appendChild(tags);
-    }
-
-    const badges = document.createElement('div'); badges.className = 'shelf-badges';
-    g.nodes.forEach(n => {
-      const b = document.createElement('div'); b.className = 'shelf-badge'; b.dataset.status = n.outcome;
-      let label = n.type || ''; if (n.inst) label += ' · ' + n.inst; if (n.ending) label += ' · ' + n.ending;
-      const t = document.createElement('span'); t.className = 'sb-label'; t.textContent = label; b.appendChild(t);
-      const d = document.createElement('span'); d.className = 'sb-date'; d.textContent = (n.date || '').slice(5); b.appendChild(d);
-      badges.appendChild(b);
-    });
-    card.appendChild(badges);
-    grid.appendChild(card);
-  });
-  container.appendChild(grid);
-}
-
-// ---- 长河 (时间线) — fixed-height rows + SVG rail, same-game dots strung in color ----
-function renderJRiver(container, rows) {
-  if (rows.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
-  // Layout columns: [month gutter][rail][content]
-  const RH = 66, GUTTER = 58, RAIL = 20, DOTX = 10, CONTENT_LEFT = GUTTER + RAIL;
-  const wrap = document.createElement('div'); wrap.className = 'river-wrap'; wrap.style.height = (rows.length * RH) + 'px';
-
-  // SVG rail sits right of the month gutter
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('class', 'river-svg');
-  svg.setAttribute('width', RAIL); svg.setAttribute('height', rows.length * RH);
-  svg.style.left = GUTTER + 'px';
-
-  const byGame = {};
-  rows.forEach((x, i) => { (byGame[x.gameId] = byGame[x.gameId] || []).push(i); });
-  Object.keys(byGame).forEach(gid => {
-    const idxs = byGame[gid]; if (idxs.length < 2) return;
-    let d = '';
-    idxs.forEach((i, k) => { d += (k === 0 ? 'M' : 'L') + DOTX + ' ' + (i * RH + RH / 2) + ' '; });
-    const path = document.createElementNS(svgNS, 'path');
-    path.setAttribute('d', d); path.setAttribute('stroke', gameColor(gid));
-    path.setAttribute('stroke-width', '1.6'); path.setAttribute('fill', 'none');
-    path.setAttribute('opacity', '0.4'); path.setAttribute('stroke-linecap', 'round');
-    svg.appendChild(path);
-  });
-  rows.forEach((x, i) => {
-    const c = document.createElementNS(svgNS, 'circle');
-    c.setAttribute('cx', DOTX); c.setAttribute('cy', i * RH + RH / 2); c.setAttribute('r', '4.5');
-    c.setAttribute('fill', gameColor(x.gameId)); c.setAttribute('stroke', 'var(--bg)'); c.setAttribute('stroke-width', '2');
-    svg.appendChild(c);
-  });
-  wrap.appendChild(svg);
-
-  // Month markers: own left column — a TIME-coloured capsule (shares the review
-  // page's macaron ring, so month = a colour) + the year underneath, faint.
-  let curMonth = null;
-  rows.forEach((x, i) => {
-    const month = (x.date || '').slice(0, 7);
-    if (month !== curMonth) {
-      curMonth = month;
-      const ml = document.createElement('div'); ml.className = 'river-month';
-      ml.style.top = (i * RH) + 'px'; ml.style.height = RH + 'px'; ml.style.width = GUTTER + 'px';
-      ml.appendChild(makeMonthCapsule(month, true));
-      wrap.appendChild(ml);
-    }
-  });
-
-  // Content rows, right of the rail
-  rows.forEach((x, i) => {
-    const row = document.createElement('div');
-    row.className = 'river-row'; row.style.top = (i * RH) + 'px'; row.style.height = RH + 'px'; row.style.left = CONTENT_LEFT + 'px';
-    row.onclick = () => openDetail(x.gameId);
-    const date = document.createElement('div'); date.className = 'river-date'; date.textContent = (x.date || '').slice(5); row.appendChild(date);
-    const gn = document.createElement('div'); gn.className = 'river-game'; gn.textContent = x.gameName; row.appendChild(gn);
-    const node = document.createElement('div'); node.className = 'river-node';
-    let txt = x.type || ''; if (x.inst) txt += ' · ' + x.inst; if (x.ending) txt += ' · ' + x.ending;
-    const ts = document.createElement('span'); ts.textContent = txt; node.appendChild(ts);
-    if (x.outcome) node.appendChild(outcomePill(x.outcome));
-    row.appendChild(node);
-    wrap.appendChild(row);
-  });
-  container.appendChild(wrap);
-}
-
-// ---- 星图 (到达热力) — calendar echo of the heartbeat heatmap; lit days = reaches ----
-function renderJStar(container, nodes) {
-  if (nodes.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
-  const byDate = {};
-  nodes.forEach(x => { if (x.date) (byDate[x.date] = byDate[x.date] || []).push(x); });
-  const months = [...new Set(nodes.map(x => (x.date || '').slice(0, 7)).filter(Boolean))].sort();
-  const grid = document.createElement('div'); grid.className = 'star-months';
-  months.forEach(ym => grid.appendChild(buildStarMonth(ym, byDate)));
-  container.appendChild(grid);
-
-  // legend
-  const legend = document.createElement('div'); legend.className = 'star-legend';
-  ['beaten', 'completed', 'sated', 'abandoned'].forEach(o => {
-    const item = document.createElement('span'); item.className = 'star-legend-item';
-    const dot = document.createElement('span'); dot.className = 'star-legend-dot'; dot.style.background = OUTCOME_FILL[o];
-    item.appendChild(dot);
-    const t = document.createElement('span'); t.textContent = TIER2_COMPLETION_LABELS[o]; item.appendChild(t);
-    legend.appendChild(item);
-  });
-  container.appendChild(legend);
-}
-
-function buildStarMonth(ym, byDate) {
-  const [y, m] = ym.split('-').map(Number);
-  const wrap = document.createElement('div'); wrap.className = 'star-month';
-  const label = makeMonthCapsule(ym, false); label.classList.add('star-month-cap'); wrap.appendChild(label);
-
-  const grid = document.createElement('div'); grid.className = 'star-grid';
-  ['一', '二', '三', '四', '五', '六', '日'].forEach(w => { const h = document.createElement('div'); h.className = 'star-wd'; h.textContent = w; grid.appendChild(h); });
-
-  const firstWd = new Date(y, m - 1, 1).getDay();      // 0=Sun
-  const lead = (firstWd + 6) % 7;                        // Monday-first
-  const days = new Date(y, m, 0).getDate();
-  for (let i = 0; i < lead; i++) { const c = document.createElement('div'); c.className = 'star-cell empty'; grid.appendChild(c); }
-  for (let d = 1; d <= days; d++) {
-    const key = ym + '-' + String(d).padStart(2, '0');
-    const cell = document.createElement('div'); cell.className = 'star-cell';
-    const hits = byDate[key];
-    if (hits && hits.length) {
-      const top = hits.slice().sort((a, b) => (OUTCOME_RANK[b.outcome] || 0) - (OUTCOME_RANK[a.outcome] || 0))[0];
-      cell.classList.add('lit');
-      cell.style.background = OUTCOME_FILL[top.outcome] || 'var(--accent)';
-      cell.title = hits.map(h => h.gameName + ' · ' + h.type + (h.inst ? '·' + h.inst : '')).join('\n');
-      if (hits.length > 1) { const n = document.createElement('span'); n.className = 'star-n'; n.textContent = hits.length; cell.appendChild(n); }
-      cell.onclick = () => openDetail(top.gameId);
-    }
-    const num = document.createElement('span'); num.className = 'star-num'; num.textContent = d; cell.appendChild(num);
-    grid.appendChild(cell);
-  }
-  wrap.appendChild(grid);
-  return wrap;
-}
-
-// ============================================================
-// SORT ENGINE — per-group sort chains, presets, range-apply.
-// Reusable-ish: chain/comparator logic is decoupled from the DR-specific
-// group definitions so it could be lifted into other apps later.
-// ============================================================
-
-// The six sortable dimensions (real wording, Chinese to match the UI).
-const SORT_KEYS = [
-  { key: 'pinyin',    label: '拼音' },
-  { key: 'lastCheck', label: '上次打卡' },
-  { key: 'todayCheck',label: '打卡' },
-  { key: 'platform',  label: '平台' },
-  { key: 'added',     label: '加入时间' },
-  { key: 'lastMs',    label: '最近里程碑' },
-  { key: 'msCount',   label: '里程碑数' },
-  { key: 'extra',     label: '深入' },
-];
-function sortKeyLabel(k) { const f = SORT_KEYS.find(x => x.key === k); return f ? f.label : k; }
-
-// The five sortable groups. label uses the app's REAL wording.
-const GROUP_DEFS = [
-  { key: 'tier1',              tier: 'tier1', status: null,          label: 'Company' },
-  { key: 'tier2',              tier: 'tier2', status: null,          label: 'Playing' },
-  { key: 'tier3:up_next',     tier: 'tier3', status: 'up_next',     label: 'Up next' },
-  { key: 'tier3:considering', tier: 'tier3', status: 'considering', label: 'Considering' },
-  { key: 'tier3:backlog',     tier: 'tier3', status: 'backlog',     label: 'Backlog' },
-];
-function parseGroupKey(k) { const i = k.indexOf(':'); return i === -1 ? { tier: k, status: null } : { tier: k.slice(0, i), status: k.slice(i + 1) }; }
-function groupKeyOf(tier, game) { return tier === 'tier3' ? 'tier3:' + (game.status || 'considering') : tier; }
-
-// Each group's accent colour (CSS var) — used to tint its sort bar to match the region.
-const GROUP_NAME_VAR = {
-  'tier1': 'var(--day-name)',
-  'tier2': 'var(--play-name)',
-  'tier3:up_next': 'var(--up-name)',
-  'tier3:considering': 'var(--con-name)',
-  'tier3:backlog': 'var(--back-name)',
-};
-// Light summary of a chain for the collapsed state (labels only, e.g. "上次打卡 · 拼音").
-function chainSummary(chain) { return (chain || []).map(s => sortKeyLabel(s.key)).join(' · '); }
-
-// Per-group state lives in config (so it syncs and survives refresh). Idempotent.
-function ensureGroupSort(st) {
-  st = st || state;
-  if (!st || !st.config) return;
-  if (!st.config.groupSort) st.config.groupSort = {};
-  GROUP_DEFS.forEach(d => {
-    const g = st.config.groupSort[d.key];
-    if (!g) st.config.groupSort[d.key] = { chain: [], dirty: false, presets: [], barOpen: false };
-    else { if (!Array.isArray(g.chain)) g.chain = []; if (!Array.isArray(g.presets)) g.presets = []; if (typeof g.dirty !== 'boolean') g.dirty = false; if (typeof g.barOpen !== 'boolean') g.barOpen = false; }
-  });
-}
-function groupSortState(key) { ensureGroupSort(); return state.config.groupSort[key]; }
-
-// Which visible games belong to a group (hidden games are never sorted/moved).
-function memberPredicate(tier, status) {
-  if (tier === 'tier1') return g => !g.hidden;
-  if (tier === 'tier2') return g => !g.hidden && !g.completion;       // Playing = active tier2
-  return g => !g.hidden && (g.status || 'considering') === status;     // a roster status group
-}
-function groupMembers(tier, status) { return (state.config[tier] || []).filter(memberPredicate(tier, status)); }
-
-// Last day this game was checked in under ANY tier (it may have moved tiers).
-function lastCheckInDate(id) {
-  const dates = Object.keys(state.history || {}).sort().reverse();
-  for (const d of dates) {
-    const day = state.history[d]; if (!day) continue;
-    if ((day.tier1 && day.tier1[id] && day.tier1[id].checkedIn === true)
-      || (day.tier2 && day.tier2[id] === true)
-      || (day.tier3 && day.tier3[id] === true)) return d;
-  }
-  return '';
-}
-
-// Deep-play (深入): tier1 keeps it inline on the day record (legacy — feeds the star
-// calendar, untouched); tier2/tier3 use the per-day `day.extra` map. Single canonical read.
-function isDeepPlay(day, id) {
-  if (!day) return false;
-  if (day.tier1 && day.tier1[id] && day.tier1[id].extra) return true;
-  if (day.extra && day.extra[id]) return true;
-  return false;
-}
-// Checked-in (打卡) on a given day, across any tier.
-function isCheckedInOn(day, id) {
-  if (!day) return false;
-  return (day.tier1 && day.tier1[id] && day.tier1[id].checkedIn === true)
-      || (day.tier2 && day.tier2[id] === true)
-      || (day.tier3 && day.tier3[id] === true);
-}
-
-function gameSortValue(g, key) {
-  switch (key) {
-    case 'pinyin':    return parsePlatform(g.name).base || '';
-    case 'platform':  return parsePlatform(g.name).platform || '';
-    case 'added':     return g.createdAt || '';
-    case 'lastCheck': return lastCheckInDate(g.id) || '';
-    case 'todayCheck': { const d = state.history[viewDate]; return isCheckedInOn(d, g.id) ? 1 : 0; }
-    case 'lastMs':    return g.lastMilestone || '';
-    case 'msCount':   return (g.milestones || []).length;
-    case 'extra': {
-      const d = state.history[viewDate];
-      return isDeepPlay(d, g.id) ? 1 : 0;
-    }
-    default:          return '';
-  }
-}
-
-// Name collation: latin/numbers before CJK; within each, locale-aware. Same base
-// name → compares EQUAL, so identical titles never get split apart (they fall to
-// the next chain key, e.g. platform, and stay adjacent).
-function _firstChar(s) { const t = String(s).trim(); return t ? t[0] : ''; }
-function isLatinFirst(s) { return /[A-Za-z0-9]/.test(_firstChar(s)); }
-function collateName(a, b) {
-  const la = isLatinFirst(a), lb = isLatinFirst(b);
-  if (la !== lb) return la ? -1 : 1;
-  try { return String(a).localeCompare(String(b), la ? undefined : 'zh', { numeric: true, sensitivity: 'base' }); }
-  catch (e) { return a < b ? -1 : a > b ? 1 : 0; }
-}
-
-// Stable multi-level comparator. Empties (no platform / never checked / no
-// milestone) always sink to the bottom regardless of direction.
-function compareChain(a, b, chain) {
-  for (const step of (chain || [])) {
-    const key = step.key, dir = step.dir || 'asc';
-    const va = gameSortValue(a, key), vb = gameSortValue(b, key);
-    const numeric = (key === 'msCount' || key === 'extra' || key === 'todayCheck');
-    const ea = !numeric && (va === '' || va == null);
-    const eb = !numeric && (vb === '' || vb == null);
-    if (ea && eb) continue;
-    if (ea) return 1;
-    if (eb) return -1;
-    let cmp;
-    if (key === 'pinyin' || key === 'platform') cmp = collateName(String(va), String(vb));
-    else if (numeric) cmp = va - vb;
-    else cmp = va < vb ? -1 : va > vb ? 1 : 0;
-    if (cmp !== 0) return dir === 'desc' ? -cmp : cmp;
-  }
-  return 0;
-}
-
-// Write a desired id order back into config[tier], replacing only this group's
-// slots (hidden games / other statuses / finished stay put). Never throws: ids
-// not present are skipped; short/extra lists fall back to the original game.
-function reorderGroup(tier, status, sortedIds) {
-  const arr = state.config[tier] || [];
-  const inGroup = memberPredicate(tier, status);
-  const byId = new Map(arr.map(g => [g.id, g]));
-  const queue = sortedIds.filter(id => byId.has(id));
-  let qi = 0;
-  state.config[tier] = arr.map(g => inGroup(g) ? (byId.get(queue[qi++]) || g) : g);
-}
-
-// Apply a group's current chain → freeze the result into the array order.
-function applySortChain(groupKey) {
-  const gs = groupSortState(groupKey); const { tier, status } = parseGroupKey(groupKey);
-  const members = groupMembers(tier, status);
-  const sorted = members.slice().sort((a, b) => compareChain(a, b, gs.chain));
-  reorderGroup(tier, status, sorted.map(g => g.id));
-  gs.dirty = false; scheduleSave(); smoothRender();
-}
-
-// --- Sort-chip drag reorder: self-contained pointer/touch (does NOT touch the game
-// drag system). Tap a chip's label = toggle dir; drag a chip = reorder the chain. ---
-function chipDropIndex(bar, x) {
-  const chips = [...bar.querySelectorAll('.sort-chip:not(.drag-ghost-chip)')];
-  let idx = 0;
-  for (const c of chips) { const r = c.getBoundingClientRect(); if (x > r.left + r.width / 2) idx++; }
-  return idx;
-}
-function markChipDrop(bar, toIdx) {
-  const chips = [...bar.querySelectorAll('.sort-chip:not(.drag-ghost-chip)')];
-  chips.forEach(c => c.classList.remove('chip-drop-before', 'chip-drop-after'));
-  if (!chips.length) return;
-  if (toIdx >= chips.length) chips[chips.length - 1].classList.add('chip-drop-after');
-  else chips[toIdx].classList.add('chip-drop-before');
-}
-function chipReorder(groupKey, fromIdx, toIdx) {
-  const gs = groupSortState(groupKey);
-  if (!gs || !Array.isArray(gs.chain) || fromIdx < 0 || fromIdx >= gs.chain.length) { smoothRender(); return; }
-  let to = toIdx; if (to > fromIdx) to--;
-  to = Math.max(0, Math.min(to, gs.chain.length - 1));
-  if (to === fromIdx) { smoothRender(); return; }
-  const [item] = gs.chain.splice(fromIdx, 1);
-  gs.chain.splice(to, 0, item);
-  applySortChain(groupKey);
-}
-function attachChipDrag(chip, groupKey, fromIdx) {
-  const onDown = (e) => {
-    if (e.target.closest('.sort-chip-x')) return;
-    if (e.button !== undefined && e.button !== 0) return;
-    const pt = e.touches ? e.touches[0] : e;
-    const sx = pt.clientX, sy = pt.clientY;
-    const bar = chip.parentElement;
-    let dragging = false, ghost = null, lastX = sx;
-    chip._dragged = false;
-    const move = (ev) => {
-      const q = ev.touches ? ev.touches[0] : ev;
-      lastX = q.clientX;
-      if (!dragging) {
-        if (Math.hypot(q.clientX - sx, q.clientY - sy) < 6) return;
-        dragging = true; chip._dragged = true;
-        document.body.classList.add('dragging');
-        chip.classList.add('chip-dragging');
-        ghost = document.createElement('span');
-        ghost.className = 'sort-chip drag-ghost-chip';
-        const labEl = chip.querySelector('.sort-chip-lab');
-        ghost.innerHTML = labEl ? labEl.innerHTML : '';
-        document.body.appendChild(ghost);
-      }
-      ev.preventDefault();
-      ghost.style.left = (q.clientX + 10) + 'px';
-      ghost.style.top  = (q.clientY - 10) + 'px';
-      markChipDrop(bar, chipDropIndex(bar, lastX));
-    };
-    const up = () => {
-      document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
-      document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up); document.removeEventListener('touchcancel', up);
-      if (!dragging) return;
-      const toIdx = chipDropIndex(bar, lastX);
-      document.body.classList.remove('dragging');
-      chip.classList.remove('chip-dragging');
-      if (ghost) ghost.remove();
-      bar.querySelectorAll('.chip-drop-before, .chip-drop-after').forEach(c => c.classList.remove('chip-drop-before', 'chip-drop-after'));
-      chipReorder(groupKey, fromIdx, toIdx);
-    };
-    document.addEventListener('mousemove', move, { passive: false });
-    document.addEventListener('mouseup', up);
-    document.addEventListener('touchmove', move, { passive: false });
-    document.addEventListener('touchend', up);
-    document.addEventListener('touchcancel', up);
-  };
-  chip.addEventListener('mousedown', onDown);
-  chip.addEventListener('touchstart', onDown, { passive: false });
-}
-
-// Chain edits apply immediately (a human action → a fixed state).
-function chainAddKey(groupKey, key) { const gs = groupSortState(groupKey); if (gs.chain.some(s => s.key === key)) return; gs.chain.push({ key, dir: (key === 'extra' || key === 'todayCheck') ? 'desc' : 'asc' }); applySortChain(groupKey); }
-function chainToggleDir(groupKey, key) { const gs = groupSortState(groupKey); const s = gs.chain.find(x => x.key === key); if (s) { s.dir = s.dir === 'asc' ? 'desc' : 'asc'; applySortChain(groupKey); } }
-function chainRemoveKey(groupKey, key) { const gs = groupSortState(groupKey); gs.chain = gs.chain.filter(s => s.key !== key); applySortChain(groupKey); }
-function chainClear(groupKey) { const gs = groupSortState(groupKey); gs.chain = []; gs.dirty = false; scheduleSave(); smoothRender(); }
-
-// A manual drag breaks the chain → keep it but flag dirty (only if a chain exists).
-function markGroupDirtyByGame(tier, game) {
-  const key = groupKeyOf(tier, game);
-  const gs = state.config.groupSort && state.config.groupSort[key];
-  if (gs && Array.isArray(gs.chain) && gs.chain.length) gs.dirty = true;
-}
-
-// Copy ONE chain into many groups (independent copies) and apply to each.
-function applyChainToGroups(chain, groupKeys) {
-  groupKeys.forEach(k => {
-    const gs = groupSortState(k);
-    gs.chain = JSON.parse(JSON.stringify(chain || []));
-    const { tier, status } = parseGroupKey(k);
-    const sorted = groupMembers(tier, status).slice().sort((a, b) => compareChain(a, b, gs.chain));
-    reorderGroup(tier, status, sorted.map(g => g.id));
-    gs.dirty = false;
-  });
-  scheduleSave(); smoothRender();
-}
-
-// Presets: named order snapshots (id-order + the chain at save time), per group.
-function savePreset(groupKey, name) {
-  const gs = groupSortState(groupKey); const { tier, status } = parseGroupKey(groupKey);
-  const order = groupMembers(tier, status).map(g => g.id);
-  const id = 'ps_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  gs.presets.push({ id, name: (name || ('预设 ' + (gs.presets.length + 1))).trim(), order, chain: JSON.parse(JSON.stringify(gs.chain || [])) });
-  scheduleSave();
-  return id;
-}
-function deletePreset(groupKey, presetId) { const gs = groupSortState(groupKey); gs.presets = gs.presets.filter(p => p.id !== presetId); scheduleSave(); smoothRender(); }
-// Restore a (possibly stale) preset. Existing games → preset order; NEW games not
-// in the preset → placed via the preset's chain (else appended); deleted ids
-// ignored. Any uncertainty falls through to "append at end" — never errors.
-function applyPreset(groupKey, presetId) {
-  const gs = groupSortState(groupKey); const p = gs.presets.find(x => x.id === presetId); if (!p) return;
-  const { tier, status } = parseGroupKey(groupKey);
-  const members = groupMembers(tier, status);
-  const memberIds = new Set(members.map(g => g.id));
-  const inPreset = new Set(p.order);
-  const ordered = p.order.filter(id => memberIds.has(id));
-  const missing = members.filter(g => !inPreset.has(g.id));
-  let tail;
-  if (p.chain && p.chain.length) tail = missing.slice().sort((a, b) => compareChain(a, b, p.chain)).map(g => g.id);
-  else tail = missing.map(g => g.id);
-  reorderGroup(tier, status, ordered.concat(tail));
-  gs.chain = JSON.parse(JSON.stringify(p.chain || []));
-  gs.dirty = false; scheduleSave(); smoothRender();
-}
-
-// ============================================================
-// SORT UI — the per-group sort bar (chips + presets + range apply).
-// ============================================================
-
-// Generic text-input popover (mirrors promptNewValue but not config-coupled).
-function promptText(anchor, placeholder, onDone) {
-  const input = document.createElement('input');
-  input.type = 'text'; input.className = 'mf-inline-add'; input.placeholder = placeholder || '';
-  input.style.cssText = 'position:absolute;z-index:700;border:1px solid var(--accent);background:var(--bg);border-radius:9px;padding:7px 9px;font-family:var(--body-font);font-size:13px;color:var(--text);min-width:160px;';
-  const r = anchor.getBoundingClientRect();
-  input.style.left = Math.min(r.left, window.innerWidth - 180) + 'px';
-  input.style.top = (r.bottom + 6) + 'px';
-  let done = false;
-  const commit = (save) => { if (done) return; done = true; const v = input.value.trim(); input.remove(); if (save && v) onDone(v); };
-  input.onkeydown = (e) => { if (e.key === 'Enter') commit(true); else if (e.key === 'Escape') commit(false); };
-  input.onblur = () => commit(true);
-  document.body.appendChild(input);
-  setTimeout(() => input.focus(), 0);
-}
-
-// A custom popover that reuses the picker host + dismiss behaviour.
-function customPopover(anchor, build) {
-  closePicker();
-  const host = document.getElementById('picker-host');
-  const menu = document.createElement('div'); menu.className = 'picker-menu';
-  build(menu, () => closePicker());
-  host.appendChild(menu);
-  const rect = anchor.getBoundingClientRect();
-  const mw = menu.offsetWidth, mh = menu.offsetHeight;
-  let top = rect.bottom + 6, left = rect.left;
-  if (left + mw > window.innerWidth - 12) left = window.innerWidth - mw - 12;
-  if (left < 12) left = 12;
-  if (top + mh > window.innerHeight - 12) top = rect.top - mh - 6;
-  menu.style.top = top + 'px'; menu.style.left = left + 'px';
-  const onDoc = (e) => { if (!menu.contains(e.target)) closePicker(); };
-  const onKey = (e) => { if (e.key === 'Escape') closePicker(); };
-  setTimeout(() => { document.addEventListener('mousedown', onDoc); document.addEventListener('keydown', onKey); }, 0);
-  menu._cleanup = () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
-}
-
-// Routes a group's sort controls: collapsed → entry in the title row (headerEl),
-// expanded → full bar in the body container (bodyEl). Used by Daily / Playing.
-function renderSortControls(groupKey, headerEl, bodyEl, hasVisible) {
-  if (bodyEl) bodyEl.innerHTML = '';
-  if (headerEl) { const old = headerEl.querySelector('.sort-headentry'); if (old) old.remove(); }
-  if (!hasVisible) return;
-  const gs = groupSortState(groupKey);
-  if (gs.barOpen) { if (bodyEl) bodyEl.appendChild(buildSortBar(groupKey)); }
-  else { if (headerEl) headerEl.appendChild(buildSortHeadEntry(groupKey)); }
-}
-
-// Collapsed entry — a low-profile pill that lives at the RIGHT END of the group's
-// title row (section-header / roster-group-head). Muted by default; reveals the
-// region colour on hover. Click → expand the full bar below.
-function buildSortHeadEntry(groupKey) {
-  const gs = groupSortState(groupKey);
-  const wrap = document.createElement('span');
-  wrap.className = 'sort-headentry';
-  const tone = GROUP_NAME_VAR[groupKey];
-  if (tone) wrap.style.setProperty('--g-name', tone);
-
-  const main = document.createElement('button');
-  main.className = 'she-main';
-  const sum = chainSummary(gs.chain);
-  main.innerHTML = `<span class="she-icon">⇅</span><span class="she-sum">${escapeHtml(sum || 'SORT')}</span>` + (gs.dirty ? `<span class="she-dirty"> ·已改</span>` : '');
-  main.title = '展开排序';
-  main.onclick = (e) => { e.stopPropagation(); gs.barOpen = true; scheduleSave(); smoothRender(); };
-  wrap.appendChild(main);
-
-  // Quick "re-sort by this priority" — the same ↻ action as the open bar, but
-  // reachable without expanding (collapsed is where you most want it to be quick).
-  if (gs.chain.length) {
-    const resort = document.createElement('button');
-    resort.className = 'she-resort';
-    resort.innerHTML = '↻';
-    resort.title = '按当前优先级重新排序';
-    resort.onclick = (e) => { e.stopPropagation(); applySortChain(groupKey); };
-    wrap.appendChild(resort);
-  }
-  return wrap;
-}
-
-// Expanded bar — chips + controls, dropped into a row below the title. Leading ⇅
-// collapses it back into the title row. Only rendered when the group is open.
-function buildSortBar(groupKey) {
-  ensureGroupSort();
-  const gs = groupSortState(groupKey);
-  const bar = document.createElement('div'); bar.className = 'sortbar open';
-  const tone = GROUP_NAME_VAR[groupKey];
-  if (tone) bar.style.setProperty('--g-name', tone);
-
-  const toggle = document.createElement('button'); toggle.className = 'sort-toggle';
-  toggle.innerHTML = `<span class="sort-tg-icon">⇅</span>`;
-  toggle.title = '收起排序';
-  toggle.onclick = () => { gs.barOpen = false; scheduleSave(); smoothRender(); };
-  bar.appendChild(toggle);
-
-  gs.chain.forEach((step, idx) => {
-    if (idx > 0) { const sep = document.createElement('span'); sep.className = 'sort-sep'; sep.textContent = '›'; bar.appendChild(sep); }
-    const chip = document.createElement('span'); chip.className = 'sort-chip';
-    chip.title = '拖动可重排优先级 · 点击标签切升 / 降序';
-    const lab = document.createElement('button'); lab.className = 'sort-chip-lab';
-    lab.innerHTML = `${escapeHtml(sortKeyLabel(step.key))} <span class="sort-arrow">${step.dir === 'desc' ? '↓' : '↑'}</span>`;
-    lab.title = '点击切换升 / 降序';
-    lab.onclick = () => { if (chip._dragged) { chip._dragged = false; return; } chainToggleDir(groupKey, step.key); };
-    const x = document.createElement('button'); x.className = 'sort-chip-x'; x.textContent = '✕'; x.title = '移除这一层';
-    x.onclick = (e) => { e.stopPropagation(); chainRemoveKey(groupKey, step.key); };
-    chip.appendChild(lab); chip.appendChild(x); bar.appendChild(chip);
-    attachChipDrag(chip, groupKey, idx);
-  });
-
-  const add = document.createElement('button'); add.className = 'sort-add';
-  add.textContent = gs.chain.length ? '＋' : '＋ SORT';
-  add.title = '加一层排序';
-  add.onclick = () => openAddKeyMenu(add, groupKey);
-  bar.appendChild(add);
-
-  if (gs.chain.length) {
-    const resort = document.createElement('button'); resort.className = 'sort-resort';
-    resort.innerHTML = '↻';
-    resort.title = '按当前排序重新整理';
-    resort.onclick = () => applySortChain(groupKey);
-    bar.appendChild(resort);
-  }
-
-  if (gs.dirty) {
-    const d = document.createElement('span'); d.className = 'sort-dirty'; d.textContent = '自定 ·已改';
-    d.title = '排序后手动调整过 — 点任一排序项可重新套用';
-    bar.appendChild(d);
-  }
-
-  const sp = document.createElement('span'); sp.className = 'sort-spacer'; bar.appendChild(sp);
-
-  const pre = document.createElement('button'); pre.className = 'sort-ctrl';
-  pre.innerHTML = `PRESET <span class="ctrl-caret">▾</span>`; pre.title = '保存 / 切换顺序快照';
-  pre.onclick = () => openPresetMenu(pre, groupKey);
-  bar.appendChild(pre);
-
-  const rng = document.createElement('button'); rng.className = 'sort-ctrl';
-  rng.innerHTML = `APPLY TO <span class="ctrl-caret">▾</span>`; rng.title = '把这条排序套用到其他组';
-  if (!gs.chain.length) rng.classList.add('disabled');
-  rng.onclick = () => { if (gs.chain.length) openRangeMenu(rng, groupKey); };
-  bar.appendChild(rng);
-
-  return bar;
-}
-
-function openAddKeyMenu(anchor, groupKey) {
-  const gs = groupSortState(groupKey);
-  const used = new Set(gs.chain.map(s => s.key));
-  const items = SORT_KEYS
-    .filter(k => !used.has(k.key) && (!k.only || k.only === parseGroupKey(groupKey).tier))
-    .map(k => ({ value: k.key, label: k.label }));
-  if (!items.length) return;
-  showPicker(anchor, items, null, v => chainAddKey(groupKey, v));
-}
-
-function openPresetMenu(anchor, groupKey) {
-  const gs = groupSortState(groupKey);
-  const items = gs.presets.map(p => ({ value: 'apply:' + p.id, label: p.name }));
-  items.push({ value: 'save', label: '＋ 存为快照…', clear: true });
-  if (gs.presets.length) items.push({ value: 'del', label: '删除快照…' });
-  showPicker(anchor, items, null, v => {
-    if (v === 'save') { promptText(anchor, '快照名称', name => savePreset(groupKey, name)); }
-    else if (v === 'del') {
-      const dels = gs.presets.map(p => ({ value: p.id, label: p.name }));
-      if (dels.length) showPicker(anchor, dels, null, id => {
-        const removed = gs.presets.find(p => p.id === id);
-        deletePreset(groupKey, id);
-        if (removed) showToast({ message: `已删除快照「${removed.name}」`, actionLabel: '撤销', onAction: () => { gs.presets.push(removed); scheduleSave(); smoothRender(); } });
-      });
-    }
-    else if (v.indexOf('apply:') === 0) { applyPreset(groupKey, v.slice(6)); }
-  });
-}
-
-function openRangeMenu(anchor, groupKey) {
-  const gs = groupSortState(groupKey);
-  const chain = JSON.parse(JSON.stringify(gs.chain || []));
-  customPopover(anchor, (menu, close) => {
-    const title = document.createElement('div'); title.className = 'rng-title'; title.textContent = '把这条排序套用到：'; menu.appendChild(title);
-    const selected = new Set([groupKey]);
-    const wrap = document.createElement('div'); wrap.className = 'rng-pills';
-    const refs = [];
-    GROUP_DEFS.forEach(d => {
-      const pill = document.createElement('button'); pill.className = 'rng-pill' + (selected.has(d.key) ? ' on' : '');
-      pill.style.setProperty('--pill-c', GROUP_NAME_VAR[d.key] || 'var(--accent)');
-      pill.textContent = d.label;
-      pill.onclick = () => { if (selected.has(d.key)) selected.delete(d.key); else selected.add(d.key); pill.classList.toggle('on'); syncAll(); };
-      refs.push({ d, pill }); wrap.appendChild(pill);
-    });
-    menu.appendChild(wrap);
-    const actions = document.createElement('div'); actions.className = 'rng-actions';
-    const allBtn = document.createElement('button'); allBtn.className = 'rng-act';
-    const isAll = () => GROUP_DEFS.every(d => selected.has(d.key));
-    const syncAll = () => { allBtn.textContent = isAll() ? '全不选' : '全选'; };
-    allBtn.onclick = () => {
-      if (isAll()) { selected.clear(); selected.add(groupKey); } else { GROUP_DEFS.forEach(d => selected.add(d.key)); }
-      refs.forEach(({ d, pill }) => pill.classList.toggle('on', selected.has(d.key))); syncAll();
-    };
-    syncAll();
-    const apply = document.createElement('button'); apply.className = 'rng-act primary'; apply.textContent = '套用';
-    apply.style.setProperty('--pill-c', GROUP_NAME_VAR[groupKey] || 'var(--accent)');
-    apply.onclick = () => { applyChainToGroups(chain, Array.from(selected)); close(); };
-    actions.appendChild(allBtn); actions.appendChild(apply); menu.appendChild(actions);
-  });
-}
-
 </script>
 </body>
 </html>
