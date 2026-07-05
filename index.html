@@ -178,7 +178,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   display: flex; align-items: center; justify-content: center;
   transition: all 0.25s ease; cursor: pointer; background-color: transparent;
 }
-.checkbox.checked { background-color: var(--accent); border-color: var(--accent); }
+.checkbox.checked { background-color: var(--g-name, var(--accent)); border-color: var(--g-name, var(--accent)); }
 .checkbox.checked::after {
   content: ''; width: 5px; height: 8px;
   border: solid var(--bg); border-width: 0 1.5px 1.5px 0;
@@ -200,8 +200,8 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .extra-toggle:hover { color: var(--accent); opacity: 1; transform: scale(1.1); }
 .rc-foot .extra-toggle { width: 18px; height: 18px; font-size: 13px; }
 .extra-toggle.active {
-  color: var(--accent); opacity: 1;
-  text-shadow: 0 0 9px rgba(210,133,107,0.5), 0 0 3px rgba(210,133,107,0.55);
+  color: var(--g-name, var(--accent)); opacity: 1;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--g-name, var(--accent)) 42%, transparent);
   animation: starPop 0.42s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes starPop {
@@ -215,7 +215,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   color: var(--text-faint); font-variant-numeric: tabular-nums;
   min-width: 32px; text-align: right; flex-shrink: 0;
 }
-.streak.active { color: var(--accent); }
+.streak.active { color: var(--g-name, var(--accent)); }
 
 /* Roster streak chip — reuses .streak but sits inline next to the "played" mark,
    tinted with the card's status color, and stays hidden until there's a run going
@@ -610,7 +610,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   position: relative;
   display: flex; flex-direction: column; gap: 8px;
   background: rgba(255, 250, 241, 0.64);
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g-name, var(--accent)) 20%, transparent);
   border-radius: 12px;
   padding: 13px 15px 11px;
   transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s, opacity 0.15s;
@@ -764,8 +764,8 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 
 .playing-card {
   position: relative;
-  background: rgba(253, 245, 245, 0.7);
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background: rgba(255, 250, 241, 0.66);
+  border: 1px solid color-mix(in srgb, var(--g-name, var(--accent)) 22%, transparent);
   border-radius: 12px;
   padding: 11px 13px 10px;
   display: flex; flex-direction: column; gap: 7px;
@@ -773,7 +773,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s, opacity 0.15s;
 }
 .playing-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  border-color: color-mix(in srgb, var(--g-name, var(--accent)) 40%, transparent);
   box-shadow: 0 3px 14px rgba(42, 36, 28, 0.06);
   transform: translateY(-1px);
 }
@@ -826,7 +826,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   font-family: var(--label-font); font-size: 8px; letter-spacing: 0.16em;
   text-transform: uppercase; color: var(--text-faint); white-space: nowrap;
 }
-.pc-checkin.on .pc-checkin-label { color: var(--accent); }
+.pc-checkin.on .pc-checkin-label { color: var(--g-name, var(--accent)); }
 
 @media (max-width: 520px) {
   #tier2-list { grid-template-columns: 1fr; padding: 12px; }
@@ -1458,7 +1458,9 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .rng-act.primary{background:var(--pill-c,var(--accent));border-color:var(--pill-c,var(--accent));color:#fff;}
 .rng-act.primary:hover{color:#fff;opacity:.9;}
 
-:root{ --day-name:#c0883c; --play-name:#b56a61; }
+:root{ --day-name:#c0883c; --play-name:#7f9c5c; }
+#section-tier1{ --g-name: var(--day-name); }
+#section-tier2{ --g-name: var(--play-name); }
 
 </style>
 </head>
