@@ -197,7 +197,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
               transform 0.2s cubic-bezier(0.16,1,0.3,1), text-shadow 0.25s ease;
   user-select: none; flex-shrink: 0; line-height: 1;
 }
-.extra-toggle:hover { color: var(--accent); opacity: 1; transform: scale(1.1); }
+.extra-toggle:hover { color: var(--g-name, var(--accent)); opacity: 1; transform: scale(1.1); }
 .rc-foot .extra-toggle { width: 18px; height: 18px; font-size: 13px; }
 .extra-toggle.active {
   color: var(--g-name, var(--accent)); opacity: 1;
@@ -301,7 +301,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 
 .subtask-label { cursor: pointer; padding: 0 2px; }
 .subtask:hover .subtask-label { color: var(--text); }
-.subtask.checked { background-color: var(--accent-faint); border-color: transparent; color: var(--accent); }
+.subtask.checked { background-color: color-mix(in srgb, var(--g-name, var(--accent)) 11%, transparent); border-color: transparent; color: var(--g-name, var(--accent)); }
 
 .subtask-edit {
   font-family: var(--body-font); font-size: 12px; color: var(--text);
@@ -403,7 +403,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   transition: all 0.25s ease; display: flex; align-items: center;
   justify-content: center; background-color: transparent;
 }
-.roster-check.checked { background-color: var(--accent); border-color: var(--accent); }
+.roster-check.checked { background-color: var(--g-name, var(--accent)); border-color: var(--g-name, var(--accent)); }
 .roster-check.checked::after {
   content: ''; width: 4px; height: 7px; border: solid var(--bg);
   border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translate(0, -1px);
@@ -592,16 +592,14 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   font-family: var(--label-font); font-size: 9px; letter-spacing: 0.08em;
   color: var(--text-faint); cursor: pointer; transition: color 0.18s;
 }
-.rc-milestone:hover { color: var(--accent); }
+.rc-milestone:hover { color: var(--g-name, var(--accent)); }
 
 /* Daily — same card material as Playing, but a column card so sub-task chips
    live inside it. Both "ritual" tiers (Daily + Playing) share the warm panel. */
 #tier1-list {
-  background: rgba(235, 178, 120, 0.14);
-  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  background: var(--day-tint);
   border-radius: 16px;
-  padding: 12px;
-  backdrop-filter: blur(2px);
+  padding: 14px;
   display: flex; flex-direction: column; gap: 10px;
 }
 #tier1-list:empty { display: none; }
@@ -609,14 +607,14 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .daily-card {
   position: relative;
   display: flex; flex-direction: column; gap: 8px;
-  background: rgba(255, 250, 241, 0.64);
-  border: 1px solid color-mix(in srgb, var(--g-name, var(--accent)) 20%, transparent);
+  background: rgba(255, 253, 247, 0.62);
+  border: 1px solid color-mix(in srgb, var(--g-line, var(--line-strong)) 32%, transparent);
   border-radius: 12px;
   padding: 13px 15px 11px;
   transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s, opacity 0.15s;
 }
 .daily-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+  border-color: color-mix(in srgb, var(--g-line, var(--line-strong)) 58%, transparent);
   box-shadow: 0 4px 16px rgba(42, 36, 28, 0.07);
   transform: translateY(-1px);
 }
@@ -751,11 +749,9 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
    Cream cards on the warm "ritual zone" panel, vertical layout like Roster, in a
    clay-rose tint so it reads distinct from Daily's peach-amber. */
 #tier2-list {
-  background: rgba(204, 140, 134, 0.15);
-  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  background: var(--play-tint);
   border-radius: 16px;
   padding: 14px;
-  backdrop-filter: blur(2px);
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
@@ -764,8 +760,8 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 
 .playing-card {
   position: relative;
-  background: rgba(255, 250, 241, 0.66);
-  border: 1px solid color-mix(in srgb, var(--g-name, var(--accent)) 22%, transparent);
+  background: rgba(255, 253, 247, 0.62);
+  border: 1px solid color-mix(in srgb, var(--g-line, var(--line-strong)) 32%, transparent);
   border-radius: 12px;
   padding: 11px 13px 10px;
   display: flex; flex-direction: column; gap: 7px;
@@ -773,7 +769,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s, opacity 0.15s;
 }
 .playing-card:hover {
-  border-color: color-mix(in srgb, var(--g-name, var(--accent)) 40%, transparent);
+  border-color: color-mix(in srgb, var(--g-line, var(--line-strong)) 58%, transparent);
   box-shadow: 0 3px 14px rgba(42, 36, 28, 0.06);
   transform: translateY(-1px);
 }
@@ -1396,8 +1392,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 /* ====== Sort bar (per-group sort chains) ====== */
 /* --g-name = the region's accent. Roster groups inherit it from .roster-group;
    Daily/Playing get it set on their sortbar containers below. Fallback: --accent. */
-#sortbar-tier1{--g-name:var(--day-name);}
-#sortbar-tier2{--g-name:var(--play-name);}
 
 .sortbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:2px 0 14px;font-family:var(--body-font);}
 
@@ -1419,12 +1413,11 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .sort-tg-icon{font-size:13px;opacity:.85;}
 
 .sort-sep{color:var(--g-name,var(--text-faint));opacity:0.5;font-size:12px;}
-.sort-chip{position:relative;display:inline-flex;align-items:center;gap:2px;background:color-mix(in srgb, var(--g-name,var(--accent)) 13%, transparent);border-radius:13px;padding:0 4px 0 2px;}
+.sort-chip{cursor:grab;position:relative;display:inline-flex;align-items:center;gap:2px;background:color-mix(in srgb, var(--g-name,var(--accent)) 13%, transparent);border-radius:13px;padding:0 4px 0 2px;}
 .sort-chip.chip-dragging{opacity:.4;}
 .sort-chip-grip{display:inline-flex;align-items:center;justify-content:center;cursor:grab;color:var(--g-name,var(--accent));opacity:.45;font-size:12px;padding:3px 1px 3px 5px;line-height:1;touch-action:none;-webkit-user-select:none;user-select:none;}
 .sort-chip-grip:hover{opacity:.85;}
 .sort-chip-grip:active{cursor:grabbing;}
-.sort-chip{cursor:grab;}
 .sort-chip-lab{cursor:grab;}
 body.dragging .sort-chip,body.dragging .sort-chip-lab,body.dragging .sort-chip-grip{cursor:grabbing;}
 .drag-ghost-chip{position:fixed;z-index:9999;pointer-events:none;display:inline-flex;align-items:center;background:color-mix(in srgb, var(--g-name,var(--accent)) 24%, #fff);color:var(--g-name,var(--accent));padding:4px 10px;border-radius:13px;font-family:var(--body-font);font-size:12px;box-shadow:0 5px 16px rgba(80,60,45,.18);}
@@ -1458,9 +1451,12 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .rng-act.primary{background:var(--pill-c,var(--accent));border-color:var(--pill-c,var(--accent));color:#fff;}
 .rng-act.primary:hover{color:#fff;opacity:.9;}
 
-:root{ --day-name:#c0883c; --play-name:#7f9c5c; }
-#section-tier1{ --g-name: var(--day-name); }
-#section-tier2{ --g-name: var(--play-name); }
+:root{
+  --day-name:#c0883c;  --day-line:#d9b06a;  --day-tint: rgba(233, 196, 138, 0.28);
+  --play-name:#5f9b8a; --play-line:#93c2b4; --play-tint: rgba(170, 213, 200, 0.28);
+}
+#section-tier1{ --g-name: var(--day-name); --g-line: var(--day-line); }
+#section-tier2{ --g-name: var(--play-name); --g-line: var(--play-line); }
 
 </style>
 </head>
