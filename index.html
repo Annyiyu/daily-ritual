@@ -555,20 +555,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   opacity: 0.4; transition: opacity 0.2s; user-select: none;
 }
 .roster-card:hover .rc-played, .rc-played.on { opacity: 0.9; }
-.rc-played-box {
-  width: 13px; height: 13px; border-radius: 4px; border: 1.5px solid var(--text-faint);
-  display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;
-}
-.rc-played.on .rc-played-box { background: var(--g-name, var(--accent)); border-color: var(--g-name, var(--accent)); }
-.rc-played.on .rc-played-box::after {
-  content: ''; width: 3.5px; height: 6px; border: solid var(--bg);
-  border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translate(0, -1px);
-}
-.rc-played-label {
-  font-family: var(--label-font); font-size: 8px; letter-spacing: 0.18em;
-  text-transform: uppercase; color: var(--text-faint);
-}
-.rc-played.on .rc-played-label { color: var(--g-name, var(--accent)); }
+.rc-played.on .pc-checkin-label { color: var(--g-name, var(--accent)); }
 
 .roster-empty {
   font-family: var(--body-font); font-size: 13px; font-style: italic;
@@ -2017,8 +2004,9 @@ function updateTier3Row(gameId) {
   const played = item.querySelector('.rc-played');
   if (played) {
     played.classList.toggle('on', checked);
-    const label = played.querySelector('.rc-played-label');
-    if (label) label.textContent = checked ? 'played' : 'today';
+    played.querySelector('.checkbox')?.classList.toggle('checked', checked);
+    const label = played.querySelector('.pc-checkin-label');
+    if (label) label.textContent = checked ? '今日已玩' : '打卡';
   }
   item.querySelector('.roster-check')?.classList.toggle('checked', checked);
   updateStreak(item, gameId);
@@ -2732,8 +2720,9 @@ function refreshDayView() {
     const played = item.querySelector('.rc-played');
     if (played) {
       played.classList.toggle('on', checked);
-      const label = played.querySelector('.rc-played-label');
-      if (label) label.textContent = checked ? 'played' : 'today';
+      played.querySelector('.checkbox')?.classList.toggle('checked', checked);
+      const label = played.querySelector('.pc-checkin-label');
+      if (label) label.textContent = checked ? '今日已玩' : '打卡';
     }
     updateStreak(item, id);
   });
@@ -3050,12 +3039,6 @@ function buildCompanyTile(game, gd, streak, parsed) {
   handle.innerHTML = '⋮⋮';
   handle.title = 'Drag to reorder';
   head.appendChild(handle);
-  const extra = document.createElement('div');
-  extra.className = 'extra-toggle' + (gd.extra ? ' active' : '');
-  extra.innerHTML = gd.extra ? '✦' : '✧';
-  extra.title = '今天深入玩了一下';
-  extra.onclick = (e) => { e.stopPropagation(); toggleExtra(game.id); };
-  head.appendChild(extra);
   const spacer = document.createElement('div');
   spacer.className = 'rc-spacer';
   head.appendChild(spacer);
@@ -3086,6 +3069,12 @@ function buildCompanyTile(game, gd, streak, parsed) {
   checkin.appendChild(lbl);
   checkin.onclick = () => toggleTier1(game.id);
   footLeft.appendChild(checkin);
+  const extra = document.createElement('div');
+  extra.className = 'extra-toggle' + (gd.extra ? ' active' : '');
+  extra.innerHTML = gd.extra ? '✦' : '✧';
+  extra.title = '今天深入玩了一下';
+  extra.onclick = (e) => { e.stopPropagation(); toggleExtra(game.id); };
+  footLeft.appendChild(extra);
   const streakEl = document.createElement('div');
   streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
   streakEl.textContent = streak > 0 ? streak + 'd' : '·';
@@ -3375,17 +3364,9 @@ function buildPlayingCard(game, day) {
 
   const footLeft = document.createElement('div');
   footLeft.className = 'pc-foot-left';
-  if (parsed.platform) {
-    const plat = document.createElement('div');
-    plat.className = 'rc-platform';
-    plat.textContent = parsed.platform;
-    footLeft.appendChild(plat);
-  }
   const streakEl = document.createElement('div');
   streakEl.className = 'streak' + (streak > 0 ? ' active' : '');
   streakEl.textContent = streak > 0 ? streak + 'd' : '·';
-  footLeft.appendChild(streakEl);
-  foot.appendChild(footLeft);
 
   // Daily check-in — the ritual core, mirrors Roster's rc-played slot but accent-weighted
   const checkin = document.createElement('div');
@@ -3398,8 +3379,17 @@ function buildPlayingCard(game, day) {
   lbl.textContent = checked ? '今日已玩' : '打卡';
   checkin.appendChild(lbl);
   checkin.onclick = () => toggleTier2(game.id);
-  foot.appendChild(buildDeepStar(game, day));
-  foot.appendChild(checkin);
+  footLeft.appendChild(checkin);
+  footLeft.appendChild(buildDeepStar(game, day));
+  footLeft.appendChild(streakEl);
+  foot.appendChild(footLeft);
+
+  if (parsed.platform) {
+    const plat = document.createElement('div');
+    plat.className = 'rc-platform';
+    plat.textContent = parsed.platform;
+    foot.appendChild(plat);
+  }
 
   card.appendChild(foot);
   return card;
@@ -3681,7 +3671,7 @@ function buildRosterCard(game, prefs, status) {
   const played = document.createElement('div');
   played.className = 'rc-played' + (playedToday ? ' on' : '');
   played.title = 'Played today';
-  played.innerHTML = `<span class="rc-played-box"></span><span class="rc-played-label">${playedToday ? 'played' : 'today'}</span>`;
+  played.innerHTML = `<div class="checkbox${playedToday ? ' checked' : ''}"></div><div class="pc-checkin-label">${playedToday ? '今日已玩' : '打卡'}</div>`;
   played.onclick = (e) => { e.stopPropagation(); toggleTier3(game.id); };
 
   // played + streak share the left cluster; streak (shared with Daily/Playing) shows the
