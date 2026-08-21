@@ -255,6 +255,19 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   border-color: transparent;
 }
 
+/* Manual pin markers — a game whose shelf was set by hand, not derived from
+   milestones. Deliberately quiet: a trailing middot on a normal pill, and a
+   muted always-visible pill for a beaten game deliberately held in Playing. */
+.status-pill.pinned::after {
+  content: '\00B7'; margin-left: 5px; opacity: 0.7; letter-spacing: 0;
+}
+.status-pill.held {
+  color: var(--text-faint); background-color: transparent;
+  border-color: var(--line-strong); opacity: 0.62;
+}
+.playing-card .status-pill.held { opacity: 0.62; }
+.playing-card:hover .status-pill.held { opacity: 1; }
+
 /* Tier 3 roster status — soft macaron palette */
 .status-pill[data-status="up_next"] { color: var(--up-name); background-color: rgba(196,222,172,0.44); border-color: transparent; font-weight: 500; }
 .status-pill[data-status="considering"] { color: var(--con-name); background-color: rgba(244,220,166,0.48); border-color: transparent; }
@@ -1165,6 +1178,9 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .picker-item.active .picker-check { opacity: 1; }
 .picker-item.clear { color: var(--text-faint); border-top: 1px solid var(--line); margin-top: 3px; padding-top: 11px; border-radius: 0 0 5px 5px; }
 .picker-item.clear:hover { color: var(--text); background: transparent; }
+/* .clear is declared after .active at equal specificity, so an ACTIVE clear row
+   would render faint. Back-to-Playing is a real pin state, not just an action. */
+.picker-item.clear.active { color: var(--accent); }
 
 /* Undo toast */
 .toast {
@@ -1547,6 +1563,10 @@ function migrate(state) {
       else if (typeof base.hiddenAt !== 'string') base.hiddenAt = todayKey();
       // Tier 2: optional completion status (preserved across tier moves)
       if (typeof base.completion !== 'string') base.completion = '';
+      // Manual shelf pin. null = auto (follow milestones, legacy behaviour);
+      // '' = pinned to Playing; 'beaten'|... = pinned to that Finished group.
+      // Normalized BEFORE recomputeGame() below, which reads it.
+      if (['', 'beaten', 'completed', 'sated', 'abandoned'].indexOf(base.completionPin) === -1) base.completionPin = null;
       // Last meaningful milestone date — DERIVED from milestones (write-through)
       if (typeof base.lastMilestone !== 'string') base.lastMilestone = '';
       // Journey: media/sub tags + milestones[] (reaches). completion/lastMilestone derived from these.
@@ -2044,6 +2064,7 @@ function setTier2Completion(gameId, value) {
   const g = state.config.tier2.find(x => x.id === gameId);
   if (!g) return;
   g.completion = value || '';
+  g.completionPin = value || '';   // using the picker IS the manual override
   scheduleSave();
   // Completion now decides Playing-vs-Finished placement, so re-render (FLIP animates the move).
   smoothRender();
@@ -2066,6 +2087,43 @@ function setTier3Status(gameId, value) {
   smoothRender();
 }
 
+// Release the manual pin: placement goes back to being derived from milestones.
+// A hard recompute — with no finishing milestone, "auto" means "not finished",
+// so a legacy manual completion is cleared here (unlike the passive path in
+// recomputeGame, which leaves milestone-less games alone).
+function setCompletionAuto(gameId) {
+  const g = state.config.tier2.find(x => x.id === gameId);
+  if (!g) return;
+  const before = { pin: g.completionPin, completion: g.completion };
+  g.completionPin = null;
+  const hasFinishing = (g.milestones || []).some(m => m && m.outcome && FINISHING_TYPES.indexOf(m.type) !== -1);
+  if (!hasFinishing) g.completion = '';
+  recomputeGame(g);
+  scheduleSave();
+  smoothRender();
+  // Only when the shelf actually moved: on a milestone-less game this discards a
+  // hand-set completion, which is real data loss without a way back.
+  if (g.completion !== before.completion) {
+    showToast({
+      message: '已改回 Auto · 跟随里程碑',
+      onAction: () => {
+        const t = state.config.tier2.find(x => x.id === gameId);
+        if (!t) return;
+        t.completionPin = before.pin;
+        t.completion = before.completion;
+        scheduleSave(); smoothRender();
+      }
+    });
+  }
+}
+
+// True when a game is deliberately held in Playing against its own milestones —
+// the only pinned state with no pill of its own, so it needs a visible marker.
+function isHeldInPlaying(game) {
+  return game.completionPin === ''
+    && (game.milestones || []).some(m => m && m.outcome && FINISHING_TYPES.indexOf(m.type) !== -1);
+}
+
 function openTier2CompletionPicker(anchor, gameId) {
   const g = state.config.tier2.find(x => x.id === gameId);
   if (!g) return;
@@ -2074,9 +2132,15 @@ function openTier2CompletionPicker(anchor, gameId) {
     { value: 'completed', label: 'Completed' },
     { value: 'sated', label: 'Sated' },
     { value: 'abandoned', label: 'Abandoned' },
-    { value: '', label: '× Clear', clear: true }
+    { value: '__auto', label: '↺ Auto · milestones' },
+    { value: '', label: '× Back to Playing', clear: true }
   ];
-  showPicker(anchor, items, g.completion || '', v => setTier2Completion(gameId, v));
+  // Checkmark tracks the PIN, not the derived value: 'auto' is a real state here.
+  const current = (g.completionPin === null || g.completionPin === undefined) ? '__auto' : g.completionPin;
+  showPicker(anchor, items, current, v => {
+    if (v === '__auto') setCompletionAuto(gameId);
+    else setTier2Completion(gameId, v);
+  });
 }
 function openTier3StatusPicker(anchor, gameId) {
   const g = state.config.tier3.find(x => x.id === gameId);
@@ -2096,7 +2160,7 @@ function addGame(tier, name) {
   const id = 'game_' + Date.now();
   const today = todayKey();
   const residence = [{ tier, from: today, to: null }];
-  const jf = { media: '', sub: '', milestones: [], lastMilestone: '' };
+  const jf = { media: '', sub: '', milestones: [], lastMilestone: '', completionPin: null };
   if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [], hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence, ...jf });
   else if (tier === 'tier2') state.config.tier2.push({ id, name, hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence, ...jf });
   else state.config.tier3.push({ id, name, status: 'considering', hidden: false, hiddenAt: null, note: '', completion: '', createdAt: today, tierResidence: residence, ...jf });
@@ -3335,11 +3399,17 @@ function buildPlayingCard(game, day) {
   handle.title = 'Drag to reorder';
   head.appendChild(handle);
 
+  const held = isHeldInPlaying(game);
+  const pinned = game.completionPin !== null && game.completionPin !== undefined;
   const pill = document.createElement('div');
-  pill.className = 'status-pill' + (completion === '' ? ' empty' : '');
+  // A game held in Playing against its milestones gets a real (muted) pill, not the
+  // hover-only empty one — otherwise "why is this still here" has no visible answer.
+  pill.className = 'status-pill' + (completion === '' && !held ? ' empty' : '') + (held ? ' held' : '') + (pinned && completion ? ' pinned' : '');
   if (completion) pill.dataset.status = completion;
-  pill.textContent = TIER2_COMPLETION_LABELS[completion] || '';
-  pill.title = 'Click to set status';
+  pill.textContent = held ? 'HELD' : (TIER2_COMPLETION_LABELS[completion] || '');
+  pill.title = held
+    ? '已通关，手动留在 Playing - 点击可改回 Auto'
+    : (pinned ? '手动固定 - 点击可改回 Auto' : 'Click to set status');
   pill.onclick = (e) => { e.stopPropagation(); openTier2CompletionPicker(pill, game.id); };
   head.appendChild(pill);
 
@@ -3806,11 +3876,12 @@ function buildFinishedCard(game, status) {
   // Head: completion pill + menu
   const head = document.createElement('div');
   head.className = 'rc-head';
+  const pinned = game.completionPin !== null && game.completionPin !== undefined;
   const pill = document.createElement('div');
-  pill.className = 'status-pill';
+  pill.className = 'status-pill' + (pinned ? ' pinned' : '');
   pill.dataset.status = status;
   pill.textContent = TIER2_COMPLETION_LABELS[status] || '';
-  pill.title = 'Change status';
+  pill.title = pinned ? '手动固定 - 点击可改回 Auto' : 'Change status';
   pill.onclick = (e) => { e.stopPropagation(); openTier2CompletionPicker(pill, game.id); };
   head.appendChild(pill);
   const spacer = document.createElement('div'); spacer.className = 'rc-spacer'; head.appendChild(spacer);
@@ -3910,6 +3981,7 @@ function finishedToPlaying(gameId) {
   const g = state.config.tier2.find(x => x.id === gameId);
   if (!g) return;
   g.completion = '';
+  g.completionPin = '';   // pin it, or the next load's recompute puts it straight back
   if (g.hidden) { g.hidden = false; g.hiddenAt = null; } // bring it back into the active flow
   scheduleSave(); smoothRender();
 }
@@ -4406,10 +4478,20 @@ function renderReviewDetail() {
   if (dailyGames.length) html += `<div class="rv-dt-pct">${companions} 位小伙伴</div>`;
   html += `<button class="rv-dt-jump" id="rv-dt-jump">在主视图打开 ›</button></div>`;
 
-  // Milestone celebration — a game whose recorded completion lands on this day
+  // Milestone celebration — read the milestone itself, not the current shelf.
+  // History is history: pinning a beaten game back into Playing must not erase
+  // the day it was beaten. Also lights EVERY finishing node on its own date,
+  // where the old lastMilestone check could only ever show the latest one.
   const finishes = [];
+  const seenFinish = new Set();
   ['tier1', 'tier2', 'tier3'].forEach(t => (state.config[t] || []).forEach(g => {
-    if (g.lastMilestone === key && g.completion) finishes.push({ name: parsePlatform(g.name).base, c: g.completion });
+    (g.milestones || []).forEach(m => {
+      if (!m || m.date !== key || !m.outcome || FINISHING_TYPES.indexOf(m.type) === -1) return;
+      const k = g.id + '|' + m.outcome;
+      if (seenFinish.has(k)) return;   // 主线 + 整体 same day, same outcome = one line
+      seenFinish.add(k);
+      finishes.push({ name: parsePlatform(g.name).base, c: m.outcome });
+    });
   }));
   if (finishes.length) {
     let f = '';
@@ -4637,6 +4719,14 @@ function recomputeGame(game) {
   const dates = ms.map(m => m.date).filter(Boolean).sort();
   if (dates.length) game.lastMilestone = dates[dates.length - 1];
 
+  // Manual pin outranks derivation, always. Once Yiyu has moved a game onto a
+  // shelf by hand, no milestone may move it off again — that is the whole point
+  // of the pin. lastMilestone above stays derived (it's a date, not a placement).
+  if (game.completionPin !== null && game.completionPin !== undefined) {
+    game.completion = game.completionPin;
+    return;
+  }
+
   const finishing = ms.filter(m => FINISHING_TYPES.indexOf(m.type) !== -1);
   if (finishing.length) {
     const best = finishing.slice().sort((a, b) => {
@@ -4689,7 +4779,7 @@ function deleteMilestone(gameId, msId) {
   recomputeGame(found.game);
   // If this removed the last milestone, clear the derived shelf state too
   // (so deleting an 整体 reach takes the game back off the Finished shelf).
-  if (found.game.milestones.length === 0) { found.game.completion = ''; found.game.lastMilestone = ''; }
+  if (found.game.milestones.length === 0 && found.game.completionPin == null) { found.game.completion = ''; found.game.lastMilestone = ''; }
   scheduleSave();
   buildDetail();
   smoothRender();
