@@ -1470,7 +1470,6 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 
 .pl-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
 .pl-title { font-family: var(--display-font); font-size: 21px; color: var(--text); letter-spacing: 0.02em; }
-.pl-sub { font-size: 11px; color: var(--text-faint); letter-spacing: 0.14em; text-transform: uppercase; }
 .pl-nav { display: flex; align-items: center; gap: 2px; margin-left: auto; }
 .pl-arrow {
   width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
@@ -1478,6 +1477,7 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
   transition: background 0.16s, color 0.16s;
 }
 .pl-arrow:hover { background: var(--accent-faint); color: var(--accent); }
+.pl-arrow.armed { background: var(--accent); color: #fff; }
 .pl-today {
   font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint);
   cursor: pointer; padding: 0 8px; transition: color 0.16s;
@@ -1535,7 +1535,9 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-week { position: relative; border-bottom: 1px solid var(--line); }
 .pl-week-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
 .pl-day {
-  min-height: 88px; padding: 4px 5px 5px; border-left: 1px solid var(--line);
+  /* 26px for the date number, then one lane's worth per bar, plus breathing room */
+  min-height: max(76px, calc(32px + var(--pl-rows, 1) * 20px));
+  padding: 4px 5px 5px; border-left: 1px solid var(--line);
   user-select: none; cursor: crosshair; transition: background 0.14s;
 }
 .pl-day:first-child { border-left: none; }
@@ -1586,6 +1588,34 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-grip.e { right: 0; border-radius: 0 999px 999px 0; }
 .pl-block:hover .pl-grip { background: rgba(42, 36, 28, 0.14); }
 
+/* ---- year: twelve real month grids ---- */
+.pl-yr { display: grid; grid-template-columns: repeat(auto-fill, minmax(164px, 1fr)); gap: 20px 16px; }
+.pl-yr-m { cursor: pointer; padding: 6px 4px 8px; border-radius: 8px; transition: background 0.16s; }
+.pl-yr-m:hover { background: rgba(42, 36, 28, 0.03); }
+.pl-yr-title {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;
+}
+.pl-yr-m.now .pl-yr-title { color: var(--accent); }
+.pl-yr-wd { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 2px; }
+.pl-yr-wd div { text-align: center; font-size: 8px; color: var(--text-faint); letter-spacing: 0.04em; }
+.pl-yr-wk { position: relative; }
+.pl-yr-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.pl-yr-d {
+  /* number line, then one thin lane per overlapping bar */
+  min-height: calc(13px + var(--pl-rows, 0) * 5px + 2px);
+  text-align: center; font-size: 9px; line-height: 12px; color: var(--text-faint);
+}
+.pl-yr-d.out { opacity: 0.28; }
+.pl-yr-d.today { color: var(--accent); font-weight: 600; }
+.pl-yr-lanes { position: absolute; left: 0; right: 0; top: 13px; pointer-events: none; }
+.pl-yr-b { position: absolute; height: 3.5px; border-radius: 2px; }
+/* At 3.5px a dash is mush and a sub-pixel border eats a third of the bar, so
+   tentative reads as a thinner, drained bar instead. */
+.pl-yr-b.tent { height: 2px; margin-top: 0.75px; }
+.pl-yr-f { position: absolute; top: 0; bottom: 0; }
+.pl-yr-more { font-size: 9px; color: var(--text-faint); margin-top: 3px; letter-spacing: 0.04em; }
+
 /* ---- band (linear day axis) ---- */
 .pl-band { overflow-x: auto; }
 .pl-band-inner { min-width: 100%; }
@@ -1630,8 +1660,16 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-band-row.tent .pl-band-title { color: var(--text-muted); }
 /* A count, not a ratio: it says what happened, it doesn't score it. */
 .pl-band-count { font-size: 10px; color: var(--text-faint); flex: 0 0 auto; letter-spacing: 0.04em; }
+.pl-band-ext { font-size: 11px; color: var(--text-faint); flex: 0 0 auto; opacity: 0.75; }
 .pl-band-now { position: absolute; top: -6px; bottom: -6px; width: 1px; background: var(--accent); opacity: 0.6; }
 .pl-band-empty { text-align: center; padding: 30px 0; color: var(--text-faint); font-size: 12px; }
+/* At year scale a column is ~10px, so a 2px inset either side would break a
+   continuous run into dashes. Bars butt up against each other instead. */
+.pl-band.dense .pl-band-scope { left: 0; right: 0; border-radius: 0; }
+.pl-band.dense .pl-band-hit { left: 0; right: 0; border-radius: 0; }
+.pl-band.dense .pl-band-ms { font-size: 8px; }
+.pl-band.dense .pl-band-tick { font-size: 9px; }
+.pl-band.dense .pl-band-cell.wk::before { top: -4px; bottom: -4px; }
 
 /* ---- legend ---- */
 .pl-legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 16px; }
@@ -1645,6 +1683,20 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
   width: 14px; height: 9px; border-radius: 4px;
   background: rgba(176,168,155,0.26); border: 1px dashed rgba(90,86,79,0.5);
 }
+
+.pl-dates { display: flex; gap: 14px; text-align: left; margin-top: 2px; }
+.pl-dates label {
+  display: flex; flex-direction: column; gap: 5px; flex: 1 1 0;
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.pl-dates input {
+  font-family: var(--body-font); font-size: 13px; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px;
+  padding: 7px 9px; width: 100%;
+}
+.pl-dates input:focus { outline: none; border-color: var(--accent); }
+.pl-dates-note { font-size: 11px; color: var(--text-faint); margin-top: 10px; text-align: left; }
 
 /* ---- picker modal (add games to the plan) ---- */
 .pl-pick-overlay {
@@ -1712,7 +1764,7 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-pick-cancel:hover { color: var(--text-muted); }
 
 @media (max-width: 600px) {
-  .pl-day { min-height: 72px; }
+  .pl-day { min-height: max(64px, calc(30px + var(--pl-rows, 1) * 20px)); }
   .pl-band-name, .pl-band-label { flex-basis: 146px; }
 }
 
@@ -6380,9 +6432,39 @@ function planIsoWeek(key) {
   const week = Math.round((mon - w1mon) / 604800000) + 1;
   return { year, week, key: year + '-W' + pad(week) };
 }
+// Which twelve months. 'cal' is the calendar year; the other three roll with
+// the anchor, so stepping moves them a month at a time rather than a year.
+let planYearMode = 'cal';    // 'cal' | 'back' | 'fwd' | 'around'
+const PLAN_YEAR_MODES = [
+  { value: 'cal', label: '当年 1–12 月' },
+  { value: 'back', label: '往前数 12 个月' },
+  { value: 'fwd', label: '往后数 12 个月' },
+  { value: 'around', label: '前后各半年' }
+];
+function planMonthStart(key, offset) {
+  const d = parseDateKey(key);
+  const n = new Date(d.getFullYear(), d.getMonth() + (offset || 0), 1);
+  return dateKey(n);
+}
+function planYearWindow(key) {
+  if (planYearMode === 'cal') {
+    const y = parseDateKey(key).getFullYear();
+    return { from: y + '-01-01', to: (y + 1) + '-01-01' };
+  }
+  const off = planYearMode === 'back' ? -11 : planYearMode === 'around' ? -5 : 0;
+  const from = planMonthStart(key, off);
+  return { from, to: planMonthStart(from, 12) };
+}
+function planMonthsInWindow(w) {
+  const out = [];
+  for (let m = w.from; m < w.to; m = planMonthStart(m, 1)) out.push(m);
+  return out;
+}
 function planWindow() {
   const anchor = planAnchor || todayKey();
-  return planKind === 'week' ? planWeekWindow(anchor) : planMonthWindow(anchor);
+  if (planKind === 'week') return planWeekWindow(anchor);
+  if (planKind === 'year') return planYearWindow(anchor);
+  return planMonthWindow(anchor);
 }
 function planEachDay(from, to) {
   const out = [];
@@ -6392,6 +6474,11 @@ function planEachDay(from, to) {
 function planPeriodLabel() {
   const w = planWindow();
   const d = parseDateKey(w.from);
+  if (planKind === 'year') {
+    if (planYearMode === 'cal') return d.getFullYear() + ' 年';
+    const last = parseDateKey(planAddDays(w.to, -1));
+    return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 – ${last.getFullYear()} 年 ${last.getMonth() + 1} 月`;
+  }
   if (planKind === 'week') {
     const iso = planIsoWeek(w.from);
     const last = planAddDays(w.to, -1);      // stored end-exclusive, shown inclusive
@@ -6405,8 +6492,52 @@ function planFmtShort(key) {
 }
 function planShiftPeriod(dir) {
   const w = planWindow();
-  planAnchor = dir > 0 ? w.to : planAddDays(w.from, -1);
+  // A rolling twelve-month window slides one month per step; jumping a whole
+  // year would skip past everything the window was meant to keep in view.
+  if (planKind === 'year' && planYearMode !== 'cal') {
+    planAnchor = planMonthStart(planAnchor || todayKey(), dir);
+  } else {
+    planAnchor = dir > 0 ? w.to : planAddDays(w.from, -1);
+  }
   render();
+}
+
+// The band's columns. Day units everywhere except the year, where 365 columns
+// would either be 1.5px slivers or need horizontal scrolling — neither is an
+// overview. Weeks give ~53 readable columns that fit the page.
+function planAxisUnits(w) {
+  const today = todayKey();
+  if (planKind !== 'year') {
+    return planEachDay(w.from, w.to).map(k => {
+      const d = parseDateKey(k);
+      return {
+        key: k, from: k, to: planAddDays(k, 1),
+        tick: String(d.getDate()),
+        sep: (d.getDay() + 6) % 7 === 0,          // Monday
+        isToday: k === today
+      };
+    });
+  }
+  const out = [];
+  for (let cur = planWeekWindow(w.from).from; cur < w.to; cur = planAddDays(cur, 7)) {
+    const rawTo = planAddDays(cur, 7);
+    const from = cur < w.from ? w.from : cur;      // clip the partial first week
+    const to = rawTo > w.to ? w.to : rawTo;
+    // the ISO week belongs to whatever month its Thursday falls in
+    const thu = parseDateKey(planAddDays(cur, 3));
+    const firstOfMonth = thu.getDate() <= 7;
+    out.push({
+      key: cur, from, to,
+      tick: firstOfMonth ? String(thu.getMonth() + 1) : '',
+      sep: firstOfMonth,
+      isToday: today >= from && today < to
+    });
+  }
+  return out;
+}
+function planUnitHas(set, u) {
+  for (let k = u.from; k < u.to; k = planAddDays(k, 1)) if (set.has(k)) return k;
+  return null;
 }
 
 // ---------- data ----------
@@ -6420,8 +6551,12 @@ function planEntriesInWindow(from, to) {
   return planList().filter(e => e.from < to && from < e.to);
 }
 function planEntryGame(entry) {
+  const scan = _planScan;
+  if (scan && scan.games.has(entry.gameId)) return scan.games.get(entry.gameId);
   const hit = findGameAnywhere(entry.gameId);
-  return hit ? hit.game : null;
+  const g = hit ? hit.game : null;
+  if (scan) scan.games.set(entry.gameId, g);   // findGameAnywhere scans all three tiers
+  return g;
 }
 function planEntryName(entry) {
   const g = planEntryGame(entry);
@@ -6430,11 +6565,37 @@ function planEntryName(entry) {
 }
 function planEntryIsTomb(entry) { return !planEntryGame(entry); }
 
+// One scan of the window per render, shared by all three renderings. Reset at
+// the top of renderPlan so it can never outlive the state it was built from.
+let _planScan = null;
+function planResetScan() { _planScan = null; }
+function planScan(w) {
+  if (_planScan && _planScan.from === w.from && _planScan.to === w.to) return _planScan;
+  const hits = new Map();
+  for (let k = w.from; k < w.to; k = planAddDays(k, 1)) {
+    const day = state.history[k];
+    if (!day) continue;
+    ['tier1', 'tier2', 'tier3'].forEach(tk => {
+      const rec = day[tk];
+      if (!rec) return;
+      for (const id in rec) {
+        if (!isCheckedInOn(day, id)) continue;
+        let s = hits.get(id);
+        if (!s) { s = new Set(); hits.set(id, s); }
+        s.add(k);
+      }
+    });
+  }
+  _planScan = { from: w.from, to: w.to, hits, games: new Map() };
+  return _planScan;
+}
 function planCheckinDays(gameId, from, to) {
+  const scan = planScan(planWindow());
+  const all = scan.hits.get(gameId);
   const out = new Set();
-  planEachDay(from, to).forEach(k => {
-    if (isCheckedInOn(state.history[k], gameId)) out.add(k);
-  });
+  if (!all) return out;
+  // iterate the days actually played, not every day of the range
+  all.forEach(k => { if (k >= from && k < to) out.add(k); });
   return out;
 }
 function planMilestoneDays(gameId, from, to) {
@@ -6468,22 +6629,43 @@ function planRemove(entryId) {
   scheduleSave(); smoothRender();
   showUndoToast(`移出计划：${label}`, snap);
 }
-// Give an undated entry a real place on the grid: today if today is inside the
-// window, otherwise the window's first day. From there the grips do the rest.
-function planAnchorEntry(entryId) {
+// Typing beats dragging once a range crosses a month: no scrolling, no dwelling,
+// and it is the only path that works when the two ends are months apart.
+// Shown inclusive (9月20日 – 10月15日); stored half-open, as everywhere else.
+function planDateDialog(entryId) {
   const e = planList().find(x => x.id === entryId);
   if (!e) return;
   const w = planWindow();
   const t = todayKey();
-  const start = (t >= w.from && t < w.to) ? t : w.from;
-  const snap = snapshotState();
-  e.dated = true;
-  e.from = start;
-  e.to = planAddDays(start, planKind === 'week' ? 1 : 3);
-  if (e.to > w.to) e.to = w.to;
-  if (planView !== 'calendar') planView = 'calendar';
-  scheduleSave(); smoothRender();
-  showUndoToast(`${planEntryName(e)} 已放上日历 · 拖两端改范围`, snap);
+  const start = e.dated ? e.from : ((t >= w.from && t < w.to) ? t : w.from);
+  const end = e.dated ? planAddDays(e.to, -1) : planAddDays(start, 2);
+  showDialog({
+    title: '改日期 · ' + planEntryName(e),
+    message: `<div class="pl-dates">
+        <label>开始<input type="date" id="pl-d-from" value="${start}"></label>
+        <label>结束<input type="date" id="pl-d-to" value="${end}"></label>
+      </div>
+      <div class="pl-dates-note">结束日含当天 · 可以跨月</div>`,
+    confirmLabel: '保存',
+    cancelLabel: '取消',
+    onConfirm: () => {
+      const a = document.getElementById('pl-d-from');
+      const b = document.getElementById('pl-d-to');
+      if (!a || !b) return;
+      const re = /^\d{4}-\d{2}-\d{2}$/;
+      let from = re.test(a.value) ? a.value : start;
+      let last = re.test(b.value) ? b.value : end;
+      if (last < from) last = from;                 // never invert; clamp to one day
+      const target = planList().find(x => x.id === entryId);
+      if (!target) return;
+      const snap = snapshotState();
+      target.from = from;
+      target.to = planAddDays(last, 1);
+      target.dated = true;
+      scheduleSave(); smoothRender();
+      showUndoToast(`${planEntryName(target)} · ${planFmtShort(from)} – ${planFmtShort(last)}`, snap);
+    }
+  });
 }
 
 // Deliberately NOT automatic. Playing a game you were only weighing does not
@@ -6525,8 +6707,8 @@ function planUnanchor(entryId) {
 // old ones — this period's plan is a record of what you intended at the time.
 function planCarryOver() {
   const w = planWindow();
-  const next = planKind === 'week'
-    ? planWeekWindow(w.to)
+  const next = planKind === 'week' ? planWeekWindow(w.to)
+    : planKind === 'year' ? planYearWindow(w.to)
     : planMonthWindow(w.to);
   const open = planEntriesInWindow(w.from, w.to).filter(e => {
     if (planEntryIsTomb(e)) return false;
@@ -6586,10 +6768,44 @@ function planDashEdge(rgb) {
   return `rgba(${Math.round(i[0] * 0.55)},${Math.round(i[1] * 0.55)},${Math.round(i[2] * 0.55)},0.5)`;
 }
 
+// Clip an entry to a window, returning null when it doesn't reach into it.
+function planClipEntry(e, lo, hi) {
+  const s = e.from > lo ? e.from : lo;
+  const t = e.to < hi ? e.to : hi;
+  return s >= t ? null : { s, t, span: planDayDiff(s, t) };
+}
+// Paint the days actually played as segments across a bar. Shared by the month
+// grid and the year grid — the percentage maths existed twice before, which is
+// two places to get an off-by-one wrong.
+function planPaintFills(bar, e, clip, rgb, cls) {
+  if (planEntryIsTomb(e)) return 0;
+  const hits = planCheckinDays(e.gameId, clip.s, clip.t);
+  if (!hits.size) return 0;
+  let n = 0;
+  planEachDay(clip.s, clip.t).forEach((k, i) => {
+    if (!hits.has(k)) return;
+    const f = document.createElement('div');
+    f.className = cls;
+    f.style.left = (i / clip.span * 100) + '%';
+    f.style.width = (1 / clip.span * 100) + '%';
+    f.style.background = planTint(rgb, PLAN_A_DONE);
+    f.dataset.day = k;
+    bar.appendChild(f);
+    n++;
+  });
+  return n;
+}
+
 // ---------- lane packing (calendar) ----------
 // Greedy interval packing in plan order: an entry takes the lowest lane free for
 // its whole span, so non-overlapping entries share a lane instead of stacking.
-const PLAN_MAX_LANES = 3;
+// Rows size themselves to their contents, so this is only a guard against one
+// pathological period producing an absurdly tall row — not a display limit.
+// Lanes are assigned across the whole period, never per row: an entry spanning
+// three weeks must sit at the same height in all three, or it reads as three
+// unrelated bars.
+const PLAN_MAX_LANES = 8;
+const PLAN_LANE_H = 20;
 function planAssignLanes(entries) {
   const lanes = [];   // lanes[i] = array of {from,to}
   const map = new Map();
@@ -6626,6 +6842,7 @@ function openPlan() {
 function closePlan() { planOpen = false; render(); }
 
 function renderPlan() {
+  planResetScan();
   const root = document.getElementById('root');
   const w = planWindow();
   root.innerHTML = `
@@ -6645,14 +6862,16 @@ function renderPlan() {
       </div>
       <div class="pl-switches">
         <div class="pl-seg">
-          <div class="pl-seg-btn" data-kind="month">月</div>
           <div class="pl-seg-btn" data-kind="week">周</div>
+          <div class="pl-seg-btn" data-kind="month">月</div>
+          <div class="pl-seg-btn" data-kind="year">年</div>
         </div>
         <div class="pl-seg">
           <div class="pl-seg-btn" data-view="calendar">日历</div>
           <div class="pl-seg-btn" data-view="band">时间带</div>
         </div>
         <div class="pl-tools">
+          <div class="pl-tool" id="pl-ymode"></div>
           <div class="pl-tool" id="pl-sort">↑↓ 排序</div>
           <div class="pl-tool" id="pl-carry">结转未完成 →</div>
         </div>
@@ -6665,6 +6884,7 @@ function renderPlan() {
         <span class="pl-leg"><span class="pl-leg-tent"></span>掂量中 · 还没定</span>
         <span class="pl-leg">颜色按游戏区分 · 菜单里可换</span>
         <span class="pl-leg">← → 翻周期 · 双击已打卡的格子看那天</span>
+        <span class="pl-leg">跨月：拖到 ‹ › 上停一下会翻页 · 或菜单里「改日期…」</span>
       </div>
     </section>
   `;
@@ -6681,11 +6901,23 @@ function renderPlan() {
     el.classList.toggle('on', el.dataset.view === planView);
     el.onclick = () => { planView = el.dataset.view; smoothRender(); };
   });
+  const ym = document.getElementById('pl-ymode');
+  if (planKind === 'year') {
+    const cur = PLAN_YEAR_MODES.find(m => m.value === planYearMode) || PLAN_YEAR_MODES[0];
+    ym.textContent = '⌗ ' + cur.label;
+    ym.onclick = (ev) => showPicker(ev.currentTarget, PLAN_YEAR_MODES, planYearMode, v => {
+      planYearMode = v;
+      smoothRender();
+    });
+  } else {
+    ym.style.display = 'none';
+  }
   document.getElementById('pl-carry').onclick = planCarryOver;
   document.getElementById('pl-sort').onclick = (e) => planSortMenu(e.currentTarget);
 
   const body = document.getElementById('pl-body');
   if (planView === 'band') renderPlanBand(body, w);
+  else if (planKind === 'year') renderPlanYearCalendar(body, w);
   else renderPlanCalendar(body, w);
 }
 
@@ -6715,7 +6947,8 @@ function planLooseStrip(host, w) {
   const loose = planEntriesInWindow(w.from, w.to).filter(e => !e.dated);
   const box = document.createElement('div');
   box.className = 'pl-loose';
-  box.innerHTML = `<div class="pl-loose-label">${planKind === 'week' ? '本周' : '本月'} · 无固定日期</div>`;
+  const scopeWord = planKind === 'week' ? '本周' : planKind === 'year' ? '本年' : '本月';
+  box.innerHTML = `<div class="pl-loose-label">${scopeWord} · 无固定日期</div>`;
   const row = document.createElement('div');
   row.className = 'pl-loose-row';
   loose.forEach(e => {
@@ -6765,15 +6998,15 @@ function planEntryMenu(anchor, entry) {
   if (!tomb && entry.dated) items.push({ value: 'jump', label: '跳到那天' });
   if (!tomb) items.push({ value: 'tent', label: entry.tentative ? '✓ 确定要玩' : '~ 改为掂量中' });
   if (!tomb) items.push({ value: 'hue', label: '换颜色' });
+  if (!tomb) items.push({ value: 'dates', label: '改日期…' });
   if (!tomb && entry.dated) items.push({ value: 'loose', label: '改为无固定日期' });
-  if (!tomb && !entry.dated) items.push({ value: 'anchor', label: '放到日历上定日期' });
   items.push({ value: 'remove', label: tomb ? '× 彻底移除' : '× 移出计划', clear: true });
   showPicker(anchor, items, '', v => {
     if (v === 'tent') planToggleTentative(entry.id);
     else if (v === 'hue') planHueMenu(anchor, entry);
     else if (v === 'jump') planJumpToDay(entry.from);
     else if (v === 'loose') planUnanchor(entry.id);
-    else if (v === 'anchor') planAnchorEntry(entry.id);
+    else if (v === 'dates') planDateDialog(entry.id);
     else if (v === 'remove') planRemove(entry.id);
   });
 }
@@ -6819,13 +7052,13 @@ function renderPlanCalendar(host, w) {
 
     const lanes = document.createElement('div');
     lanes.className = 'pl-lanes';
+    let rowLanes = 0;
     dated.forEach(e => {
-      const s = e.from > wkStart ? e.from : wkStart;
-      const t = e.to < wkEnd ? e.to : wkEnd;
-      if (s >= t) return;
+      const clip = planClipEntry(e, wkStart, wkEnd);
+      if (!clip) return;
+      const s = clip.s, t = clip.t, span = clip.span;
       const lane = laneOf.get(e.id);
       const startCol = planDayDiff(wkStart, s);
-      const span = planDayDiff(s, t);
       if (lane >= PLAN_MAX_LANES) {
         planEachDay(s, t).forEach(k => hidden.set(k, (hidden.get(k) || 0) + 1));
         return;
@@ -6838,7 +7071,8 @@ function renderPlanCalendar(host, w) {
       b.style.left = (startCol / 7 * 100) + '%';
       b.style.width = 'calc(' + (span / 7 * 100) + '% - 4px)';
       b.style.marginLeft = '2px';
-      b.style.top = (lane * 20) + 'px';
+      b.style.top = (lane * PLAN_LANE_H) + 'px';
+      if (lane + 1 > rowLanes) rowLanes = lane + 1;
       b.style.background = planPlannedTint(rgb, e.tentative);
       b.style.color = planInk(rgb);          // one ink either way: same game, same voice
       if (e.tentative) {
@@ -6848,19 +7082,9 @@ function renderPlanCalendar(host, w) {
         if (e.to > t) b.style.borderRightColor = 'transparent';
       }
       if (!tomb) {
-        const hits = planCheckinDays(e.gameId, s, t);
+        planPaintFills(b, e, clip, rgb, 'pl-fill');
+        b.querySelectorAll('.pl-fill').forEach(f => { f.title = '双击查看那天'; });
         const ms = planMilestoneDays(e.gameId, s, t);
-        planEachDay(s, t).forEach((k, i) => {
-          if (!hits.has(k)) return;
-          const f = document.createElement('div');
-          f.className = 'pl-fill';
-          f.style.left = (i / span * 100) + '%';
-          f.style.width = (1 / span * 100) + '%';
-          f.style.background = planTint(rgb, PLAN_A_DONE);
-          f.dataset.day = k;
-          f.title = '双击查看那天';
-          b.appendChild(f);
-        });
         ms.forEach(k => {
           const i = planDayDiff(s, k);
           const st = document.createElement('span');
@@ -6900,7 +7124,13 @@ function renderPlanCalendar(host, w) {
         if (_planRange) return;
         if (!jumpable) { planEntryMenu(b, e); return; }
         if (_planClickTimer) return;
-        _planClickTimer = setTimeout(() => { _planClickTimer = null; planEntryMenu(b, e); }, 230);
+        _planClickTimer = setTimeout(() => {
+          _planClickTimer = null;
+          // a re-render between the click and here would leave b detached, and
+          // showPicker would position the menu against a zeroed rect
+          if (!b.isConnected) return;
+          planEntryMenu(b, e);
+        }, 230);
       };
       b.ondblclick = (ev) => {
         ev.stopPropagation();
@@ -6911,6 +7141,7 @@ function renderPlanCalendar(host, w) {
       lanes.appendChild(b);
     });
     week.appendChild(lanes);
+    week.style.setProperty('--pl-rows', rowLanes);
     cal.appendChild(week);
   }
   host.appendChild(cal);
@@ -6933,6 +7164,36 @@ function renderPlanCalendar(host, w) {
 // data-day wins, so the calendar's day cells and the band's day cells behave the
 // same. Preview highlights the candidate range instead of re-rendering on every
 // move — a full render per pointermove thrashes layout and eats the drag.
+// Dwell over ‹ / › while dragging and the period advances, so a range can be
+// pulled across a month boundary in one gesture. Repeats while you stay there.
+let _planEdgeTimer = null;
+let _planEdgeDir = 0;
+const PLAN_EDGE_DWELL = 420;
+function planEdgeCheck(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const arrow = el && el.closest ? el.closest('#pl-prev, #pl-next') : null;
+  const dir = arrow ? (arrow.id === 'pl-next' ? 1 : -1) : 0;
+  if (dir === _planEdgeDir) return;
+  planEdgeStop();
+  _planEdgeDir = dir;
+  if (!dir) return;
+  if (arrow) arrow.classList.add('armed');
+  const tick = () => {
+    if (!_planEdgeDir) return;
+    planShiftPeriod(_planEdgeDir);
+    const again = document.getElementById(_planEdgeDir > 0 ? 'pl-next' : 'pl-prev');
+    if (again) again.classList.add('armed');       // the old node is gone after render
+    _planEdgeTimer = setTimeout(tick, PLAN_EDGE_DWELL);
+  };
+  _planEdgeTimer = setTimeout(tick, PLAN_EDGE_DWELL);
+}
+function planEdgeStop() {
+  if (_planEdgeTimer) clearTimeout(_planEdgeTimer);
+  _planEdgeTimer = null;
+  _planEdgeDir = 0;
+  document.querySelectorAll('.pl-arrow.armed').forEach(a => a.classList.remove('armed'));
+}
+
 let _planRange = null;
 let _planClickTimer = null;   // holds the menu open until a double-click can't arrive
 
@@ -6993,6 +7254,7 @@ function planBeginRangeDrag(ev, entry, mode) {
   planPaintRange(entry.from, entry.to);
   const onMove = e => {
     if (!_planRange) return;
+    planEdgeCheck(e.clientX, e.clientY);
     const d = planDayUnder(e.clientX, e.clientY);
     if (!d) return;
     if (d !== _planRange.grab) _planRange.moved = true;
@@ -7003,6 +7265,7 @@ function planBeginRangeDrag(ev, entry, mode) {
     document.removeEventListener('pointermove', onMove, true);
     document.removeEventListener('pointerup', onUp, true);
     document.removeEventListener('pointercancel', onCancel, true);
+    planEdgeStop();
     const r = _planRange;
     _planRange = null;
     planClearPaint();
@@ -7015,6 +7278,7 @@ function planBeginRangeDrag(ev, entry, mode) {
     document.removeEventListener('pointermove', onMove, true);
     document.removeEventListener('pointerup', onUp, true);
     document.removeEventListener('pointercancel', onCancel, true);
+    planEdgeStop();
     _planRange = null;
     planClearPaint();
   };
@@ -7024,41 +7288,152 @@ function planBeginRangeDrag(ev, entry, mode) {
 }
 
 // Drag across day cells to carve out a range, then pick the game(s) for it.
+// Twelve month grids. Deliberately read-only: at ~24px a day, a 3px bar is not
+// a drag target, so a click opens that month at full size instead. Overview
+// navigates; the month view edits.
+function renderPlanYearCalendar(host, w) {
+  planLooseStrip(host, w);
+
+  const dated = planEntriesInWindow(w.from, w.to).filter(e => e.dated);
+  const laneOf = planAssignLanes(dated);     // global: a game keeps its lane all year
+  const today = todayKey();
+  const thisMonth = planMonthStart(today, 0);
+
+  const grid = document.createElement('div');
+  grid.className = 'pl-yr';
+
+  planMonthsInWindow(w).forEach(mStart => {
+    const mw = planMonthWindow(mStart);
+    const md = parseDateKey(mStart);
+    const box = document.createElement('div');
+    box.className = 'pl-yr-m' + (mStart === thisMonth ? ' now' : '');
+    box.title = '打开这个月';
+    let hidden = 0;
+
+    const title = document.createElement('div');
+    title.className = 'pl-yr-title';
+    // the year is only worth repeating when the window straddles two of them
+    title.textContent = (md.getMonth() === 0 || mStart === w.from)
+      ? `${md.getMonth() + 1} 月 ${String(md.getFullYear()).slice(2)}`
+      : `${md.getMonth() + 1} 月`;
+    box.appendChild(title);
+
+    const wd = document.createElement('div');
+    wd.className = 'pl-yr-wd';
+    ['一', '二', '三', '四', '五', '六', '日'].forEach(t => {
+      const c = document.createElement('div'); c.textContent = t; wd.appendChild(c);
+    });
+    box.appendChild(wd);
+
+    const gridFrom = planWeekWindow(mw.from).from;
+    const gridTo = planWeekWindow(planAddDays(mw.to, -1)).to;
+    for (let wkStart = gridFrom; wkStart < gridTo; wkStart = planAddDays(wkStart, 7)) {
+      const wkEnd = planAddDays(wkStart, 7);
+      const week = document.createElement('div');
+      week.className = 'pl-yr-wk';
+      const days = document.createElement('div');
+      days.className = 'pl-yr-grid';
+      planEachDay(wkStart, wkEnd).forEach(k => {
+        const cell = document.createElement('div');
+        const out = k < mw.from || k >= mw.to;
+        // Twelve grids means today shows up twice — once for real, once as a
+        // ghost trailing day in the previous month. Only the real one counts.
+        cell.className = 'pl-yr-d' + (out ? ' out' : '') + (!out && k === today ? ' today' : '');
+        cell.textContent = parseDateKey(k).getDate();
+        days.appendChild(cell);
+      });
+      week.appendChild(days);
+
+      const lanes = document.createElement('div');
+      lanes.className = 'pl-yr-lanes';
+      let rowLanes = 0;
+      dated.forEach(e => {
+        // clip to this week AND to this month, so a bar never bleeds into the
+        // greyed-out neighbouring days
+        // clipped to this week AND this month, so a bar never bleeds onto the
+        // greyed-out neighbour days that the adjacent grid already shows
+        const lo = wkStart > mw.from ? wkStart : mw.from;
+        const hi = wkEnd < mw.to ? wkEnd : mw.to;
+        const clip = planClipEntry(e, lo, hi);
+        if (!clip) return;
+        const lane = laneOf.get(e.id);
+        if (lane >= PLAN_MAX_LANES) { hidden += 1; return; }
+        if (lane + 1 > rowLanes) rowLanes = lane + 1;
+        const rgb = planRgb(e);
+        const startCol = planDayDiff(wkStart, clip.s);
+        const span = clip.span;
+        const b = document.createElement('div');
+        b.className = 'pl-yr-b' + (e.tentative ? ' tent' : '');
+        // colour alone carries 掂量中 at this scale; see the .tent rule
+        b.style.left = (startCol / 7 * 100) + '%';
+        b.style.width = (span / 7 * 100) + '%';
+        b.style.top = (lane * 5) + 'px';
+        b.style.background = planPlannedTint(rgb, e.tentative);
+        planPaintFills(b, e, clip, rgb, 'pl-yr-f');
+        lanes.appendChild(b);
+      });
+      week.appendChild(lanes);
+      week.style.setProperty('--pl-rows', rowLanes);
+      box.appendChild(week);
+    }
+
+    if (hidden) {
+      const more = document.createElement('div');
+      more.className = 'pl-yr-more';
+      more.textContent = '+' + hidden + ' 条未显示';
+      box.appendChild(more);
+    }
+    box.onclick = () => { planKind = 'month'; planAnchor = mStart; smoothRender(); };
+    grid.appendChild(box);
+  });
+  host.appendChild(grid);
+}
+
 function planWireDragCreate(cal, w) {
-  const cells = () => Array.from(cal.querySelectorAll('.pl-day'));
   const paint = (a, b) => {
     const lo = a < b ? a : b, hi = a < b ? b : a;
-    cells().forEach(c => c.classList.toggle('sel', c.dataset.day >= lo && c.dataset.day <= hi));
+    planPaintRange(lo, planAddDays(hi, 1));
   };
-  const guard = () => !!_planRange;
   cal.addEventListener('pointerdown', ev => {
     const cell = ev.target.closest('.pl-day');
     if (!cell || _planRange || ev.target.closest('.pl-block') || ev.target.closest('.pl-more')) return;
+    ev.preventDefault();
     _planDrag = { a: cell.dataset.day, b: cell.dataset.day };
     paint(_planDrag.a, _planDrag.b);
-    cal.setPointerCapture(ev.pointerId);
+    // document-level, and no pointer capture: the grid this started on may be
+    // replaced mid-drag when the period advances at the edge.
+    document.addEventListener('pointermove', onMove, true);
+    document.addEventListener('pointerup', onUp, true);
+    document.addEventListener('pointercancel', onCancel, true);
   });
-  cal.addEventListener('pointermove', ev => {
-    if (!_planDrag || guard()) return;
-    const el = document.elementFromPoint(ev.clientX, ev.clientY);
-    const cell = el && el.closest ? el.closest('.pl-day') : null;
-    if (!cell) return;
-    _planDrag.b = cell.dataset.day;
+  function onMove(ev) {
+    if (!_planDrag || _planRange) return;
+    planEdgeCheck(ev.clientX, ev.clientY);
+    const d = planDayUnder(ev.clientX, ev.clientY);
+    if (!d) return;
+    _planDrag.b = d;
     paint(_planDrag.a, _planDrag.b);
-  });
-  const finish = () => {
+  }
+  function detach() {
+    document.removeEventListener('pointermove', onMove, true);
+    document.removeEventListener('pointerup', onUp, true);
+    document.removeEventListener('pointercancel', onCancel, true);
+    planEdgeStop();
+  }
+  function onUp() {
+    detach();
     if (!_planDrag) return;
     const { a, b } = _planDrag;
     _planDrag = null;
-    cells().forEach(c => c.classList.remove('sel'));
+    planClearPaint();
     const lo = a < b ? a : b, hi = a < b ? b : a;
     openPlanPicker(lo, planAddDays(hi, 1), true);
-  };
-  cal.addEventListener('pointerup', finish);
-  cal.addEventListener('pointercancel', () => {
+  }
+  function onCancel() {
+    detach();
     _planDrag = null;
-    cells().forEach(c => c.classList.remove('sel'));
-  });
+    planClearPaint();
+  }
 }
 
 function planDayList(key, anchor) {
@@ -7078,15 +7453,17 @@ function renderPlanBand(host, w) {
   if (!entries.length) {
     const e = document.createElement('div');
     e.className = 'pl-band-empty';
-    e.textContent = '这个周期还没有计划。在日历上横拉一段，或者用上面的「加入计划」。';
+    e.textContent = planKind === 'year'
+      ? '这十二个月还没有计划。点某个月打开它，在日历上横拉一段，或者用上面的「加入计划」。'
+      : '这个周期还没有计划。在日历上横拉一段，或者用上面的「加入计划」。';
     host.appendChild(e);
     return;
   }
-  const days = planEachDay(w.from, w.to);
-  const today = todayKey();
+  const units = planAxisUnits(w);
+  const dense = planKind === 'year';
 
   const wrap = document.createElement('div');
-  wrap.className = 'pl-band';
+  wrap.className = 'pl-band' + (dense ? ' dense' : '');
   const inner = document.createElement('div');
   inner.className = 'pl-band-inner';
 
@@ -7095,13 +7472,12 @@ function renderPlanBand(host, w) {
   head.innerHTML = '<div class="pl-band-name"></div>';
   const axis = document.createElement('div');
   axis.className = 'pl-band-axis';
-  days.forEach(k => {
-    const d = parseDateKey(k);
+  units.forEach(u => {
     const t = document.createElement('div');
-    const isMon = (d.getDay() + 6) % 7 === 0;
-    t.className = 'pl-band-tick' + (isMon ? ' wk' : '') + (k === today ? ' now' : '');
-    const n = d.getDate();
-    t.textContent = (days.length <= 10 || n === 1 || n % 5 === 0) ? n : '';
+    t.className = 'pl-band-tick' + (u.sep ? ' wk' : '') + (u.isToday ? ' now' : '');
+    // month view: every 5th day. week view: all of them. year: the month numbers.
+    t.textContent = dense ? u.tick
+      : (units.length <= 10 || u.tick === '1' || Number(u.tick) % 5 === 0) ? u.tick : '';
     axis.appendChild(t);
   });
   head.appendChild(axis);
@@ -7122,7 +7498,10 @@ function renderPlanBand(host, w) {
     label.innerHTML = `<span class="pl-band-grab">⠿</span>`
       + `<span class="pl-band-chip"></span>`
       + `<span class="pl-band-title${tomb ? ' tomb' : ''}">${escapeHtml(planEntryName(e))}</span>`
-      + (hits.size ? `<span class="pl-band-count">${hits.size} 天</span>` : '');
+      + (hits.size ? `<span class="pl-band-count">${hits.size} 天</span>` : '')
+      + ((e.from < w.from || e.to > w.to)
+          ? `<span class="pl-band-ext" title="这条超出当前周期">${e.from < w.from ? '‹' : ''}${e.to > w.to ? '›' : ''}</span>`
+          : '');
     const chip = label.querySelector('.pl-band-chip');
     if (e.tentative) {
       // hollow ring, not a filled dot — categorical, and legible at 8px
@@ -7136,11 +7515,11 @@ function renderPlanBand(host, w) {
 
     const cells = document.createElement('div');
     cells.className = 'pl-band-cells';
-    days.forEach(k => {
-      const d = parseDateKey(k);
+    units.forEach(u => {
+      const k = u.from;
       const c = document.createElement('div');
-      const inScope = k >= e.from && k < e.to;
-      c.className = 'pl-band-cell' + ((d.getDay() + 6) % 7 === 0 ? ' wk' : '') + (inScope ? ' scoped' : '');
+      const inScope = u.from < e.to && e.from < u.to;     // overlap, not equality
+      c.className = 'pl-band-cell' + (u.sep ? ' wk' : '') + (inScope ? ' scoped' : '');
       c.dataset.day = k;
       if (inScope) {
         const s = document.createElement('div'); s.className = 'pl-band-scope';
@@ -7150,34 +7529,38 @@ function renderPlanBand(host, w) {
           if (ev.target.closest('.pl-band-grip')) return;
           planBeginRangeDrag(ev, e, 'move');
         };
-        if (k === e.from) {
+        if (e.from >= u.from && e.from < u.to) {
           const gs = document.createElement('div');
           gs.className = 'pl-band-grip s'; gs.title = '拖动改开始日';
           gs.onpointerdown = ev => planBeginRangeDrag(ev, e, 'start');
           c.appendChild(gs);
         }
-        if (k === planAddDays(e.to, -1)) {
+        const lastIncl = planAddDays(e.to, -1);
+        if (lastIncl >= u.from && lastIncl < u.to) {
           const ge = document.createElement('div');
           ge.className = 'pl-band-grip e'; ge.title = '拖动改结束日';
           ge.onpointerdown = ev => planBeginRangeDrag(ev, e, 'end');
           c.appendChild(ge);
         }
       }
-      if (hits.has(k)) {
+      const hitDay = planUnitHas(hits, u);
+      if (hitDay) {
         const h = document.createElement('div'); h.className = 'pl-band-hit';
         h.style.background = planTint(rgb, 0.9); c.appendChild(h);
         c.title = '双击查看那天';
-        c.ondblclick = ev => { ev.stopPropagation(); planJumpToDay(k); };
+        // jump to the day actually played, not the column's first day
+        c.ondblclick = ev => { ev.stopPropagation(); planJumpToDay(hitDay); };
       }
-      if (e.dated && k === e.from) {
+      if (e.dated && e.from >= u.from && e.from < u.to) {
         const a = document.createElement('div'); a.className = 'pl-band-anchor';
         a.style.background = planInk(rgb); c.appendChild(a);
       }
-      if (ms.has(k)) {
+      const msDay = planUnitHas(ms, u);
+      if (msDay) {
         const m = document.createElement('div'); m.className = 'pl-band-ms';
         m.style.color = planInk(rgb); m.textContent = '✦'; c.appendChild(m);
       }
-      if (k === today) { const n = document.createElement('div'); n.className = 'pl-band-now'; c.appendChild(n); }
+      if (u.isToday) { const n = document.createElement('div'); n.className = 'pl-band-now'; c.appendChild(n); }
       cells.appendChild(c);
     });
     row.appendChild(cells);
@@ -7228,7 +7611,7 @@ function openPlanPicker(from, to, dated) {
   box.className = 'pl-pick';
   const rangeText = dated
     ? `${planFmtShort(from)} – ${planFmtShort(planAddDays(to, -1))}`
-    : (planKind === 'week' ? '本周 · 无固定日期' : '本月 · 无固定日期');
+    : ((planKind === 'week' ? '本周' : planKind === 'year' ? '本年' : '本月') + ' · 无固定日期');
   box.innerHTML = `
     <div class="pl-pick-top">
       <div class="pl-pick-title">加入计划 · ${escapeHtml(rangeText)}</div>
