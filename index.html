@@ -1588,6 +1588,15 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-grip.e { right: 0; border-radius: 0 999px 999px 0; }
 .pl-block:hover .pl-grip { background: rgba(42, 36, 28, 0.14); }
 
+/* ---- year, 逐月: the full month grids stacked ---- */
+.pl-stack-m { margin-bottom: 34px; scroll-margin-top: 16px; }
+.pl-stack-m:last-child { margin-bottom: 8px; }
+.pl-stack-title {
+  font-family: var(--display-font); font-size: 17px; color: var(--text);
+  letter-spacing: 0.02em; margin: 0 0 10px;
+}
+.pl-stack-m.now .pl-stack-title { color: var(--accent); }
+
 /* ---- year: twelve real month grids ---- */
 .pl-yr { display: grid; grid-template-columns: repeat(auto-fill, minmax(164px, 1fr)); gap: 20px 16px; }
 .pl-yr-m { cursor: pointer; padding: 6px 4px 8px; border-radius: 8px; transition: background 0.16s; }
@@ -6868,6 +6877,7 @@ function renderPlan() {
         </div>
         <div class="pl-seg">
           <div class="pl-seg-btn" data-view="calendar">日历</div>
+          <div class="pl-seg-btn" data-view="stack" id="pl-view-stack">逐月</div>
           <div class="pl-seg-btn" data-view="band">时间带</div>
         </div>
         <div class="pl-tools">
@@ -6897,7 +6907,11 @@ function renderPlan() {
     el.classList.toggle('on', el.dataset.kind === planKind);
     el.onclick = () => { planKind = el.dataset.kind; smoothRender(); };
   });
+  // 逐月 only means something across many months; outside the year it is just
+  // the month view, so hide it and fold the state back to 'calendar'.
+  if (planKind !== 'year' && planView === 'stack') planView = 'calendar';
   root.querySelectorAll('[data-view]').forEach(el => {
+    if (el.dataset.view === 'stack' && planKind !== 'year') { el.style.display = 'none'; return; }
     el.classList.toggle('on', el.dataset.view === planView);
     el.onclick = () => { planView = el.dataset.view; smoothRender(); };
   });
@@ -6917,6 +6931,7 @@ function renderPlan() {
 
   const body = document.getElementById('pl-body');
   if (planView === 'band') renderPlanBand(body, w);
+  else if (planKind === 'year' && planView === 'stack') renderPlanStacked(body, w);
   else if (planKind === 'year') renderPlanYearCalendar(body, w);
   else renderPlanCalendar(body, w);
 }
@@ -7013,9 +7028,15 @@ function planEntryMenu(anchor, entry) {
 
 function renderPlanCalendar(host, w) {
   planLooseStrip(host, w);
+  renderPlanMonthGrid(host, w);
+}
 
+// One full-size month grid. `laneOf` is optional: the month view packs lanes for
+// its own window, the stacked year passes one packing for all twelve so a game
+// keeps its height from month to month.
+function renderPlanMonthGrid(host, w, laneOfShared) {
   const dated = planEntriesInWindow(w.from, w.to).filter(e => e.dated);
-  const laneOf = planAssignLanes(dated);
+  const laneOf = laneOfShared || planAssignLanes(dated);
 
   const gridFrom = planWeekWindow(w.from).from;
   const lastDay = planAddDays(w.to, -1);
@@ -7288,6 +7309,46 @@ function planBeginRangeDrag(ev, entry, mode) {
 }
 
 // Drag across day cells to carve out a range, then pick the game(s) for it.
+// The twelve months at full size, one under the other. Everything the month
+// view can do works here unchanged — including dragging a range straight from
+// one month's grid into the next one below it, because every grid's day cells
+// carry data-day and the drag engine only ever asks "which day is under the
+// pointer". No edge-dwell needed when the next month is right there.
+let _planStackKey = null;
+function renderPlanStacked(host, w) {
+  planLooseStrip(host, w);
+  const dated = planEntriesInWindow(w.from, w.to).filter(e => e.dated);
+  const laneOf = planAssignLanes(dated);
+  const thisMonth = planMonthStart(todayKey(), 0);
+  const months = planMonthsInWindow(w);
+  months.forEach((mStart, i) => {
+    const mw = planMonthWindow(mStart);
+    const md = parseDateKey(mStart);
+    const sec = document.createElement('div');
+    sec.className = 'pl-stack-m' + (mStart === thisMonth ? ' now' : '');
+    sec.dataset.month = mStart;
+    const title = document.createElement('div');
+    title.className = 'pl-stack-title';
+    // year only where it changes: first month, and every January
+    title.textContent = (i === 0 || md.getMonth() === 0)
+      ? `${md.getFullYear()} 年 ${md.getMonth() + 1} 月`
+      : `${md.getMonth() + 1} 月`;
+    sec.appendChild(title);
+    renderPlanMonthGrid(sec, mw, laneOf);
+    host.appendChild(sec);
+  });
+  // Land on the current month the first time this window is shown, not on
+  // every re-render — a drag commit in December must not fling you back.
+  const key = planView + '|' + w.from + '|' + w.to;
+  if (_planStackKey !== key) {
+    _planStackKey = key;
+    const target = host.querySelector('.pl-stack-m.now') || host.querySelector('.pl-stack-m');
+    if (target && target.scrollIntoView) {
+      requestAnimationFrame(() => target.scrollIntoView({ block: 'start', behavior: 'auto' }));
+    }
+  }
+}
+
 // Twelve month grids. Deliberately read-only: at ~24px a day, a 3px bar is not
 // a drag target, so a click opens that month at full size instead. Overview
 // navigates; the month view edits.
