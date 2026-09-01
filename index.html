@@ -1516,6 +1516,7 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-pill-dots { display: inline-flex; gap: 2px; }
 .pl-pill-dot { width: 4px; height: 4px; border-radius: 50%; }
 .pl-pill.tomb { font-style: italic; }
+.pl-pill.tent { border: 1px dashed transparent; }
 .pl-add {
   display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px;
   border: 1px dashed var(--line-strong); font-family: var(--label-font); font-size: 10px;
@@ -1559,6 +1560,10 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-block.cont { border-top-left-radius: 3px; border-bottom-left-radius: 3px; }
 .pl-block.goes-on { border-top-right-radius: 3px; border-bottom-right-radius: 3px; }
 .pl-block.tomb { font-style: italic; }
+/* Tentative reads as a dashed, drained version of the same colour. The dash is
+   suppressed at a week split so a continuation never looks like an end. */
+.pl-block.tent { border: 1px dashed transparent; }
+.pl-block.tent.cont { border-top-left-radius: 3px; border-bottom-left-radius: 3px; }
 /* Reality overlays intent in the SAME hue — light = planned, strong = played —
    so a bar reads as one object filling in, not two unrelated colours. Both
    strengths stay light enough for one ink, so the label never switches colour
@@ -1621,6 +1626,8 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-band-anchor { position: absolute; left: 0; top: -4px; bottom: -4px; width: 1.5px; }
 .pl-band-ms { position: absolute; left: 50%; top: -1px; transform: translateX(-50%); font-size: 9px; }
 .pl-band-chip { width: 8px; height: 8px; border-radius: 3px; flex: 0 0 auto; }
+.pl-band-chip.hollow { background: transparent; border: 1.5px solid transparent; }
+.pl-band-row.tent .pl-band-title { color: var(--text-muted); }
 /* A count, not a ratio: it says what happened, it doesn't score it. */
 .pl-band-count { font-size: 10px; color: var(--text-faint); flex: 0 0 auto; letter-spacing: 0.04em; }
 .pl-band-now { position: absolute; top: -6px; bottom: -6px; width: 1px; background: var(--accent); opacity: 0.6; }
@@ -1634,6 +1641,10 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-leg-pair i { display: block; width: 13px; height: 8px; }
 .pl-leg-pair .a { background: rgba(226,150,128,0.20); }
 .pl-leg-pair .b { background: rgba(226,150,128,0.62); }
+.pl-leg-tent {
+  width: 14px; height: 9px; border-radius: 4px;
+  background: rgba(176,168,155,0.26); border: 1px dashed rgba(90,86,79,0.5);
+}
 
 /* ---- picker modal (add games to the plan) ---- */
 .pl-pick-overlay {
@@ -1675,8 +1686,21 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-pick-note { font-size: 10px; color: var(--text-faint); margin-left: auto; letter-spacing: 0.06em; }
 .pl-pick-foot { display: flex; align-items: center; gap: 12px; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
 .pl-pick-hint { font-size: 11px; color: var(--text-faint); }
+.pl-pick-tent {
+  display: inline-flex; align-items: center; gap: 6px; margin-left: auto;
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-faint); cursor: pointer;
+  transition: color 0.16s;
+}
+.pl-pick-tent i {
+  width: 13px; height: 13px; border-radius: 4px; border: 1px dashed var(--line-strong);
+  display: block; transition: background 0.16s, border-color 0.16s;
+}
+.pl-pick-tent:hover { color: var(--text-muted); }
+.pl-pick-tent.on { color: var(--accent); }
+.pl-pick-tent.on i { background: var(--accent-faint); border-color: var(--accent); border-style: solid; }
 .pl-pick-btn {
-  margin-left: auto; font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em;
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em;
   text-transform: uppercase; padding: 8px 16px; border-radius: 999px; cursor: pointer;
   background: var(--accent); color: #fff; border: none; transition: opacity 0.16s;
 }
@@ -1877,6 +1901,10 @@ function migrate(state) {
       p.to = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
     }
     if (typeof p.dated !== 'boolean') p.dated = false;
+    // 掂量中: on the shelf, not committed to. A property of the intention, so it
+    // lives on the row — the same game can be committed in one period and merely
+    // under consideration in another.
+    if (typeof p.tentative !== 'boolean') p.tentative = false;
     if (p.name != null && typeof p.name !== 'string') delete p.name;
     return p;
   });
@@ -6420,12 +6448,12 @@ function planMilestoneDays(gameId, from, to) {
   return out;
 }
 
-function planAdd(gameIds, from, to, dated) {
+function planAdd(gameIds, from, to, dated, tentative) {
   const list = planList();
   gameIds.forEach(id => {
     list.push({
       id: 'pl_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-      gameId: id, from, to, dated: !!dated
+      gameId: id, from, to, dated: !!dated, tentative: !!tentative
     });
   });
   scheduleSave(); smoothRender();
@@ -6456,6 +6484,17 @@ function planAnchorEntry(entryId) {
   if (planView !== 'calendar') planView = 'calendar';
   scheduleSave(); smoothRender();
   showUndoToast(`${planEntryName(e)} 已放上日历 · 拖两端改范围`, snap);
+}
+
+// Deliberately NOT automatic. Playing a game you were only weighing does not
+// silently promote the row — the bar already shows it (full-colour days on a
+// desaturated bar), and rewriting an intention because reality disagreed is the
+// app deciding for you.
+function planToggleTentative(entryId) {
+  const e = planList().find(x => x.id === entryId);
+  if (!e) return;
+  e.tentative = !e.tentative;
+  scheduleSave(); smoothRender();
 }
 
 // Colour lives on the GAME, not the plan row: one game, one colour, everywhere.
@@ -6495,11 +6534,12 @@ function planCarryOver() {
   });
   if (!open.length) { showToast({ message: '没有未完成的条目可结转', actionLabel: '' }); return; }
   const already = new Set(planEntriesInWindow(next.from, next.to).map(e => e.gameId));
-  const ids = open.map(e => e.gameId).filter(id => !already.has(id));
-  if (!ids.length) { showToast({ message: '下一周期里已经都有了', actionLabel: '' }); return; }
+  const carry = open.filter(e => !already.has(e.gameId));
+  if (!carry.length) { showToast({ message: '下一周期里已经都有了', actionLabel: '' }); return; }
   const snap = snapshotState();
-  planAdd(ids, next.from, next.to, false);
-  showUndoToast(`结转 ${ids.length} 项到下一周期`, snap);
+  // 掂量中 rides along as 掂量中 — carrying over is not a decision to commit.
+  carry.forEach(e => planAdd([e.gameId], next.from, next.to, false, e.tentative));
+  showUndoToast(`结转 ${carry.length} 项到下一周期`, snap);
 }
 
 // ---------- colour ----------
@@ -6527,6 +6567,24 @@ function planInk(rgb) {
 }
 const PLAN_A_PLANNED = 0.20;   // intent
 const PLAN_A_DONE = 0.62;      // reality — same hue, just stronger
+const PLAN_A_TENTATIVE = 0.26; // 掂量中 — desaturated, so it can't be confused
+                               // with "planned but not played yet"
+// Pull a hue toward the page's warm neutral, keeping a trace of it so the game
+// is still identifiable. Lightness is already spoken for (plan vs played), so
+// tentativeness gets saturation instead, plus a dashed edge as a hard signal.
+function planDesat(rgb) {
+  const n = [146, 142, 137];   // near-neutral; a warm grey here would floor the drain
+  return rgb ? [0, 1, 2].map(i => Math.round(rgb[i] * 0.28 + n[i] * 0.72)) : null;
+}
+// The planned bar of an entry: desaturated when tentative, full hue when not.
+// Played days are ALWAYS full hue — reality doesn't care how sure you were.
+function planPlannedTint(rgb, tentative) {
+  return tentative ? planTint(planDesat(rgb), PLAN_A_TENTATIVE) : planTint(rgb, PLAN_A_PLANNED);
+}
+function planDashEdge(rgb) {
+  const i = planDesat(rgb) || [150, 143, 132];
+  return `rgba(${Math.round(i[0] * 0.55)},${Math.round(i[1] * 0.55)},${Math.round(i[2] * 0.55)},0.5)`;
+}
 
 // ---------- lane packing (calendar) ----------
 // Greedy interval packing in plan order: an entry takes the lowest lane free for
@@ -6604,6 +6662,7 @@ function renderPlan() {
         <span class="pl-leg"><span class="pl-leg-pair"><i class="a"></i><i class="b"></i></span>浅=计划 · 深=实际打卡</span>
         <span class="pl-leg"><span class="pl-leg-sw anchor"></span>计划开始日</span>
         <span class="pl-leg">✦ 里程碑</span>
+        <span class="pl-leg"><span class="pl-leg-tent"></span>掂量中 · 还没定</span>
         <span class="pl-leg">颜色按游戏区分 · 菜单里可换</span>
         <span class="pl-leg">← → 翻周期 · 双击已打卡的格子看那天</span>
       </div>
@@ -6663,9 +6722,10 @@ function planLooseStrip(host, w) {
     const tomb = planEntryIsTomb(e);
     const rgb = planRgb(e);
     const pill = document.createElement('div');
-    pill.className = 'pl-pill' + (tomb ? ' tomb' : '');
-    pill.style.background = planTint(rgb, PLAN_A_PLANNED);
+    pill.className = 'pl-pill' + (tomb ? ' tomb' : '') + (e.tentative ? ' tent' : '');
+    pill.style.background = planPlannedTint(rgb, e.tentative);
     pill.style.color = planInk(rgb);
+    if (e.tentative) pill.style.borderColor = planDashEdge(rgb);
     const hits = tomb ? new Set() : planCheckinDays(e.gameId, w.from, w.to);
     pill.innerHTML = `<span>${escapeHtml(planEntryName(e))}</span>`;
     if (hits.size) {
@@ -6703,12 +6763,14 @@ function planEntryMenu(anchor, entry) {
   const items = [];
   const tomb = planEntryIsTomb(entry);
   if (!tomb && entry.dated) items.push({ value: 'jump', label: '跳到那天' });
+  if (!tomb) items.push({ value: 'tent', label: entry.tentative ? '✓ 确定要玩' : '~ 改为掂量中' });
   if (!tomb) items.push({ value: 'hue', label: '换颜色' });
   if (!tomb && entry.dated) items.push({ value: 'loose', label: '改为无固定日期' });
   if (!tomb && !entry.dated) items.push({ value: 'anchor', label: '放到日历上定日期' });
   items.push({ value: 'remove', label: tomb ? '× 彻底移除' : '× 移出计划', clear: true });
   showPicker(anchor, items, '', v => {
-    if (v === 'hue') planHueMenu(anchor, entry);
+    if (v === 'tent') planToggleTentative(entry.id);
+    else if (v === 'hue') planHueMenu(anchor, entry);
     else if (v === 'jump') planJumpToDay(entry.from);
     else if (v === 'loose') planUnanchor(entry.id);
     else if (v === 'anchor') planAnchorEntry(entry.id);
@@ -6771,14 +6833,20 @@ function renderPlanCalendar(host, w) {
       const tomb = planEntryIsTomb(e);
       const rgb = planRgb(e);
       const b = document.createElement('div');
-      b.className = 'pl-block' + (tomb ? ' tomb' : '')
+      b.className = 'pl-block' + (tomb ? ' tomb' : '') + (e.tentative ? ' tent' : '')
         + (e.from < s ? ' cont' : '') + (e.to > t ? ' goes-on' : '');
       b.style.left = (startCol / 7 * 100) + '%';
       b.style.width = 'calc(' + (span / 7 * 100) + '% - 4px)';
       b.style.marginLeft = '2px';
       b.style.top = (lane * 20) + 'px';
-      b.style.background = planTint(rgb, PLAN_A_PLANNED);
-      b.style.color = planInk(rgb);
+      b.style.background = planPlannedTint(rgb, e.tentative);
+      b.style.color = planInk(rgb);          // one ink either way: same game, same voice
+      if (e.tentative) {
+        b.style.borderColor = planDashEdge(rgb);
+        // a dash at a week split would read as the range ending there
+        if (e.from < s) b.style.borderLeftColor = 'transparent';
+        if (e.to > t) b.style.borderRightColor = 'transparent';
+      }
       if (!tomb) {
         const hits = planCheckinDays(e.gameId, s, t);
         const ms = planMilestoneDays(e.gameId, s, t);
@@ -7043,7 +7111,7 @@ function renderPlanBand(host, w) {
     const tomb = planEntryIsTomb(e);
     const rgb = planRgb(e);          // declared up here: the name chip below needs it
     const row = document.createElement('div');
-    row.className = 'pl-band-row';
+    row.className = 'pl-band-row' + (e.tentative ? ' tent' : '');
     row.dataset.entry = e.id;
 
     const label = document.createElement('div');
@@ -7055,7 +7123,14 @@ function renderPlanBand(host, w) {
       + `<span class="pl-band-chip"></span>`
       + `<span class="pl-band-title${tomb ? ' tomb' : ''}">${escapeHtml(planEntryName(e))}</span>`
       + (hits.size ? `<span class="pl-band-count">${hits.size} 天</span>` : '');
-    label.querySelector('.pl-band-chip').style.background = planTint(rgb, 0.85);
+    const chip = label.querySelector('.pl-band-chip');
+    if (e.tentative) {
+      // hollow ring, not a filled dot — categorical, and legible at 8px
+      chip.classList.add('hollow');
+      chip.style.borderColor = planTint(rgb, 0.9);
+    } else {
+      chip.style.background = planTint(rgb, 0.85);
+    }
     label.onclick = () => planEntryMenu(label, e);
     row.appendChild(label);
 
@@ -7069,7 +7144,7 @@ function renderPlanBand(host, w) {
       c.dataset.day = k;
       if (inScope) {
         const s = document.createElement('div'); s.className = 'pl-band-scope';
-        s.style.background = planTint(rgb, 0.42);
+        s.style.background = e.tentative ? planTint(planDesat(rgb), 0.45) : planTint(rgb, 0.42);
         c.appendChild(s);
         c.onpointerdown = ev => {
           if (ev.target.closest('.pl-band-grip')) return;
@@ -7163,6 +7238,7 @@ function openPlanPicker(from, to, dated) {
     <div class="pl-pick-foot">
       <span class="pl-pick-cancel" id="pl-cancel">取消</span>
       <span class="pl-pick-hint" id="pl-hint"></span>
+      <span class="pl-pick-tent" id="pl-tent"><i></i>先掂量</span>
       <button class="pl-pick-btn" id="pl-ok" disabled>加入</button>
     </div>`;
   overlay.appendChild(box);
@@ -7217,9 +7293,13 @@ function openPlanPicker(from, to, dated) {
   q.oninput = () => paint(q.value);
   setTimeout(() => q.focus(), 30);
 
+  let tentative = false;
+  const tentEl = document.getElementById('pl-tent');
+  tentEl.onclick = () => { tentative = !tentative; tentEl.classList.toggle('on', tentative); };
+
   okBtn.onclick = () => {
     if (!chosen.size) return;
-    planAdd(Array.from(chosen), from, to, dated);
+    planAdd(Array.from(chosen), from, to, dated, tentative);
     overlay.remove();
   };
 }
