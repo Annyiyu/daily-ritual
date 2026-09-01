@@ -1461,6 +1461,213 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 #section-tier1{ --g-name: var(--day-name); --g-line: var(--day-line); }
 #section-tier2{ --g-name: var(--play-name); --g-line: var(--play-line); }
 
+
+/* ============================================================
+   计划 (Planning) — one flat range table, two renderings.
+   Calendar = wrapped month/week grid, blocks split per week row.
+   Band     = linear day axis, one row per entry, drag to reorder.
+   ============================================================ */
+
+.pl-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+.pl-title { font-family: var(--display-font); font-size: 21px; color: var(--text); letter-spacing: 0.02em; }
+.pl-sub { font-size: 11px; color: var(--text-faint); letter-spacing: 0.14em; text-transform: uppercase; }
+.pl-nav { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.pl-arrow {
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; cursor: pointer; color: var(--text-faint); font-size: 15px;
+  transition: background 0.16s, color 0.16s;
+}
+.pl-arrow:hover { background: var(--accent-faint); color: var(--accent); }
+.pl-today {
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint);
+  cursor: pointer; padding: 0 8px; transition: color 0.16s;
+}
+.pl-today:hover { color: var(--accent); }
+
+.pl-switches { display: flex; align-items: center; gap: 18px; margin: 12px 0 18px; flex-wrap: wrap; }
+.pl-seg { display: inline-flex; align-items: center; gap: 2px; }
+.pl-seg-btn {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text-faint); padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  transition: background 0.16s, color 0.16s;
+}
+.pl-seg-btn:hover { color: var(--text-muted); }
+.pl-seg-btn.on { background: var(--accent-faint); color: var(--accent); }
+.pl-tools { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+.pl-tool {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-faint); cursor: pointer; transition: color 0.16s; white-space: nowrap;
+}
+.pl-tool:hover { color: var(--accent); }
+
+/* ---- undated strip: entries with no fixed day never enter the grid, or a
+       month-long plan would paint every cell and the calendar stops informing ---- */
+.pl-loose { margin-bottom: 16px; }
+.pl-loose-label {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text-faint); margin-bottom: 8px;
+}
+.pl-loose-row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.pl-pill {
+  display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px;
+  background: rgba(42, 36, 28, 0.05); font-size: 12px; color: var(--text-muted);
+  cursor: pointer; transition: background 0.16s, color 0.16s;
+}
+.pl-pill:hover { background: var(--accent-faint); color: var(--text); }
+.pl-pill-dots { display: inline-flex; gap: 2px; }
+.pl-pill-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); opacity: 0.85; }
+.pl-pill.tomb { color: var(--text-faint); background: rgba(42, 36, 28, 0.03); }
+.pl-add {
+  display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px;
+  border: 1px dashed var(--line-strong); font-family: var(--label-font); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint);
+  cursor: pointer; transition: border-color 0.16s, color 0.16s;
+}
+.pl-add:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---- calendar ---- */
+.pl-wk-head { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 6px; }
+.pl-wk-head div {
+  text-align: center; font-family: var(--label-font); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint);
+}
+.pl-cal { border-top: 1px solid var(--line); }
+.pl-week { position: relative; border-bottom: 1px solid var(--line); }
+.pl-week-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.pl-day {
+  min-height: 88px; padding: 4px 5px 5px; border-left: 1px solid var(--line);
+  user-select: none; cursor: crosshair; transition: background 0.14s;
+}
+.pl-day:first-child { border-left: none; }
+.pl-day.out { opacity: 0.34; }
+.pl-day.today .pl-day-num { color: var(--accent); font-weight: 600; }
+.pl-day.sel { background: var(--accent-faint); }
+.pl-day-num { font-size: 11px; color: var(--text-faint); letter-spacing: 0.02em; }
+.pl-more {
+  position: absolute; bottom: 3px; font-size: 10px; color: var(--text-faint);
+  cursor: pointer; letter-spacing: 0.04em;
+}
+.pl-more:hover { color: var(--accent); }
+
+.pl-lanes { position: absolute; left: 0; right: 0; top: 24px; pointer-events: none; }
+.pl-block {
+  position: absolute; height: 17px; border-radius: 999px; display: flex; align-items: center;
+  padding: 0 8px; font-size: 11px; white-space: nowrap; overflow: hidden;
+  pointer-events: auto; cursor: pointer;
+  background: rgba(42, 36, 28, 0.08); color: var(--text-muted);
+  transition: filter 0.14s;
+}
+.pl-block:hover { filter: brightness(0.96); }
+.pl-block.cont { border-top-left-radius: 3px; border-bottom-left-radius: 3px; }
+.pl-block.goes-on { border-top-right-radius: 3px; border-bottom-right-radius: 3px; }
+.pl-block.tomb { color: var(--text-faint); background: rgba(42, 36, 28, 0.04); font-style: italic; }
+/* actual check-ins overlay the planned bar — plan vs reality in one object */
+.pl-fill {
+  position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: 0.8;
+  pointer-events: none;
+}
+.pl-block-label { position: relative; z-index: 1; }
+.pl-block.has-fill .pl-block-label { color: #fff; }
+.pl-star { position: relative; z-index: 1; margin-left: 5px; font-size: 9px; color: #fff; }
+.pl-block:not(.has-fill) .pl-star { color: var(--accent); }
+
+/* ---- band (linear day axis) ---- */
+.pl-band { overflow-x: auto; }
+.pl-band-inner { min-width: 100%; }
+.pl-band-head { display: flex; align-items: flex-end; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.pl-band-name { flex: 0 0 190px; }
+.pl-band-axis { flex: 1 1 auto; display: flex; }
+.pl-band-tick { flex: 1 1 0; text-align: center; font-size: 9px; color: var(--text-faint); min-width: 0; }
+.pl-band-tick.wk { border-left: 1px solid var(--line); }
+.pl-band-tick.now { color: var(--accent); }
+.pl-band-row {
+  display: flex; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line);
+  transition: background 0.14s;
+}
+.pl-band-row:hover { background: rgba(42, 36, 28, 0.02); }
+.pl-band-row.dragging { opacity: 0.4; }
+.pl-band-row.over { box-shadow: inset 0 2px 0 var(--accent); }
+.pl-band-label { flex: 0 0 190px; display: flex; align-items: center; gap: 8px; padding-right: 12px; min-width: 0; }
+.pl-band-grab { color: var(--text-faint); cursor: grab; opacity: 0; transition: opacity 0.16s; font-size: 11px; }
+.pl-band-row:hover .pl-band-grab { opacity: 0.5; }
+.pl-band-title { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-band-title.tomb { color: var(--text-faint); font-style: italic; }
+.pl-band-cells { flex: 1 1 auto; display: flex; align-items: center; position: relative; height: 18px; }
+.pl-band-cell { flex: 1 1 0; height: 100%; min-width: 0; position: relative; }
+.pl-band-cell.wk::before {
+  content: ''; position: absolute; left: 0; top: -3px; bottom: -3px; width: 1px; background: var(--line);
+}
+.pl-band-scope { position: absolute; left: 2px; right: 2px; top: 8px; height: 3px; border-radius: 2px; background: rgba(42, 36, 28, 0.16); }
+.pl-band-hit { position: absolute; left: 1px; right: 1px; top: 2px; bottom: 2px; border-radius: 3px; background: var(--accent); opacity: 0.82; }
+.pl-band-anchor { position: absolute; left: 0; top: -4px; bottom: -4px; width: 1.5px; background: var(--con-name); }
+.pl-band-ms { position: absolute; left: 50%; top: -1px; transform: translateX(-50%); font-size: 9px; color: var(--con-name); }
+.pl-band-now { position: absolute; top: -6px; bottom: -6px; width: 1px; background: var(--accent); opacity: 0.6; }
+.pl-band-empty { text-align: center; padding: 30px 0; color: var(--text-faint); font-size: 12px; }
+
+/* ---- legend ---- */
+.pl-legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 16px; }
+.pl-leg { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-faint); letter-spacing: 0.08em; }
+.pl-leg-sw { width: 14px; height: 8px; border-radius: 4px; background: rgba(42, 36, 28, 0.16); }
+.pl-leg-sw.hit { background: var(--accent); opacity: 0.82; }
+.pl-leg-sw.anchor { width: 2px; height: 12px; border-radius: 1px; background: var(--con-name); }
+
+/* ---- picker modal (add games to the plan) ---- */
+.pl-pick-overlay {
+  position: fixed; inset: 0; background: rgba(42, 36, 28, 0.28); z-index: 400;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: plFade 0.18s ease;
+}
+@keyframes plFade { from { opacity: 0; } to { opacity: 1; } }
+.pl-pick {
+  background: var(--bg); border-radius: 14px; width: 100%; max-width: 460px;
+  max-height: 78vh; display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 18px 48px rgba(42, 36, 28, 0.18);
+}
+.pl-pick-top { padding: 16px 18px 10px; }
+.pl-pick-title { font-family: var(--display-font); font-size: 15px; color: var(--text); margin-bottom: 10px; }
+.pl-pick-search {
+  width: 100%; border: none; border-bottom: 1px solid var(--line-strong); background: transparent;
+  font-family: var(--body-font); font-size: 13px; color: var(--text); padding: 6px 2px; outline: none;
+}
+.pl-pick-search:focus { border-bottom-color: var(--accent); }
+.pl-pick-list { overflow-y: auto; padding: 6px 8px; flex: 1 1 auto; }
+.pl-pick-group {
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text-faint); padding: 10px 10px 5px;
+}
+.pl-pick-item {
+  display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px;
+  cursor: pointer; font-size: 13px; color: var(--text); transition: background 0.14s;
+}
+.pl-pick-item:hover { background: rgba(42, 36, 28, 0.04); }
+.pl-pick-item.on { background: var(--accent-faint); }
+.pl-pick-box {
+  width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--line-strong);
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: #fff;
+}
+.pl-pick-item.on .pl-pick-box { background: var(--accent); border-color: var(--accent); }
+.pl-pick-item.dim { color: var(--text-faint); }
+.pl-pick-note { font-size: 10px; color: var(--text-faint); margin-left: auto; letter-spacing: 0.06em; }
+.pl-pick-foot { display: flex; align-items: center; gap: 12px; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
+.pl-pick-hint { font-size: 11px; color: var(--text-faint); }
+.pl-pick-btn {
+  margin-left: auto; font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  background: var(--accent); color: #fff; border: none; transition: opacity 0.16s;
+}
+.pl-pick-btn:disabled { opacity: 0.35; cursor: default; }
+.pl-pick-cancel {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text-faint); cursor: pointer;
+}
+.pl-pick-cancel:hover { color: var(--text-muted); }
+
+@media (max-width: 600px) {
+  .pl-day { min-height: 72px; }
+  .pl-band-name, .pl-band-label { flex-basis: 130px; }
+}
+
 </style>
 </head>
 <body>
@@ -1628,6 +1835,24 @@ function migrate(state) {
     const seed = [...(state.config.mediaList || []), ...(state.config.subList || [])];
     state.config.tagList = [...new Set(seed.filter(Boolean))];
   }
+
+  // Plan entries — one flat table of half-open day ranges [from, to). Month and
+  // week are windows onto this table, not separate lists, so a week-scoped entry
+  // shows up when you zoom out to its month. Additive + defaulted: old data loads
+  // clean, and rows with junk get repaired instead of silently dropped.
+  if (!Array.isArray(state.config.plans)) state.config.plans = [];
+  state.config.plans = state.config.plans.filter(e => e && typeof e === 'object' && e.gameId).map(e => {
+    const p = { ...e };
+    if (typeof p.id !== 'string' || !p.id) p.id = 'pl_' + Math.random().toString(36).slice(2, 11);
+    if (typeof p.from !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(p.from)) p.from = GENESIS;
+    if (typeof p.to !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(p.to) || p.to <= p.from) {
+      const d = new Date(p.from.slice(0, 4), Number(p.from.slice(5, 7)) - 1, Number(p.from.slice(8, 10)) + 1);
+      p.to = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
+    if (typeof p.dated !== 'boolean') p.dated = false;
+    if (p.name != null && typeof p.name !== 'string') delete p.name;
+    return p;
+  });
 
   // Company (tier1) column-view preference: 1 / 2 / 4
   if ([1, 2, 4].indexOf(state.config.companyColumns) === -1) state.config.companyColumns = 1;
@@ -2214,6 +2439,8 @@ function deleteGameForever(tier, gameId) {
   }).then(ok => {
     if (!ok) return;
     state.config[tier] = state.config[tier].filter(g => g.id !== gameId);
+    // Plan rows keep their place as readable tombstones; Yiyu purges them herself.
+    (state.config.plans || []).forEach(e => { if (e.gameId === gameId && !e.name) e.name = game.name; });
     scheduleSave(); smoothRender();
   });
 }
@@ -2836,11 +3063,12 @@ const TIER3_STATUS_LABELS = {
 let _firstAppRender = true;
 function render() {
   // Clean any stale modals (they live in body, not root)
-  document.querySelectorAll('.manage-popup, .manage-overlay').forEach(el => el.remove());
+  document.querySelectorAll('.manage-popup, .manage-overlay, .pl-pick-overlay').forEach(el => el.remove());
   closePicker();
   if (!session) { renderSignIn(); return; }
   if (!state) { renderLoading(); return; }
   applyWeekTheme();
+  if (planOpen) { renderPlan(); return; }
   if (journeyOpen) { renderJourney(); return; }
   if (reviewOpen) { renderReview(); return; }
   // First time the app proper renders → enable section entry animation
@@ -2895,6 +3123,14 @@ function renderApp() {
         <button class="review-entry" id="journey-entry" title="里程碑历程" style="margin-left:14px">
           <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><path d="M6.5 0.8 L8.1 4.9 L12.2 5 L8.9 7.7 L10.1 11.8 L6.5 9.3 L2.9 11.8 L4.1 7.7 L0.8 5 L4.9 4.9 Z" fill="var(--accent)" opacity="0.82"></path></svg>
           历程
+        </button>
+        <button class="review-entry" id="plan-entry" title="计划" style="margin-left:14px">
+          <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true">
+            <rect x="0.6" y="2" width="11.8" height="10.4" rx="2" fill="none" stroke="var(--accent)" stroke-width="1.1" opacity="0.8"></rect>
+            <rect x="2.6" y="5.4" width="7.8" height="1.8" rx="0.9" fill="var(--accent)" opacity="0.5"></rect>
+            <rect x="2.6" y="8.4" width="4.6" height="1.8" rx="0.9" fill="var(--accent)" opacity="0.85"></rect>
+          </svg>
+          计划
         </button>
       </div>
       <div class="date-nav">
@@ -2956,6 +3192,7 @@ function renderApp() {
   document.getElementById('signout-btn').onclick = signOut;
   document.getElementById('review-entry').onclick = openReview;
   var _je = document.getElementById('journey-entry'); if (_je) _je.onclick = openJourney;
+  var _pe = document.getElementById('plan-entry'); if (_pe) _pe.onclick = openPlan;
 }
 
 // ── Companion band — removed (header progress bar deleted). The check-in history
@@ -4234,6 +4471,7 @@ function gameById(id) {
 
 function openReview() {
   reviewOpen = true;
+  planOpen = false; journeyOpen = false;
   reviewSpan = 'quarter';
   reviewAnchor = todayKey();
   reviewSelectedDay = todayKey();
@@ -5191,7 +5429,7 @@ function journeyView() {
 }
 function setJourneyView(v) { state.config.journeyView = v; scheduleSave(); render(); }
 
-function openJourney() { journeyOpen = true; reviewOpen = false; _journeyFilter = { type: '', outcome: '', tag: '' }; render(); }
+function openJourney() { journeyOpen = true; reviewOpen = false; planOpen = false; _journeyFilter = { type: '', outcome: '', tag: '' }; render(); }
 function closeJourney() { journeyOpen = false; render(); }
 
 // Stable warm color per game (cross-refresh consistent) — drives river/star/shelf accents.
@@ -6022,6 +6260,683 @@ function openRangeMenu(anchor, groupKey) {
     apply.onclick = () => { applyChainToGroups(chain, Array.from(selected)); close(); };
     actions.appendChild(allBtn); actions.appendChild(apply); menu.appendChild(actions);
   });
+}
+
+
+// ============================================================
+// 计划 (Planning) — das Vorhaben + Soll-Ist-Vergleich
+//
+// Data model: ONE flat table of entries, each carrying a half-open day range
+// [from, to). There is no "period" object — month and week are windows onto the
+// same table, which is why zooming out from a week to its month automatically
+// includes the week's entries. Order is the array order (same convention as
+// every other list in this app: the array IS the truth, sorting rewrites it).
+//
+//   { id, gameId, from, to, dated, name? }
+//   dated  — true when `from` is a deliberate day-level intent (a start day).
+//            false means "somewhere in this window", and the entry is kept out
+//            of the calendar grid so a month-long plan can't paint every cell.
+//   name   — tombstone snapshot, written only when the game is deleted forever.
+//            Without it a deleted entry is an unreadable id.
+// ============================================================
+
+let planOpen = false;
+let planKind = 'month';        // 'month' | 'week'
+let planAnchor = null;         // any dateKey inside the current window
+let planView = 'calendar';     // 'calendar' | 'band'
+let _planDrag = null;          // drag-to-create range on the calendar
+let _planRowDrag = null;       // band row reorder
+
+// ---------- date helpers (half-open [from, to), ISO weeks, Monday first) ----------
+
+function planAddDays(key, n) {
+  const d = parseDateKey(key);
+  d.setDate(d.getDate() + n);
+  return dateKey(d);
+}
+function planDayDiff(a, b) {
+  return Math.round((parseDateKey(b) - parseDateKey(a)) / 86400000);
+}
+function planMonthWindow(key) {
+  const d = parseDateKey(key);
+  const from = dateKey(new Date(d.getFullYear(), d.getMonth(), 1));
+  const to = dateKey(new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  return { from, to };
+}
+// ISO 8601: weeks start Monday. Displayed end is inclusive; stored end is not.
+function planWeekWindow(key) {
+  const d = parseDateKey(key);
+  const shift = (d.getDay() + 6) % 7;           // Mon = 0
+  const from = planAddDays(key, -shift);
+  return { from, to: planAddDays(from, 7) };
+}
+// ISO week-numbering year is NOT the calendar year at the boundaries: the week
+// containing Jan 1 can belong to the previous year's W52/W53, and late December
+// can belong to next year's W01. Never derive the year by slicing the date key.
+function planIsoWeek(key) {
+  const d = parseDateKey(key);
+  const shift = (d.getDay() + 6) % 7;
+  const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - shift);
+  const thu = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 3);
+  const year = thu.getFullYear();
+  const jan4 = new Date(year, 0, 4);
+  const jan4shift = (jan4.getDay() + 6) % 7;
+  const w1mon = new Date(year, 0, 4 - jan4shift);
+  const week = Math.round((mon - w1mon) / 604800000) + 1;
+  return { year, week, key: year + '-W' + pad(week) };
+}
+function planWindow() {
+  const anchor = planAnchor || todayKey();
+  return planKind === 'week' ? planWeekWindow(anchor) : planMonthWindow(anchor);
+}
+function planEachDay(from, to) {
+  const out = [];
+  for (let k = from; k < to; k = planAddDays(k, 1)) out.push(k);
+  return out;
+}
+function planPeriodLabel() {
+  const w = planWindow();
+  const d = parseDateKey(w.from);
+  if (planKind === 'week') {
+    const iso = planIsoWeek(w.from);
+    const last = planAddDays(w.to, -1);      // stored end-exclusive, shown inclusive
+    return `第 ${iso.week} 周 · ${planFmtShort(w.from)} – ${planFmtShort(last)}`;
+  }
+  return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月`;
+}
+function planFmtShort(key) {
+  const d = parseDateKey(key);
+  return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+}
+function planShiftPeriod(dir) {
+  const w = planWindow();
+  planAnchor = dir > 0 ? w.to : planAddDays(w.from, -1);
+  render();
+}
+
+// ---------- data ----------
+
+function planList() {
+  if (!Array.isArray(state.config.plans)) state.config.plans = [];
+  return state.config.plans;
+}
+function planEntriesInWindow(from, to) {
+  // overlap on half-open ranges: a.from < b.to && b.from < a.to
+  return planList().filter(e => e.from < to && from < e.to);
+}
+function planEntryGame(entry) {
+  const hit = findGameAnywhere(entry.gameId);
+  return hit ? hit.game : null;
+}
+function planEntryName(entry) {
+  const g = planEntryGame(entry);
+  if (g) return parsePlatform(g.name).base;
+  return (entry.name ? entry.name : '未知条目') + ' · 已删除';
+}
+function planEntryIsTomb(entry) { return !planEntryGame(entry); }
+
+function planCheckinDays(gameId, from, to) {
+  const out = new Set();
+  planEachDay(from, to).forEach(k => {
+    if (isCheckedInOn(state.history[k], gameId)) out.add(k);
+  });
+  return out;
+}
+function planMilestoneDays(gameId, from, to) {
+  const out = new Set();
+  const g = planEntryGame({ gameId });
+  if (!g) return out;
+  (g.milestones || []).forEach(m => {
+    if (m && m.date && m.outcome && FINISHING_TYPES.indexOf(m.type) !== -1
+        && m.date >= from && m.date < to) out.add(m.date);
+  });
+  return out;
+}
+
+function planAdd(gameIds, from, to, dated) {
+  const list = planList();
+  gameIds.forEach(id => {
+    list.push({
+      id: 'pl_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      gameId: id, from, to, dated: !!dated
+    });
+  });
+  scheduleSave(); smoothRender();
+}
+function planRemove(entryId) {
+  const snap = snapshotState();
+  const list = planList();
+  const i = list.findIndex(e => e.id === entryId);
+  if (i === -1) return;
+  const label = planEntryName(list[i]);
+  list.splice(i, 1);
+  scheduleSave(); smoothRender();
+  showUndoToast(`移出计划：${label}`, snap);
+}
+function planUnanchor(entryId) {
+  const e = planList().find(x => x.id === entryId);
+  if (!e) return;
+  const w = planWindow();
+  e.dated = false;
+  e.from = w.from < e.from ? w.from : e.from;   // widen back to the window
+  e.to = w.to > e.to ? w.to : e.to;
+  scheduleSave(); smoothRender();
+}
+
+// Carry-over builds NEW rows in the next window. It never moves or rewrites the
+// old ones — this period's plan is a record of what you intended at the time.
+function planCarryOver() {
+  const w = planWindow();
+  const next = planKind === 'week'
+    ? planWeekWindow(w.to)
+    : planMonthWindow(w.to);
+  const open = planEntriesInWindow(w.from, w.to).filter(e => {
+    if (planEntryIsTomb(e)) return false;
+    return planMilestoneDays(e.gameId, w.from, w.to).size === 0;
+  });
+  if (!open.length) { showToast({ message: '没有未完成的条目可结转', actionLabel: '' }); return; }
+  const already = new Set(planEntriesInWindow(next.from, next.to).map(e => e.gameId));
+  const ids = open.map(e => e.gameId).filter(id => !already.has(id));
+  if (!ids.length) { showToast({ message: '下一周期里已经都有了', actionLabel: '' }); return; }
+  const snap = snapshotState();
+  planAdd(ids, next.from, next.to, false);
+  showUndoToast(`结转 ${ids.length} 项到下一周期`, snap);
+}
+
+// ---------- lane packing (calendar) ----------
+// Greedy interval packing in plan order: an entry takes the lowest lane free for
+// its whole span, so non-overlapping entries share a lane instead of stacking.
+const PLAN_MAX_LANES = 3;
+function planAssignLanes(entries) {
+  const lanes = [];   // lanes[i] = array of {from,to}
+  const map = new Map();
+  entries.forEach(e => {
+    let li = 0;
+    while (true) {
+      const lane = lanes[li] || (lanes[li] = []);
+      const clash = lane.some(s => e.from < s.to && s.from < e.to);
+      if (!clash) { lane.push({ from: e.from, to: e.to }); map.set(e.id, li); break; }
+      li++;
+    }
+  });
+  return map;
+}
+
+// ---------- render ----------
+
+function openPlan() {
+  planOpen = true; reviewOpen = false; journeyOpen = false;
+  if (!planAnchor) planAnchor = todayKey();
+  render();
+}
+function closePlan() { planOpen = false; render(); }
+
+function renderPlan() {
+  const root = document.getElementById('root');
+  const w = planWindow();
+  root.innerHTML = `
+    <header class="header narrow">
+      <div class="review-entry-row">
+        <button class="review-entry" id="pl-back">← 返回</button>
+      </div>
+    </header>
+    <section class="section wide">
+      <div class="pl-head">
+        <div class="pl-title" id="pl-label"></div>
+        <div class="pl-nav">
+          <div class="pl-arrow" id="pl-prev" title="上一个">‹</div>
+          <div class="pl-today" id="pl-now">今天</div>
+          <div class="pl-arrow" id="pl-next" title="下一个">›</div>
+        </div>
+      </div>
+      <div class="pl-switches">
+        <div class="pl-seg">
+          <div class="pl-seg-btn" data-kind="month">月</div>
+          <div class="pl-seg-btn" data-kind="week">周</div>
+        </div>
+        <div class="pl-seg">
+          <div class="pl-seg-btn" data-view="calendar">日历</div>
+          <div class="pl-seg-btn" data-view="band">时间带</div>
+        </div>
+        <div class="pl-tools">
+          <div class="pl-tool" id="pl-sort">↑↓ 排序</div>
+          <div class="pl-tool" id="pl-carry">结转未完成 →</div>
+        </div>
+      </div>
+      <div id="pl-body"></div>
+      <div class="pl-legend">
+        <span class="pl-leg"><span class="pl-leg-sw"></span>计划</span>
+        <span class="pl-leg"><span class="pl-leg-sw hit"></span>实际打卡</span>
+        <span class="pl-leg"><span class="pl-leg-sw anchor"></span>计划开始日</span>
+        <span class="pl-leg">✦ 里程碑</span>
+      </div>
+    </section>
+  `;
+  document.getElementById('pl-label').textContent = planPeriodLabel();
+  document.getElementById('pl-back').onclick = closePlan;
+  document.getElementById('pl-prev').onclick = () => planShiftPeriod(-1);
+  document.getElementById('pl-next').onclick = () => planShiftPeriod(1);
+  document.getElementById('pl-now').onclick = () => { planAnchor = todayKey(); render(); };
+  root.querySelectorAll('[data-kind]').forEach(el => {
+    el.classList.toggle('on', el.dataset.kind === planKind);
+    el.onclick = () => { planKind = el.dataset.kind; smoothRender(); };
+  });
+  root.querySelectorAll('[data-view]').forEach(el => {
+    el.classList.toggle('on', el.dataset.view === planView);
+    el.onclick = () => { planView = el.dataset.view; smoothRender(); };
+  });
+  document.getElementById('pl-carry').onclick = planCarryOver;
+  document.getElementById('pl-sort').onclick = (e) => planSortMenu(e.currentTarget);
+
+  const body = document.getElementById('pl-body');
+  if (planView === 'band') renderPlanBand(body, w);
+  else renderPlanCalendar(body, w);
+}
+
+// One-shot sort: rewrites the plan array, exactly like the roster sort bars.
+// There is no live sort anywhere in this app — order is data, not a rule.
+function planSortMenu(anchor) {
+  const items = SORT_KEYS.map(k => ({ value: k.key, label: k.label }));
+  showPicker(anchor, items, '', key => {
+    const w = planWindow();
+    const inWin = planEntriesInWindow(w.from, w.to);
+    const ids = new Set(inWin.map(e => e.id));
+    const sorted = inWin.slice().sort((a, b) => {
+      const ga = planEntryGame(a), gb = planEntryGame(b);
+      if (!ga && !gb) return 0;
+      if (!ga) return 1;
+      if (!gb) return -1;
+      return compareChain(ga, gb, [{ key, dir: 'asc' }]);
+    });
+    const list = planList();
+    let si = 0;
+    for (let i = 0; i < list.length; i++) if (ids.has(list[i].id)) list[i] = sorted[si++];
+    scheduleSave(); smoothRender();
+  });
+}
+
+function planLooseStrip(host, w) {
+  const loose = planEntriesInWindow(w.from, w.to).filter(e => !e.dated);
+  const box = document.createElement('div');
+  box.className = 'pl-loose';
+  box.innerHTML = `<div class="pl-loose-label">${planKind === 'week' ? '本周' : '本月'} · 无固定日期</div>`;
+  const row = document.createElement('div');
+  row.className = 'pl-loose-row';
+  loose.forEach(e => {
+    const tomb = planEntryIsTomb(e);
+    const pill = document.createElement('div');
+    pill.className = 'pl-pill' + (tomb ? ' tomb' : '');
+    const hits = tomb ? new Set() : planCheckinDays(e.gameId, w.from, w.to);
+    pill.innerHTML = `<span>${escapeHtml(planEntryName(e))}</span>`;
+    if (hits.size) {
+      const dots = document.createElement('span');
+      dots.className = 'pl-pill-dots';
+      for (let i = 0; i < Math.min(hits.size, 5); i++) {
+        const d = document.createElement('span'); d.className = 'pl-pill-dot'; dots.appendChild(d);
+      }
+      pill.appendChild(dots);
+    }
+    pill.onclick = (ev) => planEntryMenu(ev.currentTarget, e);
+    row.appendChild(pill);
+  });
+  const add = document.createElement('div');
+  add.className = 'pl-add';
+  add.textContent = '+ 加入计划';
+  add.onclick = () => openPlanPicker(w.from, w.to, false);
+  row.appendChild(add);
+  box.appendChild(row);
+  host.appendChild(box);
+}
+
+function planEntryMenu(anchor, entry) {
+  const items = [];
+  const tomb = planEntryIsTomb(entry);
+  if (!tomb && entry.dated) items.push({ value: 'jump', label: '跳到那天' });
+  if (!tomb && entry.dated) items.push({ value: 'loose', label: '改为无固定日期' });
+  items.push({ value: 'remove', label: tomb ? '× 彻底移除' : '× 移出计划', clear: true });
+  showPicker(anchor, items, '', v => {
+    if (v === 'jump') { viewDate = entry.from; planOpen = false; reviewOpen = false; render(); }
+    else if (v === 'loose') planUnanchor(entry.id);
+    else if (v === 'remove') planRemove(entry.id);
+  });
+}
+
+function renderPlanCalendar(host, w) {
+  planLooseStrip(host, w);
+
+  const dated = planEntriesInWindow(w.from, w.to).filter(e => e.dated);
+  const laneOf = planAssignLanes(dated);
+
+  const gridFrom = planWeekWindow(w.from).from;
+  const lastDay = planAddDays(w.to, -1);
+  const gridTo = planWeekWindow(lastDay).to;
+
+  const head = document.createElement('div');
+  head.className = 'pl-wk-head';
+  ['一', '二', '三', '四', '五', '六', '日'].forEach(t => {
+    const c = document.createElement('div'); c.textContent = t; head.appendChild(c);
+  });
+  host.appendChild(head);
+
+  const cal = document.createElement('div');
+  cal.className = 'pl-cal';
+  const today = todayKey();
+  const hidden = new Map();   // dateKey → count not drawn
+
+  for (let wkStart = gridFrom; wkStart < gridTo; wkStart = planAddDays(wkStart, 7)) {
+    const wkEnd = planAddDays(wkStart, 7);
+    const week = document.createElement('div');
+    week.className = 'pl-week';
+    const grid = document.createElement('div');
+    grid.className = 'pl-week-grid';
+    planEachDay(wkStart, wkEnd).forEach(k => {
+      const cell = document.createElement('div');
+      cell.className = 'pl-day'
+        + (k < w.from || k >= w.to ? ' out' : '')
+        + (k === today ? ' today' : '');
+      cell.dataset.day = k;
+      cell.innerHTML = `<div class="pl-day-num">${parseDateKey(k).getDate()}</div>`;
+      grid.appendChild(cell);
+    });
+    week.appendChild(grid);
+
+    const lanes = document.createElement('div');
+    lanes.className = 'pl-lanes';
+    dated.forEach(e => {
+      const s = e.from > wkStart ? e.from : wkStart;
+      const t = e.to < wkEnd ? e.to : wkEnd;
+      if (s >= t) return;
+      const lane = laneOf.get(e.id);
+      const startCol = planDayDiff(wkStart, s);
+      const span = planDayDiff(s, t);
+      if (lane >= PLAN_MAX_LANES) {
+        planEachDay(s, t).forEach(k => hidden.set(k, (hidden.get(k) || 0) + 1));
+        return;
+      }
+      const tomb = planEntryIsTomb(e);
+      const b = document.createElement('div');
+      b.className = 'pl-block' + (tomb ? ' tomb' : '')
+        + (e.from < s ? ' cont' : '') + (e.to > t ? ' goes-on' : '');
+      b.style.left = (startCol / 7 * 100) + '%';
+      b.style.width = 'calc(' + (span / 7 * 100) + '% - 4px)';
+      b.style.marginLeft = '2px';
+      b.style.top = (lane * 20) + 'px';
+      if (!tomb) {
+        const hits = planCheckinDays(e.gameId, s, t);
+        const ms = planMilestoneDays(e.gameId, s, t);
+        planEachDay(s, t).forEach((k, i) => {
+          if (!hits.has(k)) return;
+          const f = document.createElement('div');
+          f.className = 'pl-fill';
+          f.style.left = (i / span * 100) + '%';
+          f.style.width = (1 / span * 100) + '%';
+          b.appendChild(f);
+          if (i === 0) b.classList.add('has-fill');
+        });
+        const lbl = document.createElement('span');
+        lbl.className = 'pl-block-label';
+        lbl.textContent = e.from < s ? '' : planEntryName(e);
+        b.appendChild(lbl);
+        if (ms.size) {
+          const st = document.createElement('span'); st.className = 'pl-star'; st.textContent = '✦';
+          b.appendChild(st);
+        }
+      } else {
+        const lbl = document.createElement('span');
+        lbl.className = 'pl-block-label';
+        lbl.textContent = e.from < s ? '' : planEntryName(e);
+        b.appendChild(lbl);
+      }
+      b.onclick = (ev) => { ev.stopPropagation(); planEntryMenu(b, e); };
+      lanes.appendChild(b);
+    });
+    week.appendChild(lanes);
+    cal.appendChild(week);
+  }
+  host.appendChild(cal);
+
+  hidden.forEach((n, k) => {
+    const cell = cal.querySelector(`.pl-day[data-day="${k}"]`);
+    if (!cell) return;
+    const more = document.createElement('div');
+    more.className = 'pl-more';
+    more.textContent = '+' + n;
+    more.onclick = (ev) => { ev.stopPropagation(); planDayList(k, more); };
+    cell.appendChild(more);
+  });
+
+  planWireDragCreate(cal, w);
+}
+
+// Drag across day cells to carve out a range, then pick the game(s) for it.
+function planWireDragCreate(cal, w) {
+  const cells = () => Array.from(cal.querySelectorAll('.pl-day'));
+  const paint = (a, b) => {
+    const lo = a < b ? a : b, hi = a < b ? b : a;
+    cells().forEach(c => c.classList.toggle('sel', c.dataset.day >= lo && c.dataset.day <= hi));
+  };
+  cal.addEventListener('pointerdown', ev => {
+    const cell = ev.target.closest('.pl-day');
+    if (!cell || ev.target.closest('.pl-block') || ev.target.closest('.pl-more')) return;
+    _planDrag = { a: cell.dataset.day, b: cell.dataset.day };
+    paint(_planDrag.a, _planDrag.b);
+    cal.setPointerCapture(ev.pointerId);
+  });
+  cal.addEventListener('pointermove', ev => {
+    if (!_planDrag) return;
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    const cell = el && el.closest ? el.closest('.pl-day') : null;
+    if (!cell) return;
+    _planDrag.b = cell.dataset.day;
+    paint(_planDrag.a, _planDrag.b);
+  });
+  const finish = () => {
+    if (!_planDrag) return;
+    const { a, b } = _planDrag;
+    _planDrag = null;
+    cells().forEach(c => c.classList.remove('sel'));
+    const lo = a < b ? a : b, hi = a < b ? b : a;
+    openPlanPicker(lo, planAddDays(hi, 1), true);
+  };
+  cal.addEventListener('pointerup', finish);
+  cal.addEventListener('pointercancel', () => {
+    _planDrag = null;
+    cells().forEach(c => c.classList.remove('sel'));
+  });
+}
+
+function planDayList(key, anchor) {
+  const covering = planList().filter(e => e.dated && e.from <= key && key < e.to);
+  if (!covering.length) return;
+  const items = covering.map(e => ({ value: e.id, label: planEntryName(e) }));
+  showPicker(anchor, items, '', id => {
+    const e = planList().find(x => x.id === id);
+    if (e) planEntryMenu(anchor, e);
+  });
+}
+
+function renderPlanBand(host, w) {
+  planLooseStrip(host, w);
+
+  const entries = planEntriesInWindow(w.from, w.to);
+  if (!entries.length) {
+    const e = document.createElement('div');
+    e.className = 'pl-band-empty';
+    e.textContent = '这个周期还没有计划。在日历上横拉一段，或者用上面的「加入计划」。';
+    host.appendChild(e);
+    return;
+  }
+  const days = planEachDay(w.from, w.to);
+  const today = todayKey();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'pl-band';
+  const inner = document.createElement('div');
+  inner.className = 'pl-band-inner';
+
+  const head = document.createElement('div');
+  head.className = 'pl-band-head';
+  head.innerHTML = '<div class="pl-band-name"></div>';
+  const axis = document.createElement('div');
+  axis.className = 'pl-band-axis';
+  days.forEach(k => {
+    const d = parseDateKey(k);
+    const t = document.createElement('div');
+    const isMon = (d.getDay() + 6) % 7 === 0;
+    t.className = 'pl-band-tick' + (isMon ? ' wk' : '') + (k === today ? ' now' : '');
+    const n = d.getDate();
+    t.textContent = (days.length <= 10 || n === 1 || n % 5 === 0) ? n : '';
+    axis.appendChild(t);
+  });
+  head.appendChild(axis);
+  inner.appendChild(head);
+
+  entries.forEach(e => {
+    const tomb = planEntryIsTomb(e);
+    const row = document.createElement('div');
+    row.className = 'pl-band-row';
+    row.dataset.entry = e.id;
+
+    const label = document.createElement('div');
+    label.className = 'pl-band-label';
+    label.innerHTML = `<span class="pl-band-grab">⠿</span>`
+      + `<span class="pl-band-title${tomb ? ' tomb' : ''}">${escapeHtml(planEntryName(e))}</span>`;
+    label.onclick = () => planEntryMenu(label, e);
+    row.appendChild(label);
+
+    const cells = document.createElement('div');
+    cells.className = 'pl-band-cells';
+    const hits = tomb ? new Set() : planCheckinDays(e.gameId, w.from, w.to);
+    const ms = tomb ? new Set() : planMilestoneDays(e.gameId, w.from, w.to);
+    days.forEach(k => {
+      const d = parseDateKey(k);
+      const c = document.createElement('div');
+      c.className = 'pl-band-cell' + ((d.getDay() + 6) % 7 === 0 ? ' wk' : '');
+      const inScope = k >= e.from && k < e.to;
+      if (inScope) { const s = document.createElement('div'); s.className = 'pl-band-scope'; c.appendChild(s); }
+      if (hits.has(k)) { const h = document.createElement('div'); h.className = 'pl-band-hit'; c.appendChild(h); }
+      if (e.dated && k === e.from) { const a = document.createElement('div'); a.className = 'pl-band-anchor'; c.appendChild(a); }
+      if (ms.has(k)) { const m = document.createElement('div'); m.className = 'pl-band-ms'; m.textContent = '✦'; c.appendChild(m); }
+      if (k === today) { const n = document.createElement('div'); n.className = 'pl-band-now'; c.appendChild(n); }
+      cells.appendChild(c);
+    });
+    row.appendChild(cells);
+    planWireRowDrag(row, e.id);
+    inner.appendChild(row);
+  });
+
+  wrap.appendChild(inner);
+  host.appendChild(wrap);
+}
+
+// Reorder rows = reorder the flat plan array. One order, many windows: dragging
+// inside a week view moves the same row the month view reads.
+function planWireRowDrag(row, entryId) {
+  const grab = row.querySelector('.pl-band-grab');
+  if (!grab) return;
+  grab.onpointerdown = () => { row.draggable = true; };
+  row.ondragstart = ev => {
+    _planRowDrag = entryId;
+    row.classList.add('dragging');
+    if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
+  };
+  row.ondragend = () => { row.draggable = false; row.classList.remove('dragging'); _planRowDrag = null; };
+  row.ondragover = ev => { if (_planRowDrag && _planRowDrag !== entryId) { ev.preventDefault(); row.classList.add('over'); } };
+  row.ondragleave = () => row.classList.remove('over');
+  row.ondrop = ev => {
+    ev.preventDefault();
+    row.classList.remove('over');
+    if (!_planRowDrag || _planRowDrag === entryId) return;
+    const list = planList();
+    const from = list.findIndex(x => x.id === _planRowDrag);
+    const to = list.findIndex(x => x.id === entryId);
+    if (from === -1 || to === -1) return;
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved);
+    scheduleSave(); smoothRender();
+  };
+}
+
+// ---------- picker: add games to the plan ----------
+// Games only ever come from the main view — there is no second source of truth.
+
+function openPlanPicker(from, to, dated) {
+  const chosen = new Set();
+  const overlay = document.createElement('div');
+  overlay.className = 'pl-pick-overlay';
+  const box = document.createElement('div');
+  box.className = 'pl-pick';
+  const rangeText = dated
+    ? `${planFmtShort(from)} – ${planFmtShort(planAddDays(to, -1))}`
+    : (planKind === 'week' ? '本周 · 无固定日期' : '本月 · 无固定日期');
+  box.innerHTML = `
+    <div class="pl-pick-top">
+      <div class="pl-pick-title">加入计划 · ${escapeHtml(rangeText)}</div>
+      <input class="pl-pick-search" id="pl-q" placeholder="搜索游戏名" autocomplete="off">
+    </div>
+    <div class="pl-pick-list" id="pl-list"></div>
+    <div class="pl-pick-foot">
+      <span class="pl-pick-cancel" id="pl-cancel">取消</span>
+      <span class="pl-pick-hint" id="pl-hint"></span>
+      <button class="pl-pick-btn" id="pl-ok" disabled>加入</button>
+    </div>`;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  overlay.onclick = ev => { if (ev.target === overlay) overlay.remove(); };
+  document.getElementById('pl-cancel').onclick = () => overlay.remove();
+
+  const already = new Set(planEntriesInWindow(from, to).map(e => e.gameId));
+  const groups = [
+    { tier: 'tier1', label: 'Company' },
+    { tier: 'tier2', label: 'Playing' },
+    { tier: 'tier3', label: 'Roster' }
+  ];
+  const listEl = document.getElementById('pl-list');
+  const okBtn = document.getElementById('pl-ok');
+  const hint = document.getElementById('pl-hint');
+
+  function paint(q) {
+    listEl.innerHTML = '';
+    const needle = (q || '').trim().toLowerCase();
+    groups.forEach(g => {
+      const games = (state.config[g.tier] || []).filter(x =>
+        !needle || String(x.name).toLowerCase().indexOf(needle) !== -1);
+      if (!games.length) return;
+      const h = document.createElement('div');
+      h.className = 'pl-pick-group'; h.textContent = g.label;
+      listEl.appendChild(h);
+      games.forEach(x => {
+        const dup = already.has(x.id);
+        const it = document.createElement('div');
+        it.className = 'pl-pick-item' + (chosen.has(x.id) ? ' on' : '') + (dup ? ' dim' : '');
+        it.innerHTML = `<span class="pl-pick-box">✓</span><span>${escapeHtml(parsePlatform(x.name).base)}</span>`;
+        if (dup) it.innerHTML += `<span class="pl-pick-note">已在计划中</span>`;
+        it.onclick = () => {
+          if (dup) return;
+          if (chosen.has(x.id)) chosen.delete(x.id); else chosen.add(x.id);
+          it.classList.toggle('on', chosen.has(x.id));
+          okBtn.disabled = chosen.size === 0;
+          hint.textContent = chosen.size ? `已选 ${chosen.size}` : '';
+        };
+        listEl.appendChild(it);
+      });
+    });
+    if (!listEl.children.length) {
+      const e = document.createElement('div');
+      e.className = 'pl-pick-group'; e.textContent = '没有匹配的游戏 — 先在主视图里加进来';
+      listEl.appendChild(e);
+    }
+  }
+  paint('');
+  const q = document.getElementById('pl-q');
+  q.oninput = () => paint(q.value);
+  setTimeout(() => q.focus(), 30);
+
+  okBtn.onclick = () => {
+    if (!chosen.size) return;
+    planAdd(Array.from(chosen), from, to, dated);
+    overlay.remove();
+  };
 }
 
 </script>
