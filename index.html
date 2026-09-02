@@ -1511,18 +1511,25 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
   font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--text-faint); margin-bottom: 8px;
 }
-.pl-loose-row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
-.pl-pill {
-  display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px;
-  font-size: 12px; cursor: pointer; transition: filter 0.16s;
+/* Equal cells, as many per row as fit at ≥ 172px, never more than four —
+   24% × 5 would overflow, so auto-fill stops at four. */
+.pl-loose-row {
+  display: grid; gap: 8px; align-items: stretch;
+  grid-template-columns: repeat(auto-fill, minmax(max(172px, 24%), 1fr));
 }
+.pl-pill {
+  display: flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px;
+  font-size: 12px; cursor: pointer; transition: filter 0.16s; min-width: 0;
+}
+.pl-pill > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto; }
+.pl-pill .rc-platform, .pl-pill .pl-pill-dots { flex: 0 0 auto; }
 .pl-pill:hover { filter: brightness(0.97); }
 .pl-pill-dots { display: inline-flex; gap: 2px; }
 .pl-pill-dot { width: 4px; height: 4px; border-radius: 50%; }
 .pl-pill.tomb { font-style: italic; }
 .pl-pill.tent { border: 1px dashed transparent; }
 .pl-add {
-  display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px;
+  display: flex; align-items: center; justify-content: center; padding: 6px 12px; border-radius: 999px;
   border: 1px dashed var(--line-strong); font-family: var(--label-font); font-size: 10px;
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint);
   cursor: pointer; transition: border-color 0.16s, color 0.16s;
@@ -1788,6 +1795,7 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 @media (max-width: 600px) {
   .pl-day { min-height: max(64px, calc(30px + var(--pl-rows, 1) * 20px)); }
   .pl-band-name, .pl-band-label { flex-basis: 146px; }
+  .pl-loose-row { grid-template-columns: repeat(auto-fill, minmax(max(150px, 48%), 1fr)); }
 }
 
 </style>
@@ -7111,6 +7119,7 @@ function planLooseStrip(host, w) {
     if (e.tentative) pill.style.borderColor = planDashEdge(rgb);
     const hits = tomb ? new Set() : planCheckinDays(e.gameId, w.from, w.to);
     pill.innerHTML = `<span>${escapeHtml(planEntryName(e))}</span>`;
+    pill.title = planEntryFullName(e);
     const pillChip = tomb ? null : planPlatChip(planEntryFullName(e));
     if (pillChip) pill.appendChild(pillChip);
     if (hits.size) {
