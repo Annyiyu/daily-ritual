@@ -1982,6 +1982,12 @@ function migrate(state) {
     if (p.name != null && typeof p.name !== 'string') delete p.name;
     return p;
   });
+  // planV 2: undated rows become open-ended thoughts. Gated on a version so a
+  // row she deliberately closes later (到此为止) is not reopened on next load.
+  if ((state.config.planV || 1) < 2) {
+    state.config.plans.forEach(e => { if (!e.dated) e.to = '9999-12-31'; });
+    state.config.planV = 2;
+  }
 
   // Company (tier1) column-view preference: 1 / 2 / 4
   if ([1, 2, 4].indexOf(state.config.companyColumns) === -1) state.config.companyColumns = 1;
@@ -6568,16 +6574,39 @@ function planUnitHas(set, u) {
 
 // ---------- data ----------
 
+// Open-ended `to`. A sentinel rather than null so every existing string
+// comparison on date keys keeps working unchanged; named so it's never a bare
+// magic value at a call site.
+const PLAN_OPEN = '9999-12-31';
+function planIsOpen(e) { return e.to === PLAN_OPEN; }
+
+// Where an entry really ends. Intent stays open; reality closes it — a finishing
+// milestone on or after the thought began ends the thought that day. Derived
+// at read time, never written back: the same rule as check-ins overlaying a
+// bar rather than rewriting it.
+function planEffTo(e) {
+  if (e.dated || !planIsOpen(e)) return e.to;
+  const g = planEntryGame(e);
+  if (!g) return e.to;
+  let first = null;
+  (g.milestones || []).forEach(m => {
+    if (!m || !m.date || !m.outcome || FINISHING_TYPES.indexOf(m.type) === -1) return;
+    if (m.date < e.from) return;               // a replay of something long finished
+    if (!first || m.date < first) first = m.date;
+  });
+  return first ? planAddDays(first, 1) : e.to;
+}
+
 function planList() {
   if (!Array.isArray(state.config.plans)) state.config.plans = [];
   return state.config.plans;
 }
 function planEntriesInWindow(from, to) {
   // overlap on half-open ranges: a.from < b.to && b.from < a.to
-  return planList().filter(e => e.from < to && from < e.to);
+  return planList().filter(e => e.from < to && from < planEffTo(e));
 }
 function planEntryGame(entry) {
-  const scan = _planScan;
+  const scan = (_planScan && _planScan.state === state) ? _planScan : null;
   if (scan && scan.games.has(entry.gameId)) return scan.games.get(entry.gameId);
   const hit = findGameAnywhere(entry.gameId);
   const g = hit ? hit.game : null;
@@ -6619,7 +6648,7 @@ function planScanExtent(w) {
 }
 function planScan(w) {
   const ext = planScanExtent(w);
-  if (_planScan && _planScan.from === ext.from && _planScan.to === ext.to) return _planScan;
+  if (_planScan && _planScan.state === state && _planScan.from === ext.from && _planScan.to === ext.to) return _planScan;
   const hits = new Map();
   for (let k = ext.from; k < ext.to; k = planAddDays(k, 1)) {
     const day = state.history[k];
@@ -6635,7 +6664,7 @@ function planScan(w) {
       }
     });
   }
-  _planScan = { from: ext.from, to: ext.to, hits, games: new Map() };
+  _planScan = { state, from: ext.from, to: ext.to, hits, games: new Map() };
   return _planScan;
 }
 function planCheckinDays(gameId, from, to) {
@@ -6695,7 +6724,7 @@ function planDateDialog(entryId) {
   const w = planWindow();
   const t = todayKey();
   const start = e.dated ? e.from : ((t >= w.from && t < w.to) ? t : w.from);
-  const end = e.dated ? planAddDays(e.to, -1) : planAddDays(start, 2);
+  const end = (e.dated && !planIsOpen(e)) ? planAddDays(e.to, -1) : planAddDays(start, 2);
   showDialog({
     title: '改日期 · ' + planEntryName(e),
     message: `<div class="pl-dates">
@@ -6753,14 +6782,24 @@ function planHueMenu(anchor, entry) {
   });
 }
 
+// Dated → thought: keep where it started, open the end.
 function planUnanchor(entryId) {
   const e = planList().find(x => x.id === entryId);
   if (!e) return;
-  const w = planWindow();
   e.dated = false;
-  e.from = w.from < e.from ? w.from : e.from;   // widen back to the window
-  e.to = w.to > e.to ? w.to : e.to;
+  e.to = PLAN_OPEN;
   scheduleSave(); smoothRender();
+}
+// 到此为止: she changed her mind. That IS a change of intent, so it is written —
+// the row keeps every period it was live in, and stops after this one.
+function planCloseHere(entryId) {
+  const e = planList().find(x => x.id === entryId);
+  if (!e) return;
+  const w = planWindow();
+  const snap = snapshotState();
+  e.to = w.to;
+  scheduleSave(); smoothRender();
+  showUndoToast(`${planEntryName(e)} · 到此为止`, snap);
 }
 
 // Carry-over builds NEW rows in the next window. It never moves or rewrites the
@@ -6770,11 +6809,12 @@ function planCarryOver() {
   const next = planKind === 'week' ? planWeekWindow(w.to)
     : planKind === 'year' ? planYearWindow(w.to)
     : planMonthWindow(w.to);
+  // thoughts carry themselves; only a dated range needs a new row next period
   const open = planEntriesInWindow(w.from, w.to).filter(e => {
-    if (planEntryIsTomb(e)) return false;
+    if (planEntryIsTomb(e) || !e.dated) return false;
     return planMilestoneDays(e.gameId, w.from, w.to).size === 0;
   });
-  if (!open.length) { showToast({ message: '没有未完成的条目可结转', actionLabel: '' }); return; }
+  if (!open.length) { showToast({ message: '没有带日期的未完成条目可结转', actionLabel: '' }); return; }
   const already = new Set(planEntriesInWindow(next.from, next.to).map(e => e.gameId));
   const carry = open.filter(e => !already.has(e.gameId));
   if (!carry.length) { showToast({ message: '下一周期里已经都有了', actionLabel: '' }); return; }
@@ -6954,6 +6994,7 @@ function renderPlan() {
         <span class="pl-leg"><span class="pl-leg-sw anchor"></span>计划开始日</span>
         <span class="pl-leg">✦ 里程碑</span>
         <span class="pl-leg"><span class="pl-leg-tent"></span>掂量中 · 还没定</span>
+        <span class="pl-leg">没排日期的会一直跟着你，直到通关或「到此为止」</span>
         <span class="pl-leg">颜色按游戏区分 · 菜单里可换</span>
         <span class="pl-leg">← → 翻周期 · 双击已打卡的格子看那天</span>
         <span class="pl-leg">跨月：拖到 ‹ › 上停一下会翻页 · 或菜单里「改日期…」</span>
@@ -7057,8 +7098,7 @@ function planLooseStrip(host, w) {
   const loose = planEntriesInWindow(w.from, w.to).filter(e => !e.dated);
   const box = document.createElement('div');
   box.className = 'pl-loose';
-  const scopeWord = planKind === 'week' ? '本周' : planKind === 'year' ? '本年' : '本月';
-  box.innerHTML = `<div class="pl-loose-label">${scopeWord} · 无固定日期</div>`;
+  box.innerHTML = `<div class="pl-loose-label">想玩 · 还没排日期</div>`;
   const row = document.createElement('div');
   row.className = 'pl-loose-row';
   loose.forEach(e => {
@@ -7089,7 +7129,11 @@ function planLooseStrip(host, w) {
   const add = document.createElement('div');
   add.className = 'pl-add';
   add.textContent = '+ 加入计划';
-  add.onclick = () => openPlanPicker(w.from, w.to, false);
+  // a thought starts today if today is in view, else at the period being looked at
+  add.onclick = () => {
+    const t = todayKey();
+    openPlanPicker((t >= w.from && t < w.to) ? t : w.from, PLAN_OPEN, false);
+  };
   row.appendChild(add);
   box.appendChild(row);
   host.appendChild(box);
@@ -7111,13 +7155,15 @@ function planEntryMenu(anchor, entry) {
   if (!tomb) items.push({ value: 'tent', label: entry.tentative ? '✓ 确定要玩' : '~ 改为掂量中' });
   if (!tomb) items.push({ value: 'hue', label: '换颜色' });
   if (!tomb) items.push({ value: 'dates', label: '改日期…' });
-  if (!tomb && entry.dated) items.push({ value: 'loose', label: '改为无固定日期' });
+  if (!tomb && entry.dated) items.push({ value: 'loose', label: '取消日期' });
+  if (!tomb && !entry.dated && planIsOpen(entry)) items.push({ value: 'close', label: '到此为止' });
   items.push({ value: 'remove', label: tomb ? '× 彻底移除' : '× 移出计划', clear: true });
   showPicker(anchor, items, '', v => {
     if (v === 'tent') planToggleTentative(entry.id);
     else if (v === 'hue') planHueMenu(anchor, entry);
     else if (v === 'jump') planJumpToDay(entry.from);
     else if (v === 'loose') planUnanchor(entry.id);
+    else if (v === 'close') planCloseHere(entry.id);
     else if (v === 'dates') planDateDialog(entry.id);
     else if (v === 'remove') planRemove(entry.id);
   });
@@ -7659,8 +7705,8 @@ function renderPlanBand(host, w) {
       + `<span class="pl-band-title${tomb ? ' tomb' : ''}">${escapeHtml(planEntryName(e))}</span>`
       + `<span class="pl-band-plat"></span>`
       + (hits.size ? `<span class="pl-band-count">${hits.size} 天</span>` : '')
-      + ((e.from < w.from || e.to > w.to)
-          ? `<span class="pl-band-ext" title="这条超出当前周期">${e.from < w.from ? '‹' : ''}${e.to > w.to ? '›' : ''}</span>`
+      + ((e.from < w.from || (!planIsOpen(e) && e.to > w.to))
+          ? `<span class="pl-band-ext" title="这条超出当前周期">${e.from < w.from ? '‹' : ''}${(!planIsOpen(e) && e.to > w.to) ? '›' : ''}</span>`
           : '');
     const platSlot = label.querySelector('.pl-band-plat');
     const platChip = tomb ? null : planPlatChip(planEntryFullName(e));
@@ -7681,7 +7727,8 @@ function renderPlanBand(host, w) {
     units.forEach(u => {
       const k = u.from;
       const c = document.createElement('div');
-      const inScope = u.from < e.to && e.from < u.to;     // overlap, not equality
+      const effTo = planEffTo(e);
+      const inScope = u.from < effTo && e.from < u.to;     // overlap, not equality
       c.className = 'pl-band-cell' + (u.sep ? ' wk' : '') + (inScope ? ' scoped' : '');
       c.dataset.day = k;
       if (inScope) {
@@ -7698,8 +7745,8 @@ function renderPlanBand(host, w) {
           gs.onpointerdown = ev => planBeginRangeDrag(ev, e, 'start');
           c.appendChild(gs);
         }
-        const lastIncl = planAddDays(e.to, -1);
-        if (lastIncl >= u.from && lastIncl < u.to) {
+        const lastIncl = planIsOpen(e) ? null : planAddDays(e.to, -1);
+        if (lastIncl && lastIncl >= u.from && lastIncl < u.to) {
           const ge = document.createElement('div');
           ge.className = 'pl-band-grip e'; ge.title = '拖动改结束日';
           ge.onpointerdown = ev => planBeginRangeDrag(ev, e, 'end');
@@ -7774,7 +7821,7 @@ function openPlanPicker(from, to, dated) {
   box.className = 'pl-pick';
   const rangeText = dated
     ? `${planFmtShort(from)} – ${planFmtShort(planAddDays(to, -1))}`
-    : ((planKind === 'week' ? '本周' : planKind === 'year' ? '本年' : '本月') + ' · 无固定日期');
+    : '想玩 · 还没排日期';
   box.innerHTML = `
     <div class="pl-pick-top">
       <div class="pl-pick-title">加入计划 · ${escapeHtml(rangeText)}</div>
