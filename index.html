@@ -1511,12 +1511,13 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
   font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--text-faint); margin-bottom: 8px;
 }
-/* Equal cells, as many per row as fit at ≥ 172px, never more than four —
-   24% × 5 would overflow, so auto-fill stops at four. */
-.pl-loose-row {
-  display: grid; gap: 8px; align-items: stretch;
-  grid-template-columns: repeat(auto-fill, minmax(max(172px, 24%), 1fr));
-}
+/* Equal cells. Explicit column counts by breakpoint — the container is capped
+   at 760px, so four is the desktop case and the steps below are phones. No
+   max()/min() inside minmax(): if a browser drops that expression the grid
+   silently collapses to one column, which is worse than a plain breakpoint. */
+.pl-loose-row { display: grid; gap: 8px; align-items: stretch; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 720px) { .pl-loose-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .pl-loose-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .pl-pill {
   display: flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px;
   font-size: 12px; cursor: pointer; transition: filter 0.16s; min-width: 0;
@@ -1795,7 +1796,7 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 @media (max-width: 600px) {
   .pl-day { min-height: max(64px, calc(30px + var(--pl-rows, 1) * 20px)); }
   .pl-band-name, .pl-band-label { flex-basis: 146px; }
-  .pl-loose-row { grid-template-columns: repeat(auto-fill, minmax(max(150px, 48%), 1fr)); }
+
 }
 
 </style>
