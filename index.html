@@ -1472,11 +1472,15 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-title { font-family: var(--display-font); font-size: 21px; color: var(--text); letter-spacing: 0.02em; }
 .pl-nav { display: flex; align-items: center; gap: 2px; margin-left: auto; }
 .pl-arrow {
-  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
-  border-radius: 50%; cursor: pointer; color: var(--text-faint); font-size: 15px;
+  height: 26px; padding: 0 9px; display: inline-flex; align-items: center; gap: 5px;
+  border-radius: 999px; cursor: pointer; color: var(--text-faint);
   transition: background 0.16s, color 0.16s;
 }
+.pl-arrow-g { font-size: 15px; line-height: 1; }
+.pl-arrow-t { font-size: 10px; letter-spacing: 0.14em; }
 .pl-arrow:hover { background: var(--accent-faint); color: var(--accent); }
+.pl-today.here { opacity: 0.45; cursor: default; }
+.pl-today.here:hover { color: var(--text-faint); }
 .pl-arrow.armed { background: var(--accent); color: #fff; }
 .pl-today {
   font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint);
@@ -6922,9 +6926,9 @@ function renderPlan() {
       <div class="pl-head">
         <div class="pl-title" id="pl-label"></div>
         <div class="pl-nav">
-          <div class="pl-arrow" id="pl-prev" title="上一个">‹</div>
-          <div class="pl-today" id="pl-now">今天</div>
-          <div class="pl-arrow" id="pl-next" title="下一个">›</div>
+          <div class="pl-arrow" id="pl-prev"><span class="pl-arrow-g">‹</span><span class="pl-arrow-t"></span></div>
+          <div class="pl-today" id="pl-now"></div>
+          <div class="pl-arrow" id="pl-next"><span class="pl-arrow-t"></span><span class="pl-arrow-g">›</span></div>
         </div>
       </div>
       <div class="pl-switches">
@@ -6957,6 +6961,7 @@ function renderPlan() {
     </section>
   `;
   document.getElementById('pl-label').textContent = planPeriodLabel();
+  planLabelNav(w);
   document.getElementById('pl-back').onclick = closePlan;
   document.getElementById('pl-prev').onclick = () => planShiftPeriod(-1);
   document.getElementById('pl-next').onclick = () => planShiftPeriod(1);
@@ -6992,6 +6997,38 @@ function renderPlan() {
   else if (planKind === 'year' && planView === 'stack') renderPlanStacked(body, w);
   else if (planKind === 'year') renderPlanYearCalendar(body, w);
   else renderPlanCalendar(body, w);
+}
+
+// The arrows step by different units per view (a week, a month, a year, or a
+// month of a rolling year), so their labels say which. The middle button names
+// the period that contains today and dims once you're looking at it.
+function planNavWords() {
+  if (planKind === 'week') return { prev: '上周', home: '本周', next: '下周' };
+  if (planKind === 'year') {
+    if (planYearMode === 'cal') return { prev: '去年', home: '今年', next: '明年' };
+    return { prev: '前一月', home: '今天', next: '后一月' };
+  }
+  return { prev: '上月', home: '本月', next: '下月' };
+}
+function planIsHome() {
+  const t = todayKey();
+  const a = planAnchor || t;
+  if (planKind === 'week') return planWeekWindow(a).from === planWeekWindow(t).from;
+  if (planKind === 'year' && planYearMode === 'cal') return a.slice(0, 4) === t.slice(0, 4);
+  return planMonthStart(a, 0) === planMonthStart(t, 0);
+}
+function planLabelNav() {
+  const words = planNavWords();
+  const prev = document.getElementById('pl-prev');
+  const next = document.getElementById('pl-next');
+  const home = document.getElementById('pl-now');
+  prev.querySelector('.pl-arrow-t').textContent = words.prev;
+  next.querySelector('.pl-arrow-t').textContent = words.next;
+  prev.title = words.prev; next.title = words.next;
+  home.textContent = words.home;
+  const here = planIsHome();
+  home.classList.toggle('here', here);
+  home.title = here ? '已经在这里' : '回到' + words.home;
 }
 
 // One-shot sort: rewrites the plan array, exactly like the roster sort bars.
