@@ -6574,14 +6574,23 @@ function planEntryName(entry) {
 }
 function planEntryIsTomb(entry) { return !planEntryGame(entry); }
 
-// One scan of the window per render, shared by all three renderings. Reset at
-// the top of renderPlan so it can never outlive the state it was built from.
+// One scan per render, shared by all renderings. Reset at the top of renderPlan
+// so it can never outlive the state it was built from.
+//
+// It scans the GRID EXTENT, not the window: the month grids draw whole week
+// rows, so the greyed days of the neighbouring month (Aug 31 at the top of
+// September) are on screen and need their fills too. Scanning only the window
+// was the bug that left Aug 31 blank while Sep 1 was filled.
 let _planScan = null;
 function planResetScan() { _planScan = null; }
+function planScanExtent(w) {
+  return { from: planWeekWindow(w.from).from, to: planWeekWindow(planAddDays(w.to, -1)).to };
+}
 function planScan(w) {
-  if (_planScan && _planScan.from === w.from && _planScan.to === w.to) return _planScan;
+  const ext = planScanExtent(w);
+  if (_planScan && _planScan.from === ext.from && _planScan.to === ext.to) return _planScan;
   const hits = new Map();
-  for (let k = w.from; k < w.to; k = planAddDays(k, 1)) {
+  for (let k = ext.from; k < ext.to; k = planAddDays(k, 1)) {
     const day = state.history[k];
     if (!day) continue;
     ['tier1', 'tier2', 'tier3'].forEach(tk => {
@@ -6595,15 +6604,23 @@ function planScan(w) {
       }
     });
   }
-  _planScan = { from: w.from, to: w.to, hits, games: new Map() };
+  _planScan = { from: ext.from, to: ext.to, hits, games: new Map() };
   return _planScan;
 }
 function planCheckinDays(gameId, from, to) {
   const scan = planScan(planWindow());
+  // The cache is an accelerator, never an authority: a range it doesn't fully
+  // cover is walked directly, so correctness can't depend on the extent guess.
+  if (from < scan.from || to > scan.to) {
+    const out = new Set();
+    for (let k = from; k < to; k = planAddDays(k, 1)) {
+      if (isCheckedInOn(state.history[k], gameId)) out.add(k);
+    }
+    return out;
+  }
   const all = scan.hits.get(gameId);
   const out = new Set();
   if (!all) return out;
-  // iterate the days actually played, not every day of the range
   all.forEach(k => { if (k >= from && k < to) out.add(k); });
   return out;
 }
