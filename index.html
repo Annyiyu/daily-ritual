@@ -1669,6 +1669,7 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-band-row.tent .pl-band-title { color: var(--text-muted); }
 /* A count, not a ratio: it says what happened, it doesn't score it. */
 .pl-band-count { font-size: 10px; color: var(--text-faint); flex: 0 0 auto; letter-spacing: 0.04em; }
+.pl-band-label .rc-platform, .pl-pill .rc-platform, .pl-pick-item .rc-platform { color: inherit; opacity: 0.6; }
 .pl-band-ext { font-size: 11px; color: var(--text-faint); flex: 0 0 auto; opacity: 0.75; }
 .pl-band-now { position: absolute; top: -6px; bottom: -6px; width: 1px; background: var(--accent); opacity: 0.6; }
 .pl-band-empty { text-align: center; padding: 30px 0; color: var(--text-faint); font-size: 12px; }
@@ -1745,6 +1746,14 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-pick-item.on .pl-pick-box { background: var(--accent); border-color: var(--accent); }
 .pl-pick-item.dim { color: var(--text-faint); }
 .pl-pick-note { font-size: 10px; color: var(--text-faint); margin-left: auto; letter-spacing: 0.06em; }
+.pl-pick-new {
+  display: flex; align-items: center; gap: 9px; margin: 6px 4px 2px; padding: 9px 10px;
+  border-radius: 8px; border: 1px dashed var(--line-strong); font-size: 13px; color: var(--text-muted);
+  cursor: pointer; transition: border-color 0.16s, color 0.16s;
+}
+.pl-pick-new:hover { border-color: var(--accent); color: var(--accent); }
+.pl-pick-new.dup { cursor: default; color: var(--text-faint); border-style: solid; opacity: 0.7; }
+.pl-pick-new.dup:hover { border-color: var(--line-strong); color: var(--text-faint); }
 .pl-pick-foot { display: flex; align-items: center; gap: 12px; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
 .pl-pick-hint { font-size: 11px; color: var(--text-faint); }
 .pl-pick-tent {
@@ -2497,7 +2506,7 @@ function openTier3StatusPicker(anchor, gameId) {
 // ============================================================
 // Add / Rename
 // ============================================================
-function addGame(tier, name) {
+function addGame(tier, name, opts) {
   const id = 'game_' + Date.now();
   const today = todayKey();
   const residence = [{ tier, from: today, to: null }];
@@ -2505,7 +2514,11 @@ function addGame(tier, name) {
   if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [], hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence, ...jf });
   else if (tier === 'tier2') state.config.tier2.push({ id, name, hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence, ...jf });
   else state.config.tier3.push({ id, name, status: 'considering', hidden: false, hiddenAt: null, note: '', completion: '', createdAt: today, tierResidence: residence, ...jf });
-  scheduleSave(); smoothRender();
+  // silent: the caller is about to save + render itself (the plan picker adds
+  // the game and a plan row in one gesture, and a render here would tear the
+  // picker down halfway through)
+  if (!(opts && opts.silent)) { scheduleSave(); smoothRender(); }
+  return id;
 }
 function renameGame(tier, gameId, newName) {
   const game = state.config[tier].find(g => g.id === gameId);
@@ -6573,6 +6586,20 @@ function planEntryName(entry) {
   return (entry.name ? entry.name : '未知条目') + ' · 已删除';
 }
 function planEntryIsTomb(entry) { return !planEntryGame(entry); }
+// The main view's platform chip, so 巫师3（Steam）and 巫师3（NS2）stop looking
+// identical once their names are split. Returns null when there is no platform.
+function planPlatChip(fullName) {
+  const p = parsePlatform(fullName).platform;
+  if (!p) return null;
+  const el = document.createElement('span');
+  el.className = 'rc-platform';
+  el.textContent = p;
+  return el;
+}
+function planEntryFullName(entry) {
+  const g = planEntryGame(entry);
+  return g ? g.name : planEntryName(entry);
+}
 
 // One scan per render, shared by all renderings. Reset at the top of renderPlan
 // so it can never outlive the state it was built from.
@@ -6993,6 +7020,8 @@ function planLooseStrip(host, w) {
     if (e.tentative) pill.style.borderColor = planDashEdge(rgb);
     const hits = tomb ? new Set() : planCheckinDays(e.gameId, w.from, w.to);
     pill.innerHTML = `<span>${escapeHtml(planEntryName(e))}</span>`;
+    const pillChip = tomb ? null : planPlatChip(planEntryFullName(e));
+    if (pillChip) pill.appendChild(pillChip);
     if (hits.size) {
       const dots = document.createElement('span');
       dots.className = 'pl-pill-dots';
@@ -7136,6 +7165,7 @@ function renderPlanMonthGrid(host, w, laneOfShared) {
       lbl.className = 'pl-block-label';
       lbl.textContent = e.from < s ? '' : planEntryName(e);
       b.appendChild(lbl);
+      if (!tomb) b.title = planEntryFullName(e);
       // A range split across week rows gets its start grip on the first segment
       // and its end grip on the last — never on a continuation edge.
       if (e.from >= s) {
@@ -7576,10 +7606,14 @@ function renderPlanBand(host, w) {
     label.innerHTML = `<span class="pl-band-grab">⠿</span>`
       + `<span class="pl-band-chip"></span>`
       + `<span class="pl-band-title${tomb ? ' tomb' : ''}">${escapeHtml(planEntryName(e))}</span>`
+      + `<span class="pl-band-plat"></span>`
       + (hits.size ? `<span class="pl-band-count">${hits.size} 天</span>` : '')
       + ((e.from < w.from || e.to > w.to)
           ? `<span class="pl-band-ext" title="这条超出当前周期">${e.from < w.from ? '‹' : ''}${e.to > w.to ? '›' : ''}</span>`
           : '');
+    const platSlot = label.querySelector('.pl-band-plat');
+    const platChip = tomb ? null : planPlatChip(planEntryFullName(e));
+    if (platChip) platSlot.replaceWith(platChip); else platSlot.remove();
     const chip = label.querySelector('.pl-band-chip');
     if (e.tentative) {
       // hollow ring, not a filled dot — categorical, and legible at 8px
@@ -7708,6 +7742,7 @@ function openPlanPicker(from, to, dated) {
   document.getElementById('pl-cancel').onclick = () => overlay.remove();
 
   const already = new Set(planEntriesInWindow(from, to).map(e => e.gameId));
+  let tentative = false;
   const groups = [
     { tier: 'tier1', label: 'Company' },
     { tier: 'tier2', label: 'Playing' },
@@ -7732,6 +7767,8 @@ function openPlanPicker(from, to, dated) {
         const it = document.createElement('div');
         it.className = 'pl-pick-item' + (chosen.has(x.id) ? ' on' : '') + (dup ? ' dim' : '');
         it.innerHTML = `<span class="pl-pick-box">✓</span><span>${escapeHtml(parsePlatform(x.name).base)}</span>`;
+        const chip = planPlatChip(x.name);
+        if (chip) it.appendChild(chip);
         if (dup) it.innerHTML += `<span class="pl-pick-note">已在计划中</span>`;
         it.onclick = () => {
           if (dup) return;
@@ -7743,18 +7780,54 @@ function openPlanPicker(from, to, dated) {
         listEl.appendChild(it);
       });
     });
-    if (!listEl.children.length) {
+    if (needle) {
+      // Offered even when something matched — "GTA" matching GTA5 doesn't mean
+      // she isn't about to add GTA6. Exact-name duplicates are blocked.
+      const raw = (q || '').trim();
+      const dup = ['tier1', 'tier2', 'tier3'].some(t =>
+        (state.config[t] || []).some(x => String(x.name).trim().toLowerCase() === raw.toLowerCase()));
+      const row = document.createElement('div');
+      row.className = 'pl-pick-new' + (dup ? ' dup' : '');
+      row.innerHTML = dup
+        ? `<span>已有同名游戏「${escapeHtml(raw)}」</span>`
+        : `<span>＋ 新建「${escapeHtml(raw)}」</span><span class="pl-pick-note">进 Roster · 并加入这段计划</span>`;
+      if (!dup) row.onclick = () => createAndAdd(raw);
+      listEl.appendChild(row);
+      if (!listEl.querySelector('.pl-pick-item')) {
+        const hint = document.createElement('div');
+        hint.className = 'pl-pick-group';
+        hint.textContent = '写法照旧：名字（平台）';
+        listEl.insertBefore(hint, row);
+      }
+    } else if (!listEl.children.length) {
       const e = document.createElement('div');
-      e.className = 'pl-pick-group'; e.textContent = '没有匹配的游戏 — 先在主视图里加进来';
+      e.className = 'pl-pick-group'; e.textContent = '还没有游戏 — 在上面打个名字就能新建';
       listEl.appendChild(e);
     }
+  }
+  // One gesture: the game lands in Roster and a plan row is written for it, with
+  // the same range and 掂量 state this picker was opened for.
+  function createAndAdd(name) {
+    if (!name) return;
+    const id = addGame('tier3', name, { silent: true });
+    planAdd([id], from, to, dated, tentative);   // saves + renders
+    overlay.remove();
+    showToast({ message: `已新建「${parsePlatform(name).base}」并加入计划`, actionLabel: '' });
   }
   paint('');
   const q = document.getElementById('pl-q');
   q.oninput = () => paint(q.value);
+  q.onkeydown = ev => {
+    if (ev.key !== 'Enter') return;
+    ev.preventDefault();
+    // only when nothing matched — otherwise Enter would silently create a
+    // near-duplicate of the game she was actually looking for
+    if (listEl.querySelector('.pl-pick-item')) return;
+    const row = listEl.querySelector('.pl-pick-new:not(.dup)');
+    if (row) row.onclick();
+  };
   setTimeout(() => q.focus(), 30);
 
-  let tentative = false;
   const tentEl = document.getElementById('pl-tent');
   tentEl.onclick = () => { tentative = !tentative; tentEl.classList.toggle('on', tentative); };
 
