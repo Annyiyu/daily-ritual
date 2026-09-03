@@ -1583,6 +1583,10 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-block.cont { border-top-left-radius: 3px; border-bottom-left-radius: 3px; }
 .pl-block.goes-on { border-top-right-radius: 3px; border-bottom-right-radius: 3px; }
 .pl-block.tomb { font-style: italic; }
+/* Unplanned play: reality with no shell. Square corners are the second cue, so a
+   fully-played planned bar (round, shelled) never reads as an unplanned run. */
+.pl-block.un { border-radius: 4px; cursor: pointer; }
+.pl-block.un .pl-block-label { color: #fff; opacity: 0.95; }
 /* Tentative reads as a dashed, drained version of the same colour. The dash is
    suppressed at a week split so a continuation never looks like an end. */
 .pl-block.tent { border: 1px dashed transparent; }
@@ -1643,6 +1647,7 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 /* At 3.5px a dash is mush and a sub-pixel border eats a third of the bar, so
    tentative reads as a thinner, drained bar instead. */
 .pl-yr-b.tent { height: 2px; margin-top: 0.75px; }
+.pl-yr-b.un { border-radius: 0.5px; }
 .pl-yr-f { position: absolute; top: 0; bottom: 0; }
 .pl-yr-more { font-size: 9px; color: var(--text-faint); margin-top: 3px; letter-spacing: 0.04em; }
 
@@ -1694,6 +1699,12 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-band-ext { font-size: 11px; color: var(--text-faint); flex: 0 0 auto; opacity: 0.75; }
 .pl-band-now { position: absolute; top: -6px; bottom: -6px; width: 1px; background: var(--accent); opacity: 0.6; }
 .pl-band-empty { text-align: center; padding: 30px 0; color: var(--text-faint); font-size: 12px; }
+.pl-band-divider {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text-faint); padding: 18px 0 6px; border-bottom: 1px solid var(--line);
+}
+.pl-band-row.un .pl-band-title { color: var(--text-muted); }
+.pl-band-hit.un { border-radius: 2px; }
 /* At year scale a column is ~10px, so a 2px inset either side would break a
    continuous run into dashes. Bars butt up against each other instead. */
 .pl-band.dense .pl-band-scope { left: 0; right: 0; border-radius: 0; }
@@ -1710,6 +1721,7 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-leg-pair i { display: block; width: 13px; height: 8px; }
 .pl-leg-pair .a { background: rgba(226,150,128,0.30); }
 .pl-leg-pair .b { background: rgba(226,150,128,0.62); }
+.pl-leg-un { width: 14px; height: 9px; border-radius: 2px; background: rgba(226,150,128,0.62); }
 .pl-leg-tent {
   width: 14px; height: 9px; border-radius: 4px;
   background: rgba(176,168,155,0.26); border: 1px dashed rgba(90,86,79,0.5);
@@ -2008,6 +2020,9 @@ function migrate(state) {
   }
   // Sort state for the plan list: which key was last applied, and whether the
   // order has been hand-edited since (roster shows the same "·已改").
+  // Show unplanned play on the plan calendar (the fourth quadrant). Persisted:
+  // a display preference she sets once, not a session mode.
+  if (typeof state.config.planShowActual !== 'boolean') state.config.planShowActual = true;
   if (!state.config.planSort || typeof state.config.planSort !== 'object') state.config.planSort = { key: null, dirty: false };
   if (typeof state.config.planSort.key !== 'string' && state.config.planSort.key !== null) state.config.planSort.key = null;
   if (typeof state.config.planSort.dirty !== 'boolean') state.config.planSort.dirty = false;
@@ -6953,6 +6968,44 @@ function planPaintFills(bar, e, clip, rgb, cls) {
   return n;
 }
 
+// ---------- unplanned play (the fourth quadrant) ----------
+// Every check-in day in the window that no DATED plan entry for that game covers,
+// grouped into consecutive runs. Thoughts are undated, so their days count as
+// unplanned here — the grid compares reality to the dated plan; the strip's dots
+// speak for thoughts. Company (tier1) is excluded outright: daily maintenance
+// would paint a permanent band across every week and drown the plan.
+// Runs are synthetic entries (never stored) so the lane packer and both grid
+// renderers treat them like any other bar.
+function planUnplannedRuns(w) {
+  if (!state.config.planShowActual) return [];
+  const scan = planScan(w);
+  // Over the grid EXTENT (whole week rows), not the window: the greyed neighbour
+  // days are on screen and must show their play too — the same lesson as the
+  // Aug 31 fill. Each renderer clips to what it actually draws.
+  const ext = planScanExtent(w);
+  const dated = planList().filter(e => e.dated);
+  const runs = [];
+  scan.hits.forEach((days, gameId) => {
+    const hit = findGameAnywhere(gameId);
+    if (!hit || hit.tier === 'tier1') return;
+    const mine = dated.filter(e => e.gameId === gameId);
+    const free = Array.from(days).filter(k =>
+      k >= ext.from && k < ext.to && !mine.some(e => e.from <= k && k < e.to)).sort();
+    let start = null, prev = null;
+    const flush = () => {
+      if (start) runs.push({ id: 'run_' + gameId + '_' + start, gameId, from: start, to: planAddDays(prev, 1), dated: true, tentative: false, run: true });
+      start = null; prev = null;
+    };
+    free.forEach(k => {
+      if (prev && k !== planAddDays(prev, 1)) flush();
+      if (!start) start = k;
+      prev = k;
+    });
+    flush();
+  });
+  return runs;
+}
+
 // ---------- lane packing (calendar) ----------
 // Greedy interval packing in plan order: an entry takes the lowest lane free for
 // its whole span, so non-overlapping entries share a lane instead of stacking.
@@ -7030,6 +7083,7 @@ function renderPlan() {
         </div>
         <div class="pl-tools">
           <div class="pl-tool" id="pl-ymode"></div>
+          <div class="pl-tool" id="pl-actual"></div>
           <div class="pl-tool" id="pl-sort">↑↓ 排序</div>
           <div class="pl-tool" id="pl-carry">结转未完成 →</div>
         </div>
@@ -7040,6 +7094,7 @@ function renderPlan() {
         <span class="pl-leg"><span class="pl-leg-sw anchor"></span>计划开始日</span>
         <span class="pl-leg">✦ 里程碑</span>
         <span class="pl-leg"><span class="pl-leg-tent"></span>掂量中 · 还没定</span>
+        <span class="pl-leg"><span class="pl-leg-un"></span>方头无壳 = 玩了但没计划（Company 不计）</span>
         <span class="pl-leg">没排日期的会一直跟着你，直到通关或「到此为止」</span>
         <span class="pl-leg">颜色按游戏区分 · 菜单里可换</span>
         <span class="pl-leg">← → 翻周期 · 双击已打卡的格子看那天</span>
@@ -7066,6 +7121,10 @@ function renderPlan() {
     el.onclick = () => { planView = el.dataset.view; smoothRender(); };
   });
   document.getElementById('pl-sort').textContent = planSortLabel();
+  const act = document.getElementById('pl-actual');
+  act.textContent = (state.config.planShowActual ? '◉' : '○') + ' 计划外';
+  act.title = state.config.planShowActual ? '正在显示计划外的实际打卡 · 点击隐藏' : '计划外的实际打卡已隐藏 · 点击显示';
+  act.onclick = () => { state.config.planShowActual = !state.config.planShowActual; scheduleSave(); smoothRender(); };
   const ym = document.getElementById('pl-ymode');
   if (planKind === 'year') {
     const cur = PLAN_YEAR_MODES.find(m => m.value === planYearMode) || PLAN_YEAR_MODES[0];
@@ -7314,8 +7373,10 @@ function renderPlanCalendar(host, w) {
 // One full-size month grid. `laneOf` is optional: the month view packs lanes for
 // its own window, the stacked year passes one packing for all twelve so a game
 // keeps its height from month to month.
-function renderPlanMonthGrid(host, w, laneOfShared) {
-  const dated = planEntriesInWindow(w.from, w.to).filter(e => e.dated);
+function renderPlanMonthGrid(host, w, laneOfShared, runsShared) {
+  const real = planEntriesInWindow(w.from, w.to).filter(e => e.dated);
+  const runs = runsShared || planUnplannedRuns(w);
+  const dated = real.concat(runs);
   const laneOf = laneOfShared || planAssignLanes(dated);
 
   const gridFrom = planWeekWindow(w.from).from;
@@ -7367,14 +7428,15 @@ function renderPlanMonthGrid(host, w, laneOfShared) {
       const tomb = planEntryIsTomb(e);
       const rgb = planRgb(e);
       const b = document.createElement('div');
-      b.className = 'pl-block' + (tomb ? ' tomb' : '') + (e.tentative ? ' tent' : '')
+      b.className = 'pl-block' + (tomb ? ' tomb' : '') + (e.tentative ? ' tent' : '') + (e.run ? ' un' : '')
         + (e.from < s ? ' cont' : '') + (e.to > t ? ' goes-on' : '');
       b.style.left = (startCol / 7 * 100) + '%';
       b.style.width = 'calc(' + (span / 7 * 100) + '% - 4px)';
       b.style.marginLeft = '2px';
       b.style.top = (lane * PLAN_LANE_H) + 'px';
       if (lane + 1 > rowLanes) rowLanes = lane + 1;
-      b.style.background = planPlannedTint(rgb, e.tentative);
+      // a run is all reality: solid, no shell
+      b.style.background = e.run ? planTint(rgb, PLAN_A_DONE) : planPlannedTint(rgb, e.tentative);
       b.style.color = planInk(rgb);          // one ink either way: same game, same voice
       if (e.tentative) {
         b.style.borderColor = planDashEdge(rgb);
@@ -7382,7 +7444,7 @@ function renderPlanMonthGrid(host, w, laneOfShared) {
         if (e.from < s) b.style.borderLeftColor = 'transparent';
         if (e.to > t) b.style.borderRightColor = 'transparent';
       }
-      if (!tomb) {
+      if (!tomb && !e.run) {
         planPaintFills(b, e, clip, rgb, 'pl-fill');
         b.querySelectorAll('.pl-fill').forEach(f => { f.title = '双击查看那天'; });
         const ms = planMilestoneDays(e.gameId, s, t);
@@ -7399,7 +7461,13 @@ function renderPlanMonthGrid(host, w, laneOfShared) {
       lbl.className = 'pl-block-label';
       lbl.textContent = e.from < s ? '' : planEntryName(e);
       b.appendChild(lbl);
-      if (!tomb) b.title = planEntryFullName(e);
+      if (!tomb) b.title = planEntryFullName(e) + (e.run ? ' · 计划外' : '');
+      if (e.run) {
+        // reality has no menu and nothing to drag; it just points at its days
+        b.onclick = (ev) => { ev.stopPropagation(); planJumpToDay(s); };
+        lanes.appendChild(b);
+        return;
+      }
       // A range split across week rows gets its start grip on the first segment
       // and its end grip on the last — never on a continuation edge.
       if (e.from >= s) {
@@ -7598,7 +7666,8 @@ function planBeginRangeDrag(ev, entry, mode) {
 let _planStackKey = null;
 function renderPlanStacked(host, w) {
   planLooseStrip(host, w);
-  const dated = planEntriesInWindow(w.from, w.to).filter(e => e.dated);
+  const runs = planUnplannedRuns(w);
+  const dated = planEntriesInWindow(w.from, w.to).filter(e => e.dated).concat(runs);
   const laneOf = planAssignLanes(dated);
   const thisMonth = planMonthStart(todayKey(), 0);
   const months = planMonthsInWindow(w);
@@ -7615,7 +7684,7 @@ function renderPlanStacked(host, w) {
       ? `${md.getFullYear()} 年 ${md.getMonth() + 1} 月`
       : `${md.getMonth() + 1} 月`;
     sec.appendChild(title);
-    renderPlanMonthGrid(sec, mw, laneOf);
+    renderPlanMonthGrid(sec, mw, laneOf, runs.filter(r => r.from < mw.to && mw.from < r.to));
     host.appendChild(sec);
   });
   // Land on the current month the first time this window is shown, not on
@@ -7636,7 +7705,7 @@ function renderPlanStacked(host, w) {
 function renderPlanYearCalendar(host, w) {
   planLooseStrip(host, w);
 
-  const dated = planEntriesInWindow(w.from, w.to).filter(e => e.dated);
+  const dated = planEntriesInWindow(w.from, w.to).filter(e => e.dated).concat(planUnplannedRuns(w));
   const laneOf = planAssignLanes(dated);     // global: a game keeps its lane all year
   const today = todayKey();
   const thisMonth = planMonthStart(today, 0);
@@ -7705,13 +7774,13 @@ function renderPlanYearCalendar(host, w) {
         const startCol = planDayDiff(wkStart, clip.s);
         const span = clip.span;
         const b = document.createElement('div');
-        b.className = 'pl-yr-b' + (e.tentative ? ' tent' : '');
+        b.className = 'pl-yr-b' + (e.tentative ? ' tent' : '') + (e.run ? ' un' : '');
         // colour alone carries 掂量中 at this scale; see the .tent rule
         b.style.left = (startCol / 7 * 100) + '%';
         b.style.width = (span / 7 * 100) + '%';
         b.style.top = (lane * 5) + 'px';
-        b.style.background = planPlannedTint(rgb, e.tentative);
-        planPaintFills(b, e, clip, rgb, 'pl-yr-f');
+        b.style.background = e.run ? planTint(rgb, PLAN_A_DONE) : planPlannedTint(rgb, e.tentative);
+        if (!e.run) planPaintFills(b, e, clip, rgb, 'pl-yr-f');
         lanes.appendChild(b);
       });
       week.appendChild(lanes);
@@ -7914,6 +7983,55 @@ function renderPlanBand(host, w) {
     planWireRowDrag(row, e.id);
     inner.appendChild(row);
   });
+
+  // Unplanned play, one row per game, under a faint divider. Reality rows: no
+  // grips, no drag, no menu — they are read, not edited.
+  const runs = planUnplannedRuns(w).filter(r => r.from < w.to && w.from < r.to);
+  if (runs.length) {
+    const byGame = new Map();
+    runs.forEach(r => { if (!byGame.has(r.gameId)) byGame.set(r.gameId, []); byGame.get(r.gameId).push(r); });
+    const div = document.createElement('div');
+    div.className = 'pl-band-divider';
+    div.textContent = '计划外 · 玩了但没排进计划';
+    inner.appendChild(div);
+    byGame.forEach((gRuns, gameId) => {
+      const g = findGameAnywhere(gameId).game;
+      const rgb = RV_MACARON[planHueIndex(g)];
+      const days = new Set();
+      gRuns.forEach(r => planEachDay(r.from, r.to).forEach(k => { if (k >= w.from && k < w.to) days.add(k); }));
+      if (!days.size) return;                 // its only play was on ghost days outside this window
+      const row = document.createElement('div');
+      row.className = 'pl-band-row un';
+      row.dataset.game = gameId;
+      const label = document.createElement('div');
+      label.className = 'pl-band-label';
+      label.innerHTML = `<span class="pl-band-grab" style="visibility:hidden">⠿</span>`
+        + `<span class="pl-band-chip"></span>`
+        + `<span class="pl-band-title">${escapeHtml(parsePlatform(g.name).base)}</span>`
+        + `<span class="pl-band-count">${days.size} 天</span>`;
+      label.querySelector('.pl-band-chip').style.background = planTint(rgb, 0.85);
+      const pc = planPlatChip(g.name); if (pc) label.querySelector('.pl-band-title').after(pc);
+      row.appendChild(label);
+      const cells = document.createElement('div');
+      cells.className = 'pl-band-cells';
+      units.forEach(u => {
+        const c = document.createElement('div');
+        c.className = 'pl-band-cell' + (u.sep ? ' wk' : '');
+        c.dataset.day = u.from;
+        const hitDay = planUnitHas(days, u);
+        if (hitDay) {
+          const h = document.createElement('div'); h.className = 'pl-band-hit un';
+          h.style.background = planTint(rgb, 0.9); c.appendChild(h);
+          c.title = '双击查看那天';
+          c.ondblclick = ev => { ev.stopPropagation(); planJumpToDay(hitDay); };
+        }
+        if (u.isToday) { const n = document.createElement('div'); n.className = 'pl-band-now'; c.appendChild(n); }
+        cells.appendChild(c);
+      });
+      row.appendChild(cells);
+      inner.appendChild(row);
+    });
+  }
 
   wrap.appendChild(inner);
   host.appendChild(wrap);
