@@ -1566,11 +1566,6 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-day.today .pl-day-num { color: var(--accent); font-weight: 600; }
 .pl-day.sel { background: var(--accent-faint); }
 .pl-day-num { font-size: 11px; color: var(--text-faint); letter-spacing: 0.02em; }
-.pl-more {
-  position: absolute; bottom: 3px; font-size: 10px; color: var(--text-faint);
-  cursor: pointer; letter-spacing: 0.04em;
-}
-.pl-more:hover { color: var(--accent); }
 
 .pl-lanes { position: absolute; left: 0; right: 0; top: 24px; pointer-events: none; }
 .pl-block {
@@ -1649,7 +1644,6 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-yr-b.tent { height: 2px; margin-top: 0.75px; }
 .pl-yr-b.un { border-radius: 0.5px; }
 .pl-yr-f { position: absolute; top: 0; bottom: 0; }
-.pl-yr-more { font-size: 9px; color: var(--text-faint); margin-top: 3px; letter-spacing: 0.04em; }
 
 /* ---- band (linear day axis) ---- */
 .pl-band { overflow-x: auto; }
@@ -7009,12 +7003,11 @@ function planUnplannedRuns(w) {
 // ---------- lane packing (calendar) ----------
 // Greedy interval packing in plan order: an entry takes the lowest lane free for
 // its whole span, so non-overlapping entries share a lane instead of stacking.
-// Rows size themselves to their contents, so this is only a guard against one
-// pathological period producing an absurdly tall row — not a display limit.
+// No lane cap. Rows size themselves, and how many games fit in one day is
+// bounded by the day, not by a constant — a cap only hid the busiest days.
 // Lanes are assigned across the whole period, never per row: an entry spanning
 // three weeks must sit at the same height in all three, or it reads as three
 // unrelated bars.
-const PLAN_MAX_LANES = 8;
 const PLAN_LANE_H = 20;
 function planAssignLanes(entries) {
   const lanes = [];   // lanes[i] = array of {from,to}
@@ -7393,7 +7386,6 @@ function renderPlanMonthGrid(host, w, laneOfShared, runsShared) {
   const cal = document.createElement('div');
   cal.className = 'pl-cal';
   const today = todayKey();
-  const hidden = new Map();   // dateKey → count not drawn
 
   for (let wkStart = gridFrom; wkStart < gridTo; wkStart = planAddDays(wkStart, 7)) {
     const wkEnd = planAddDays(wkStart, 7);
@@ -7421,10 +7413,6 @@ function renderPlanMonthGrid(host, w, laneOfShared, runsShared) {
       const s = clip.s, t = clip.t, span = clip.span;
       const lane = laneOf.get(e.id);
       const startCol = planDayDiff(wkStart, s);
-      if (lane >= PLAN_MAX_LANES) {
-        planEachDay(s, t).forEach(k => hidden.set(k, (hidden.get(k) || 0) + 1));
-        return;
-      }
       const tomb = planEntryIsTomb(e);
       const rgb = planRgb(e);
       const b = document.createElement('div');
@@ -7515,17 +7503,6 @@ function renderPlanMonthGrid(host, w, laneOfShared, runsShared) {
     cal.appendChild(week);
   }
   host.appendChild(cal);
-
-  hidden.forEach((n, k) => {
-    const cell = cal.querySelector(`.pl-day[data-day="${k}"]`);
-    if (!cell) return;
-    const more = document.createElement('div');
-    more.className = 'pl-more';
-    more.textContent = '+' + n;
-    more.onclick = (ev) => { ev.stopPropagation(); planDayList(k, more); };
-    cell.appendChild(more);
-  });
-
   planWireDragCreate(cal, w);
 }
 
@@ -7719,7 +7696,6 @@ function renderPlanYearCalendar(host, w) {
     const box = document.createElement('div');
     box.className = 'pl-yr-m' + (mStart === thisMonth ? ' now' : '');
     box.title = '打开这个月';
-    let hidden = 0;
 
     const title = document.createElement('div');
     title.className = 'pl-yr-title';
@@ -7768,7 +7744,6 @@ function renderPlanYearCalendar(host, w) {
         const clip = planClipEntry(e, lo, hi);
         if (!clip) return;
         const lane = laneOf.get(e.id);
-        if (lane >= PLAN_MAX_LANES) { hidden += 1; return; }
         if (lane + 1 > rowLanes) rowLanes = lane + 1;
         const rgb = planRgb(e);
         const startCol = planDayDiff(wkStart, clip.s);
@@ -7788,12 +7763,6 @@ function renderPlanYearCalendar(host, w) {
       box.appendChild(week);
     }
 
-    if (hidden) {
-      const more = document.createElement('div');
-      more.className = 'pl-yr-more';
-      more.textContent = '+' + hidden + ' 条未显示';
-      box.appendChild(more);
-    }
     box.onclick = () => { planKind = 'month'; planAnchor = mStart; smoothRender(); };
     grid.appendChild(box);
   });
@@ -7807,7 +7776,7 @@ function planWireDragCreate(cal, w) {
   };
   cal.addEventListener('pointerdown', ev => {
     const cell = ev.target.closest('.pl-day');
-    if (!cell || _planRange || ev.target.closest('.pl-block') || ev.target.closest('.pl-more')) return;
+    if (!cell || _planRange || ev.target.closest('.pl-block')) return;
     ev.preventDefault();
     _planDrag = { a: cell.dataset.day, b: cell.dataset.day };
     paint(_planDrag.a, _planDrag.b);
@@ -7845,16 +7814,6 @@ function planWireDragCreate(cal, w) {
     _planDrag = null;
     planClearPaint();
   }
-}
-
-function planDayList(key, anchor) {
-  const covering = planList().filter(e => e.dated && e.from <= key && key < e.to);
-  if (!covering.length) return;
-  const items = covering.map(e => ({ value: e.id, label: planEntryName(e) }));
-  showPicker(anchor, items, '', id => {
-    const e = planList().find(x => x.id === id);
-    if (e) planEntryMenu(anchor, e);
-  });
 }
 
 function renderPlanBand(host, w) {
