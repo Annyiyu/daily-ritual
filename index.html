@@ -1525,6 +1525,15 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .pl-pill > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto; }
 .pl-pill .rc-platform, .pl-pill .pl-pill-dots { flex: 0 0 auto; }
 .pl-pill:hover { filter: brightness(0.97); }
+.pl-pill[draggable="true"] { cursor: grab; position: relative; }
+.pl-pill.dragging { opacity: 0.4; }
+/* drop indicator — the roster's card-edge accent line; a full-width bar reads wrong in a grid */
+.pl-pill.drop-before::before, .pl-pill.drop-after::after {
+  content: ''; position: absolute; top: 15%; height: 70%; width: 2px; border-radius: 1px;
+  background: var(--accent); pointer-events: none;
+}
+.pl-pill.drop-before::before { left: -5px; }
+.pl-pill.drop-after::after { right: -5px; }
 .pl-pill-dots { display: inline-flex; gap: 2px; }
 .pl-pill-dot { width: 4px; height: 4px; border-radius: 50%; }
 .pl-pill.tomb { font-style: italic; }
@@ -1997,6 +2006,11 @@ function migrate(state) {
     state.config.plans.forEach(e => { if (!e.dated) e.to = '9999-12-31'; });
     state.config.planV = 2;
   }
+  // Sort state for the plan list: which key was last applied, and whether the
+  // order has been hand-edited since (roster shows the same "·已改").
+  if (!state.config.planSort || typeof state.config.planSort !== 'object') state.config.planSort = { key: null, dirty: false };
+  if (typeof state.config.planSort.key !== 'string' && state.config.planSort.key !== null) state.config.planSort.key = null;
+  if (typeof state.config.planSort.dirty !== 'boolean') state.config.planSort.dirty = false;
   // planV 3: a thought's `from` was the first day of whatever view it was
   // created in (Jan 1 from the year view). Recover the day it was actually
   // created from the id, which carries base-36 Date.now(). Ids that don't
@@ -7051,6 +7065,7 @@ function renderPlan() {
     el.classList.toggle('on', el.dataset.view === planView);
     el.onclick = () => { planView = el.dataset.view; smoothRender(); };
   });
+  document.getElementById('pl-sort').textContent = planSortLabel();
   const ym = document.getElementById('pl-ymode');
   if (planKind === 'year') {
     const cur = PLAN_YEAR_MODES.find(m => m.value === planYearMode) || PLAN_YEAR_MODES[0];
@@ -7104,30 +7119,73 @@ function planLabelNav() {
   home.title = here ? '已经在这里' : '回到' + words.home;
 }
 
+// Two keys live on the plan row, not the game; the other eight delegate to the
+// roster's comparator. Newest thought first, most-played first — the natural
+// reading for each.
+const PLAN_SORT_KEYS = [
+  { key: 'thought', label: '起念时间' },
+  { key: 'played', label: '本期打卡天数' }
+];
+function planCompare(a, b, key, w) {
+  if (key === 'thought') return a.from < b.from ? 1 : a.from > b.from ? -1 : 0;
+  if (key === 'played') {
+    const na = planEntryIsTomb(a) ? -1 : planCheckinDays(a.gameId, w.from, w.to).size;
+    const nb = planEntryIsTomb(b) ? -1 : planCheckinDays(b.gameId, w.from, w.to).size;
+    return nb - na;
+  }
+  const ga = planEntryGame(a), gb = planEntryGame(b);
+  if (!ga && !gb) return 0;
+  if (!ga) return 1;
+  if (!gb) return -1;
+  return compareChain(ga, gb, [{ key, dir: 'asc' }]);
+}
+function planSortState() { return state.config.planSort || (state.config.planSort = { key: null, dirty: false }); }
+function planSortLabel() {
+  const st = planSortState();
+  const all = PLAN_SORT_KEYS.concat(SORT_KEYS);
+  const cur = all.find(k => k.key === st.key);
+  return '↑↓ 排序' + (cur ? ' · ' + cur.label : '') + (st.dirty ? ' ·已改' : '');
+}
+// Any hand move after a sort marks the order as edited, exactly like the roster.
+function planMarkDirty() { const st = planSortState(); if (st.key) st.dirty = true; }
+
 // One-shot sort: rewrites the plan array, exactly like the roster sort bars.
 // There is no live sort anywhere in this app — order is data, not a rule.
 function planSortMenu(anchor) {
-  const items = SORT_KEYS.map(k => ({ value: k.key, label: k.label }));
-  showPicker(anchor, items, '', key => {
+  const st = planSortState();
+  const items = PLAN_SORT_KEYS.concat(SORT_KEYS).map(k => ({ value: k.key, label: k.label }));
+  items.push({ value: '__clear', label: '× 清除排序标记', clear: true });
+  showPicker(anchor, items, st.key || '', key => {
+    if (key === '__clear') { st.key = null; st.dirty = false; scheduleSave(); smoothRender(); return; }
     const w = planWindow();
     const inWin = planEntriesInWindow(w.from, w.to);
     const ids = new Set(inWin.map(e => e.id));
-    const sorted = inWin.slice().sort((a, b) => {
-      const ga = planEntryGame(a), gb = planEntryGame(b);
-      if (!ga && !gb) return 0;
-      if (!ga) return 1;
-      if (!gb) return -1;
-      return compareChain(ga, gb, [{ key, dir: 'asc' }]);
-    });
+    const sorted = inWin.slice().sort((a, b) => planCompare(a, b, key, w));
     const list = planList();
     let si = 0;
     for (let i = 0; i < list.length; i++) if (ids.has(list[i].id)) list[i] = sorted[si++];
+    st.key = key; st.dirty = false;
     scheduleSave(); smoothRender();
   });
 }
+function planMoveToFront(entryId) {
+  const list = planList();
+  const i = list.findIndex(e => e.id === entryId);
+  if (i <= 0) return;
+  const [e] = list.splice(i, 1);
+  list.unshift(e);
+  planMarkDirty();
+  scheduleSave(); smoothRender();
+}
 
+// Partition rank: committed, then 掂量中, then tombstones. Applied at render, so
+// flipping a pill's status moves it between groups at once. Order INSIDE a
+// group is the array order — the same order the band rows read.
+function planLooseRank(e) { return planEntryIsTomb(e) ? 2 : (e.tentative ? 1 : 0); }
+let _planPillDrag = null;
 function planLooseStrip(host, w) {
-  const loose = planEntriesInWindow(w.from, w.to).filter(e => !e.dated);
+  const loose = planEntriesInWindow(w.from, w.to).filter(e => !e.dated)
+    .slice().sort((a, b) => planLooseRank(a) - planLooseRank(b));   // stable: keeps array order within a rank
   const box = document.createElement('div');
   box.className = 'pl-loose';
   box.innerHTML = `<div class="pl-loose-label">想玩 · 还没排日期</div>`;
@@ -7157,6 +7215,7 @@ function planLooseStrip(host, w) {
       pill.appendChild(dots);
     }
     pill.onclick = (ev) => planEntryMenu(ev.currentTarget, e);
+    if (!tomb) planWirePillDrag(pill, e);
     row.appendChild(pill);
   });
   const add = document.createElement('div');
@@ -7179,10 +7238,56 @@ function planJumpToDay(day) {
   render();
 }
 
+// Reorder by dragging a pill onto another. Left half = before, right half =
+// after (the roster's card-edge indicator). Drops across the committed/掂量中
+// boundary are refused: changing status is a menu action, not a slip of the hand.
+function planWirePillDrag(pill, entry) {
+  pill.draggable = true;
+  pill.dataset.entry = entry.id;
+  pill.ondragstart = ev => {
+    _planPillDrag = entry.id;
+    pill.classList.add('dragging');
+    if (ev.dataTransfer) { ev.dataTransfer.effectAllowed = 'move'; try { ev.dataTransfer.setData('text/plain', entry.id); } catch (_) {} }
+  };
+  pill.ondragend = () => {
+    pill.classList.remove('dragging');
+    document.querySelectorAll('.pl-pill.drop-before, .pl-pill.drop-after').forEach(p => p.classList.remove('drop-before', 'drop-after'));
+    _planPillDrag = null;
+  };
+  pill.ondragover = ev => {
+    if (!_planPillDrag || _planPillDrag === entry.id) return;
+    const src = planList().find(x => x.id === _planPillDrag);
+    if (!src || planLooseRank(src) !== planLooseRank(entry)) return;   // refuse cross-group
+    ev.preventDefault();
+    const r = pill.getBoundingClientRect();
+    const after = (ev.clientX - r.left) > r.width / 2;
+    pill.classList.toggle('drop-before', !after);
+    pill.classList.toggle('drop-after', after);
+  };
+  pill.ondragleave = () => pill.classList.remove('drop-before', 'drop-after');
+  pill.ondrop = ev => {
+    ev.preventDefault();
+    const after = pill.classList.contains('drop-after');
+    pill.classList.remove('drop-before', 'drop-after');
+    if (!_planPillDrag || _planPillDrag === entry.id) return;
+    const list = planList();
+    const from = list.findIndex(x => x.id === _planPillDrag);
+    let to = list.findIndex(x => x.id === entry.id);
+    if (from === -1 || to === -1) return;
+    if (planLooseRank(list[from]) !== planLooseRank(list[to])) return;
+    const [moved] = list.splice(from, 1);
+    if (from < to) to -= 1;                 // removal shifted the target left
+    list.splice(after ? to + 1 : to, 0, moved);
+    planMarkDirty();
+    scheduleSave(); smoothRender();
+  };
+}
+
 function planEntryMenu(anchor, entry) {
   const items = [];
   const tomb = planEntryIsTomb(entry);
   if (!tomb && entry.dated) items.push({ value: 'jump', label: '跳到那天' });
+  if (!tomb && !entry.dated) items.push({ value: 'front', label: '↑ 移到最前' });
   if (!tomb) items.push({ value: 'tent', label: entry.tentative ? '✓ 确定要玩' : '~ 改为掂量中' });
   if (!tomb) items.push({ value: 'hue', label: '换颜色' });
   if (!tomb) items.push({ value: 'dates', label: '改日期…' });
@@ -7190,7 +7295,8 @@ function planEntryMenu(anchor, entry) {
   if (!tomb && !entry.dated && planIsOpen(entry)) items.push({ value: 'close', label: '到此为止' });
   items.push({ value: 'remove', label: tomb ? '× 彻底移除' : '× 移出计划', clear: true });
   showPicker(anchor, items, '', v => {
-    if (v === 'tent') planToggleTentative(entry.id);
+    if (v === 'front') planMoveToFront(entry.id);
+    else if (v === 'tent') planToggleTentative(entry.id);
     else if (v === 'hue') planHueMenu(anchor, entry);
     else if (v === 'jump') planJumpToDay(entry.from);
     else if (v === 'loose') planUnanchor(entry.id);
@@ -7837,6 +7943,7 @@ function planWireRowDrag(row, entryId) {
     if (from === -1 || to === -1) return;
     const [moved] = list.splice(from, 1);
     list.splice(to, 0, moved);
+    planMarkDirty();
     scheduleSave(); smoothRender();
   };
 }
