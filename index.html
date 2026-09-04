@@ -1468,6 +1468,70 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
    Band     = linear day axis, one row per entry, drag to reorder.
    ============================================================ */
 
+/* ---- 多选 ---- */
+.sel-enter {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--text-faint); cursor: pointer;
+  padding: 2px 8px; border-radius: 999px; white-space: nowrap; transition: color 0.16s, background 0.16s;
+}
+.sel-enter:hover { color: var(--accent); }
+.sel-enter.on { background: var(--accent-faint); color: var(--accent); }
+
+.sel-able { position: relative; cursor: pointer; }
+.sel-veil { position: absolute; inset: 0; z-index: 6; border-radius: inherit; }
+.sel-box {
+  position: absolute; top: 6px; left: 6px; width: 15px; height: 15px; z-index: 7;
+  border-radius: 5px; border: 1.5px solid var(--line-strong); background: var(--bg);
+  transition: background 0.14s, border-color 0.14s;
+}
+.sel-box::after {
+  content: '✓'; position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; font-size: 10px; color: #fff; opacity: 0; transition: opacity 0.14s;
+}
+.sel-picked .sel-box { background: var(--accent); border-color: var(--accent); }
+.sel-picked .sel-box::after { opacity: 1; }
+.sel-picked { box-shadow: 0 0 0 2px var(--accent); border-radius: 12px; }
+/* pills are small: the box would cover the name, so the ring alone carries it */
+.pl-pill.sel-able .sel-box { top: 50%; left: 5px; transform: translateY(-50%); width: 12px; height: 12px; border-radius: 4px; }
+.pl-pill.sel-able { padding-left: 24px; }
+.pl-pill.sel-picked { border-radius: 999px; }
+
+.sel-bar {
+  position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 300;
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 999px;
+  background: var(--bg); box-shadow: 0 10px 34px rgba(42, 36, 28, 0.16);
+  border: 1px solid var(--line); animation: selRise 0.18s ease-out;
+}
+@keyframes selRise { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.sel-bar-left { display: flex; align-items: center; gap: 12px; }
+.sel-bar-right { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.sel-count { font-size: 12px; color: var(--text); white-space: nowrap; }
+.sel-link {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-faint); cursor: pointer; white-space: nowrap;
+}
+.sel-link:hover { color: var(--accent); }
+.sel-act {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 6px 11px; border-radius: 999px; border: 1px solid var(--line-strong);
+  background: transparent; color: var(--text-muted); cursor: pointer; white-space: nowrap;
+  transition: border-color 0.16s, color 0.16s;
+}
+.sel-act:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.sel-act:disabled { opacity: 0.35; cursor: default; }
+.sel-act.danger:hover:not(:disabled) { border-color: #c0563a; color: #c0563a; }
+.sel-done {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 6px 13px; border-radius: 999px; border: none; background: var(--accent);
+  color: #fff; cursor: pointer; white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .sel-bar { left: 12px; right: 12px; transform: none; border-radius: 16px; }
+  @keyframes selRise { from { opacity: 0; } to { opacity: 1; } }
+}
+
+.pl-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
 .pl-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
 .pl-title { font-family: var(--display-font); font-size: 21px; color: var(--text); letter-spacing: 0.02em; }
 .pl-nav { display: flex; align-items: center; gap: 2px; margin-left: auto; }
@@ -2250,6 +2314,11 @@ function dismissToast() {
   if (!activeToast) return;
   const t = activeToast;
   activeToast = null;
+  // It stays in the DOM for the fade; it must not stay clickable, or a fast
+  // second action leaves a button that undoes to a state two steps back.
+  t.querySelectorAll('.toast-action, .toast-close').forEach(el => { el.onclick = null; });
+  t.dataset.stale = '1';
+  t.style.pointerEvents = 'none';
   t.classList.add('leaving');
   setTimeout(() => t.remove(), 220);
 }
@@ -3250,6 +3319,10 @@ function render() {
   // Clean any stale modals (they live in body, not root)
   document.querySelectorAll('.manage-popup, .manage-overlay, .pl-pick-overlay').forEach(el => el.remove());
   closePicker();
+  // A scope only exists while its screen does — leaving the page drops the mode
+  // rather than leaving an invisible selection armed behind another view.
+  if (_selMode === 'plan' && !planOpen) { _selMode = null; _selIds = new Set(); _selAnchor = null; }
+  if (_selMode && _selMode !== 'plan' && (planOpen || reviewOpen || journeyOpen)) { _selMode = null; _selIds = new Set(); _selAnchor = null; }
   if (!session) { renderSignIn(); return; }
   if (!state) { renderLoading(); return; }
   applyWeekTheme();
@@ -3365,6 +3438,7 @@ function renderApp() {
   renderTier2();
   renderTier3();
   renderFinished();
+  selMountAll();
 
   if (manageSubtasksFor) renderManageModal();
 
@@ -3514,6 +3588,7 @@ function renderColumnSwitch(tier) {
 function buildCompanyTile(game, gd, streak, parsed) {
   const card = document.createElement('div');
   card.className = 'daily-card company-tile';
+  if (selActive('tier1')) selDecorate(card, game.id);
   card.dataset.gameId = game.id;
 
   // Head: drag · star (sits in the status-pill slot so the top row is balanced
@@ -3809,6 +3884,7 @@ function buildPlayingCard(game, day) {
 
   const card = document.createElement('div');
   card.className = 'playing-card';
+  if (selActive('tier2')) selDecorate(card, game.id);
   card.dataset.gameId = game.id;
 
   // --- Head: drag · completion pill · menu (mirrors Roster's rc-head) ---
@@ -4061,6 +4137,7 @@ function buildRosterCard(game, prefs, status) {
   card.className = 'roster-card';
   card.dataset.gameId = game.id;
   card.dataset.rosterStatus = status;
+  if (selActive('tier3')) selDecorate(card, game.id);
 
   // --- Head: drag handle (manual only) + status pill + menu ---
   const head = document.createElement('div');
@@ -4294,6 +4371,7 @@ function buildFinishedCard(game, status) {
   const card = document.createElement('div');
   card.className = 'roster-card finished-card';
   card.dataset.gameId = game.id;
+  if (selActive('finished')) selDecorate(card, game.id);
 
   // Head: completion pill + menu
   const head = document.createElement('div');
@@ -7076,6 +7154,7 @@ function renderPlan() {
         </div>
         <div class="pl-tools">
           <div class="pl-tool" id="pl-ymode"></div>
+          <div class="pl-tool" id="pl-select"></div>
           <div class="pl-tool" id="pl-actual"></div>
           <div class="pl-tool" id="pl-sort">↑↓ 排序</div>
           <div class="pl-tool" id="pl-carry">结转未完成 →</div>
@@ -7114,6 +7193,9 @@ function renderPlan() {
     el.onclick = () => { planView = el.dataset.view; smoothRender(); };
   });
   document.getElementById('pl-sort').textContent = planSortLabel();
+  const selBtn = document.getElementById('pl-select');
+  selBtn.textContent = selActive('plan') ? '取消选择' : '⃞ 选择';
+  selBtn.onclick = () => (selActive('plan') ? selExit() : selEnter('plan'));
   const act = document.getElementById('pl-actual');
   act.textContent = (state.config.planShowActual ? '◉' : '○') + ' 计划外';
   act.title = state.config.planShowActual ? '正在显示计划外的实际打卡 · 点击隐藏' : '计划外的实际打卡已隐藏 · 点击显示';
@@ -7133,6 +7215,7 @@ function renderPlan() {
   document.getElementById('pl-sort').onclick = (e) => planSortMenu(e.currentTarget);
 
   const body = document.getElementById('pl-body');
+  selRenderBar();
   if (planView === 'band') renderPlanBand(body, w);
   else if (planKind === 'year' && planView === 'stack') renderPlanStacked(body, w);
   else if (planKind === 'year') renderPlanYearCalendar(body, w);
@@ -7268,6 +7351,7 @@ function planLooseStrip(host, w) {
     }
     pill.onclick = (ev) => planEntryMenu(ev.currentTarget, e);
     if (!tomb) planWirePillDrag(pill, e);
+    if (selActive('plan') && !tomb) selDecorate(pill, e.id);
     row.appendChild(pill);
   });
   const add = document.createElement('div');
@@ -8149,6 +8233,287 @@ function openPlanPicker(from, to, dated) {
     planAdd(Array.from(chosen), from, to, dated, tentative);
     overlay.remove();
   };
+}
+
+
+// ============================================================
+// 多选 (multi-select) — temporary mode, one scope at a time
+//
+// Scope is a CONTAINER, never a class: .roster-card is worn by both the Roster
+// and the Finished shelf, so selection keys on #tier3-list / #finished-list and
+// the two can never merge.
+//
+// Every action delegates to the existing single-item mutator. A batch is a loop
+// plus one snapshot — so undo puts all of it back at once, and there is never a
+// second definition of what an action means.
+// ============================================================
+
+let _selMode = null;      // null | 'tier1' | 'tier2' | 'tier3' | 'finished' | 'plan'
+let _selIds = new Set();
+let _selAnchor = null;    // last clicked id, for shift-range
+
+const SEL_SCOPES = {
+  tier1:    { host: 'tier1-list',    card: '.daily-card' },
+  tier2:    { host: 'tier2-list',    card: '.playing-card' },
+  tier3:    { host: 'tier3-list',    card: '.roster-card' },
+  finished: { host: 'finished-list', card: '.roster-card' },
+  plan:     { host: null,            card: '.pl-loose-row .pl-pill' }
+};
+
+function selActive(scope) { return _selMode === scope; }
+function selEnter(scope) { _selMode = scope; _selIds = new Set(); _selAnchor = null; render(); }
+function selExit() { _selMode = null; _selIds = new Set(); _selAnchor = null; render(); }
+
+// The ids on screen in this scope, in visual order. Select-all, shift-range and
+// the count all read from here, so a folded group or a hidden card is simply not
+// selectable — which is what "select all" means in a filtered list.
+function selVisibleIds() {
+  if (!_selMode) return [];
+  const sc = SEL_SCOPES[_selMode];
+  const root = sc.host ? document.getElementById(sc.host) : document;
+  if (!root) return [];
+  return Array.from(root.querySelectorAll(sc.card)).map(el => el.dataset.selId).filter(Boolean);
+}
+
+function selToggle(id, shiftKey) {
+  const vis = selVisibleIds();
+  if (shiftKey && _selAnchor && vis.indexOf(_selAnchor) !== -1 && vis.indexOf(id) !== -1) {
+    const a = vis.indexOf(_selAnchor), b = vis.indexOf(id);
+    const lo = Math.min(a, b), hi = Math.max(a, b);
+    // shift extends or retracts, following the anchor's own state
+    const adding = _selIds.has(_selAnchor);
+    for (let i = lo; i <= hi; i++) { if (adding) _selIds.add(vis[i]); else _selIds.delete(vis[i]); }
+  } else {
+    if (_selIds.has(id)) _selIds.delete(id); else _selIds.add(id);
+    _selAnchor = id;
+  }
+  selPaint();
+}
+function selAll() { selVisibleIds().forEach(id => _selIds.add(id)); _selAnchor = null; selPaint(); }
+function selNone() { _selIds = new Set(); _selAnchor = null; selPaint(); }
+
+// Repaint marks + bar only. A full render would rebuild every card and replay
+// every list animation on each checkbox tick.
+function selPaint() {
+  document.querySelectorAll('[data-sel-id]').forEach(el => {
+    el.classList.toggle('sel-picked', _selIds.has(el.dataset.selId));
+  });
+  const bar = document.getElementById('sel-bar');
+  if (bar) selFillBar(bar);
+}
+
+// A full-cover veil swallows every inner handler (menu, pill, check-in, drag) in
+// one move, instead of hunting each one down and remembering to restore it.
+function selDecorate(el, id) {
+  el.dataset.selId = id;
+  el.classList.add('sel-able');
+  el.classList.toggle('sel-picked', _selIds.has(id));
+  el.draggable = false;
+  const box = document.createElement('div');
+  box.className = 'sel-box';
+  el.appendChild(box);
+  const veil = document.createElement('div');
+  veil.className = 'sel-veil';
+  veil.onclick = ev => { ev.stopPropagation(); ev.preventDefault(); selToggle(id, ev.shiftKey); };
+  el.appendChild(veil);
+}
+
+// ---------- actions per scope ----------
+// Only operations that mean something for many objects at once. Rename, details
+// and 跳到那天 are single-object by nature and stay out.
+
+function selBulkActions() {
+  switch (_selMode) {
+    case 'tier1': return [
+      { v: 'to2', label: '移到 Playing' },
+      { v: 'to3', label: '移到 Roster' },
+      { v: 'plan', label: '加入计划' },
+      { v: 'hide', label: '隐藏', danger: true }
+    ];
+    case 'tier2': return [
+      { v: 'beaten', label: '标为 Beaten' },
+      { v: 'completed', label: '标为 Completed' },
+      { v: 'to3', label: '移到 Roster' },
+      { v: 'sated', label: '标为 Sated' },
+      { v: 'to1', label: '移到 Company' },
+      { v: 'plan', label: '加入计划' },
+      { v: 'hide', label: '隐藏', danger: true }
+    ];
+    case 'tier3': return [
+      { v: 'up_next', label: '→ Up next' },
+      { v: 'considering', label: '→ Considering' },
+      { v: 'backlog', label: '→ Backlog' },
+      { v: 'to2', label: '移到 Playing' },
+      { v: 'to1', label: '移到 Company' },
+      { v: 'plan', label: '加入计划' },
+      { v: 'hide', label: '隐藏', danger: true }
+    ];
+    case 'finished': return [
+      { v: 'playing', label: '移回 Playing' },
+      { v: 'beaten', label: '标为 Beaten' },
+      { v: 'completed', label: '标为 Completed' },
+      { v: 'sated', label: '标为 Sated' },
+      { v: 'abandoned', label: '弃坑', danger: true }
+    ];
+    case 'plan': return [
+      { v: 'tent', label: '改为掂量中' },
+      { v: 'commit', label: '确定要玩' },
+      { v: 'close', label: '到此为止' },
+      { v: 'remove', label: '移出计划', danger: true }
+    ];
+  }
+  return [];
+}
+
+const SEL_INLINE = 3;   // shown as buttons; the rest live under 更多
+
+function selFillBar(bar) {
+  const n = _selIds.size;
+  const vis = selVisibleIds();
+  const allOn = vis.length > 0 && vis.every(id => _selIds.has(id));
+  bar.innerHTML = '';
+
+  const left = document.createElement('div');
+  left.className = 'sel-bar-left';
+  const count = document.createElement('span');
+  count.className = 'sel-count';
+  count.textContent = n ? ('已选 ' + n) : '点卡片选择';
+  left.appendChild(count);
+  const all = document.createElement('span');
+  all.className = 'sel-link';
+  all.textContent = allOn ? '清除' : ('全选 ' + vis.length);
+  all.onclick = () => (allOn ? selNone() : selAll());
+  left.appendChild(all);
+  bar.appendChild(left);
+
+  const right = document.createElement('div');
+  right.className = 'sel-bar-right';
+  const acts = selBulkActions();
+  acts.slice(0, SEL_INLINE).forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'sel-act' + (a.danger ? ' danger' : '');
+    b.textContent = a.label;
+    b.disabled = n === 0;
+    b.dataset.act = a.v;
+    b.onclick = () => selRun(a.v, a.label, a.danger);
+    right.appendChild(b);
+  });
+  if (acts.length > SEL_INLINE) {
+    const more = document.createElement('button');
+    more.className = 'sel-act';
+    more.id = 'sel-more';
+    more.textContent = '更多 ⌄';
+    more.disabled = n === 0;
+    more.onclick = ev => showPicker(ev.currentTarget,
+      acts.slice(SEL_INLINE).map(a => ({ value: a.v, label: a.label, clear: !!a.danger })), '',
+      v => { const a = acts.find(x => x.v === v); if (a) selRun(a.v, a.label, a.danger); });
+    right.appendChild(more);
+  }
+  const done = document.createElement('button');
+  done.className = 'sel-done';
+  done.id = 'sel-done';
+  done.textContent = '完成';
+  done.onclick = selExit;
+  right.appendChild(done);
+  bar.appendChild(right);
+}
+
+function selRenderBar() {
+  document.querySelectorAll('#sel-bar').forEach(b => b.remove());
+  if (!_selMode) return;
+  const bar = document.createElement('div');
+  bar.id = 'sel-bar';
+  bar.className = 'sel-bar';
+  selFillBar(bar);
+  document.body.appendChild(bar);
+}
+
+// ---------- running a batch ----------
+
+function selRun(action, label, danger) {
+  const ids = selVisibleIds().filter(id => _selIds.has(id));   // stable, visual order
+  if (!ids.length) return;
+  if (danger) {
+    showDialog({
+      title: label + ' ' + ids.length + ' 项?',
+      message: '这一步可以撤销。',
+      confirmLabel: label,
+      cancelLabel: '取消',
+      onConfirm: () => selApply(action, label, ids)
+    });
+    return;
+  }
+  selApply(action, label, ids);
+}
+
+function selApply(action, label, ids) {
+  const snap = snapshotState();
+  const scope = _selMode;
+
+  if (scope === 'plan') {
+    if (action === 'remove') {
+      state.config.plans = planList().filter(e => ids.indexOf(e.id) === -1);
+    } else {
+      const w = planWindow();
+      ids.forEach(id => {
+        const e = planList().find(x => x.id === id);
+        if (!e) return;
+        if (action === 'tent') e.tentative = true;
+        else if (action === 'commit') e.tentative = false;
+        else if (action === 'close') { if (!e.dated && planIsOpen(e)) e.to = w.to; }
+      });
+    }
+  } else if (action === 'plan') {
+    // Cross-feature: straight from a shelf into the plan, as thoughts starting today.
+    const w = planWindow();
+    const already = new Set(planEntriesInWindow(w.from, w.to).map(e => e.gameId));
+    const fresh = ids.filter(id => !already.has(id));
+    if (fresh.length) planAdd(fresh, todayKey(), PLAN_OPEN, false, false);
+  } else if (['up_next', 'considering', 'backlog'].indexOf(action) !== -1) {
+    // setTier3Status pulls each game to the TOP of its new group, so applying in
+    // reverse leaves the batch sitting in the order it was selected.
+    ids.slice().reverse().forEach(id => setTier3Status(id, action));
+  } else if (action === 'hide') {
+    ids.forEach(id => hideGame(scope, id));
+  } else if (action === 'playing') {
+    ids.forEach(id => finishedToPlaying(id));
+  } else if (['beaten', 'completed', 'sated', 'abandoned'].indexOf(action) !== -1) {
+    ids.forEach(id => setTier2Completion(id, action));
+  } else if (action === 'to1' || action === 'to2' || action === 'to3') {
+    const to = 'tier' + action.slice(2);
+    const from = scope === 'finished' ? 'tier2' : scope;
+    ids.forEach(id => commitGameMove(from, id, to, state.config[to].length));
+  }
+
+  // Items usually leave the scope they were picked in, so the selection is spent.
+  _selMode = null; _selIds = new Set(); _selAnchor = null;
+  scheduleSave();
+  render();
+  showUndoToast(label + ' · ' + ids.length + ' 项', snap);
+}
+
+// ---------- entry points ----------
+
+function selMountEntry(sectionId, scope) {
+  const sec = document.getElementById(sectionId);
+  if (!sec) return;
+  const head = sec.querySelector('.section-header');
+  if (!head) return;
+  head.querySelectorAll('.sel-enter').forEach(e => e.remove());
+  const b = document.createElement('div');
+  b.className = 'sel-enter' + (selActive(scope) ? ' on' : '');
+  b.dataset.scope = scope;
+  b.textContent = selActive(scope) ? '取消选择' : '选择';
+  b.onclick = () => (selActive(scope) ? selExit() : selEnter(scope));
+  head.appendChild(b);
+}
+
+function selMountAll() {
+  selMountEntry('section-tier1', 'tier1');
+  selMountEntry('section-tier2', 'tier2');
+  selMountEntry('section-tier3', 'tier3');
+  selMountEntry('section-finished', 'finished');
+  selRenderBar();
 }
 
 </script>
