@@ -9631,6 +9631,21 @@ function boardCardW() {
   return isFinite(n) && n > 40 ? n : 208;
 }
 const BOARD_PAD = 8;
+// Outer margin and gutter are the same number whenever the leftover space
+// allows it, so an aligned board sits evenly inside the dashed border instead
+// of hugging the left edge and leaving a ragged strip on the right. When the
+// leftover is too generous for that (a narrow surface holding one or two
+// columns) the gutter caps and the whole block centres instead.
+const BOARD_GAP_MIN = 10, BOARD_GAP_MAX = 28;
+function boardGrid(surfW) {
+  const W = Math.max(200, surfW || 720);
+  const w = boardCardW();
+  let cols = 1;
+  while ((cols + 1) * w + (cols + 2) * BOARD_GAP_MIN <= W) cols++;
+  const gutter = Math.max(BOARD_GAP_MIN, Math.min(BOARD_GAP_MAX, Math.floor((W - cols * w) / (cols + 1))));
+  const used = cols * w + (cols - 1) * gutter;
+  return { cols, gutter, w, colW: w + gutter, outer: Math.max(0, Math.round((W - used) / 2)) };
+}
 
 function boardData() {
   if (!state.config.board || typeof state.config.board !== 'object') state.config.board = { months: [] };
@@ -9899,12 +9914,20 @@ function buildBoardMonth(m) {
   // otherwise the month view is just the week view with the lines rubbed out,
   // and the granularity means nothing.
   const shown = boardZoom === 'week' ? m.items : boardDedupe(m.items, boardSurfaceWidth(m.key));
-  let maxY = 0;
+  const grid = boardGrid(boardSurfaceWidth(m.key));
+  // The week view pads the surface 18px for its labels and pushes every card
+  // down another 18px, and box-sizing is border-box, so both have to be paid
+  // for out of min-height.
+  const wkOffset = boardZoom === 'week' ? 36 : 0;
+  let maxBottom = 0;
   shown.forEach(it => {
     surface.appendChild(buildBoardCard(it, m.key));
-    maxY = Math.max(maxY, (it.y || 0) + 44);
+    maxBottom = Math.max(maxBottom, (it.y || 0) + boardBox(it).h);
   });
-  surface.style.minHeight = Math.max(120, maxY + 16) + 'px';
+  // The 120 floor is only there so an empty month is still a target you can
+  // click and drop onto. Once there is anything in it, the height is exactly
+  // the content plus one gutter, or the box goes bottom-heavy again.
+  surface.style.minHeight = (Math.max(shown.length ? 0 : 120, maxBottom + grid.gutter) + wkOffset) + 'px';
   box.appendChild(surface);
   return box;
 }
@@ -10129,14 +10152,11 @@ function boardEditNote(itemId) { boardEditText(itemId); }
 // order is what preserves "A is left of B" and "A is above B".
 function boardAlignAll() {
   const snap = snapshotState();
-  const gapX = 12, gapY = 10;
   let touched = 0;
   boardData().months.forEach(m => {
     if (!m.items.length) return;
-    const surfW = boardSurfaceWidth(m.key);
-    const w = boardCardW();
-    const colW = w + gapX;
-    const cols = Math.max(1, Math.floor((surfW - BOARD_PAD) / colW));
+    const g = boardGrid(boardSurfaceWidth(m.key));
+    const cols = g.cols, colW = g.colW, gapY = g.gutter;
     // bucket by rough row first (things you put side by side stay side by side)
     const rows = [];
     m.items.slice().sort((a, b) => (a.y || 0) - (b.y || 0) || (a.x || 0) - (b.x || 0)).forEach(it => {
@@ -10155,7 +10175,7 @@ function boardAlignAll() {
       return -1;
     };
 
-    let y = BOARD_PAD;
+    let y = g.gutter;
     rows.forEach(r => {
       // First pass keeps each card in the column it is already nearest to.
       // Anything that spills has lost its column intent, so later passes pack
@@ -10166,7 +10186,7 @@ function boardAlignAll() {
         const taken = new Set(), seats = new Map(), spill = [];
         pending.forEach(it => {
           const want = keepColumns
-            ? Math.max(0, Math.min(cols - 1, Math.round(((it.x || 0) - BOARD_PAD) / colW)))
+            ? Math.max(0, Math.min(cols - 1, Math.round(((it.x || 0) - g.outer) / colW)))
             : 0;
           const seat = seatNear(want, taken);
           if (seat < 0) { spill.push(it); return; }
@@ -10176,7 +10196,7 @@ function boardAlignAll() {
         let rowH = 0;
         pending.forEach(it => {
           if (!seats.has(it)) return;
-          const nx = BOARD_PAD + seats.get(it) * colW;
+          const nx = g.outer + seats.get(it) * colW;
           const b = boardBox(it);
           if (it.x !== nx || it.y !== y) touched++;
           it.x = nx; it.y = y;
