@@ -1434,7 +1434,7 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
    grid — and four columns line up one-per-旬 with the week separators. The
    full name is always on the card's tooltip, so an ellipsis costs nothing. */
 .bd-card {
-  position: absolute; display: flex; align-items: center; gap: 6px;
+  position: absolute; display: flex; align-items: center; gap: 6px; height: 34px;
   width: var(--bd-card-w); box-sizing: border-box;
   padding: 7px 12px; border-radius: 999px;
   font-size: 12px; cursor: grab; user-select: none; touch-action: none;
@@ -1447,7 +1447,7 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .bd-note {
   border-radius: 6px; background: rgba(226, 200, 120, 0.22); color: var(--text-muted);
   border: 1px solid rgba(190, 160, 80, 0.28); white-space: pre-wrap; line-height: 1.5;
-  width: var(--bd-card-w); box-sizing: border-box; display: block; padding: 8px 10px; cursor: grab;
+  width: var(--bd-card-w); box-sizing: border-box; display: block; height: auto; padding: 8px 10px; cursor: grab;
 }
 .bd-note.empty { color: var(--text-faint); font-style: italic; }
 .bd-cardwrap { position: absolute; width: var(--bd-card-w); }
@@ -9913,21 +9913,9 @@ function buildBoardMonth(m) {
   // In the month view a game is drawn ONCE however many weeks it sits in —
   // otherwise the month view is just the week view with the lines rubbed out,
   // and the granularity means nothing.
-  const shown = boardZoom === 'week' ? m.items : boardDedupe(m.items, boardSurfaceWidth(m.key));
-  const grid = boardGrid(boardSurfaceWidth(m.key));
-  // The week view pads the surface 18px for its labels and pushes every card
-  // down another 18px, and box-sizing is border-box, so both have to be paid
-  // for out of min-height.
-  const wkOffset = boardZoom === 'week' ? 36 : 0;
-  let maxBottom = 0;
-  shown.forEach(it => {
-    surface.appendChild(buildBoardCard(it, m.key));
-    maxBottom = Math.max(maxBottom, (it.y || 0) + boardBox(it).h);
-  });
-  // The 120 floor is only there so an empty month is still a target you can
-  // click and drop onto. Once there is anything in it, the height is exactly
-  // the content plus one gutter, or the box goes bottom-heavy again.
-  surface.style.minHeight = (Math.max(shown.length ? 0 : 120, maxBottom + grid.gutter) + wkOffset) + 'px';
+  const shown = boardShown(m);
+  shown.forEach(it => surface.appendChild(buildBoardCard(it, m.key)));
+  boardFitSurface(surface, m.key);
   box.appendChild(surface);
   return box;
 }
@@ -10045,7 +10033,7 @@ function boardWireDrag(el, it, monthKey) {
         }
       }
       const surf = el.closest('.bd-surface');
-      if (surf) surf.style.minHeight = Math.max(120, (it.y || 0) + 60) + 'px';
+      if (surf) boardFitSurface(surf, surf.dataset.month);
       scheduleSave();
     };
     document.addEventListener('pointermove', onMove, true);
@@ -10150,13 +10138,43 @@ function boardEditNote(itemId) { boardEditText(itemId); }
 // Snap to a grid without reshuffling: cards keep their order in both axes, only
 // their edges line up. Sorting by coordinate and assigning columns/rows in that
 // order is what preserves "A is left of B" and "A is above B".
+// In the month view a game is drawn ONCE however many weeks it sits in.
+function boardShown(m) {
+  return boardZoom === 'week' ? m.items : boardDedupe(m.items, boardSurfaceWidth(m.key));
+}
+// The one place that decides how tall a surface is. Bottom margin equals the
+// top gutter exactly; the 120 floor only applies to an empty month, which
+// still has to be a target you can click and drop onto. The week view pads the
+// surface 18px for its labels and pushes every card down another 18px, and
+// box-sizing is border-box, so both come out of min-height.
+function boardFitSurface(surface, monthKey) {
+  const m = boardData().months.find(x => x.key === monthKey);
+  if (!surface || !m) return;
+  const shown = boardShown(m);
+  const g = boardGrid(boardSurfaceWidth(monthKey));
+  let maxBottom = 0;
+  shown.forEach(it => { maxBottom = Math.max(maxBottom, (it.y || 0) + boardBox(it).h); });
+  const wkOffset = boardZoom === 'week' ? 36 : 0;
+  surface.style.minHeight = (Math.max(shown.length ? 0 : 120, maxBottom + g.gutter) + wkOffset) + 'px';
+}
+
 function boardAlignAll() {
   const snap = snapshotState();
   let touched = 0;
   boardData().months.forEach(m => {
     if (!m.items.length) return;
-    const g = boardGrid(boardSurfaceWidth(m.key));
-    const cols = g.cols, colW = g.colW, gapY = g.gutter;
+    const surfW = boardSurfaceWidth(m.key);
+    const g = boardGrid(surfW);
+    const wk = boardZoom === 'week';
+    const bandW = Math.max(200, surfW) / BOARD_WEEKS;
+    const cols = wk ? BOARD_WEEKS : g.cols;
+    const colW = g.colW, gapY = g.gutter;
+    const colX = c => wk
+      ? Math.max(0, Math.round(c * bandW + (bandW - g.w) / 2))
+      : g.outer + c * colW;
+    const wantCol = it => wk
+      ? boardWeekOf(it, surfW)
+      : Math.max(0, Math.min(cols - 1, Math.round(((it.x || 0) - g.outer) / colW)));
     // bucket by rough row first (things you put side by side stay side by side)
     const rows = [];
     m.items.slice().sort((a, b) => (a.y || 0) - (b.y || 0) || (a.x || 0) - (b.x || 0)).forEach(it => {
@@ -10185,10 +10203,10 @@ function boardAlignAll() {
       while (pending.length) {
         const taken = new Set(), seats = new Map(), spill = [];
         pending.forEach(it => {
-          const want = keepColumns
-            ? Math.max(0, Math.min(cols - 1, Math.round(((it.x || 0) - g.outer) / colW)))
-            : 0;
-          const seat = seatNear(want, taken);
+          // In the week view a card's column IS its 旬, so it never moves
+          // sideways — a taken band just pushes it down to the next row.
+          const want = (wk || keepColumns) ? wantCol(it) : 0;
+          const seat = wk ? (taken.has(want) ? -1 : want) : seatNear(want, taken);
           if (seat < 0) { spill.push(it); return; }
           taken.add(seat);
           seats.set(it, seat);
@@ -10196,7 +10214,7 @@ function boardAlignAll() {
         let rowH = 0;
         pending.forEach(it => {
           if (!seats.has(it)) return;
-          const nx = g.outer + seats.get(it) * colW;
+          const nx = colX(seats.get(it));
           const b = boardBox(it);
           if (it.x !== nx || it.y !== y) touched++;
           it.x = nx; it.y = y;
