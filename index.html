@@ -78,8 +78,6 @@ body::after {
 body.dragging { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
 body.dragging * { cursor: grabbing !important; }
 
-.display-font { font-family: var(--display-font); font-feature-settings: 'tnum'; letter-spacing: -0.02em; }
-
 .container { width: 100%; max-width: 760px; position: relative; z-index: 1; }
 
 /* Unified single-column width — Daily / Playing / Roster / Parked all align,
@@ -166,12 +164,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .drag-handle:active { cursor: grabbing; }
 
 /* Game item */
-.game-item { padding: 14px 0; border-bottom: 1px solid var(--line); transition: opacity 0.15s, transform 0.15s; }
-.game-item:last-child { border-bottom: none; }
-.game-item.dragging { opacity: 0.35; }
-
-.game-row { display: flex; align-items: center; gap: 10px; user-select: none; flex-wrap: nowrap; }
-
 .checkbox {
   width: 18px; height: 18px; border-radius: 50%;
   border: 1.5px solid var(--text-muted); flex-shrink: 0;
@@ -238,12 +230,7 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   opacity: 0; padding: 3px 4px; pointer-events: none; min-width: 0;
 }
 .game-item:hover .status-pill.empty,
-.roster-item:hover .status-pill.empty {
-  opacity: 0.4; pointer-events: auto;
-}
 .game-item:hover .status-pill.empty:hover,
-.roster-item:hover .status-pill.empty:hover { opacity: 1; }
-
 .status-pill.empty::before { content: '+ status'; letter-spacing: 0.15em; }
 
 /* Tier 2 completion */
@@ -292,8 +279,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 /* Subtasks */
 .subtasks-row { margin-top: 12px; margin-left: 30px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .subtasks-row.empty { margin-top: 4px; opacity: 0; transition: opacity 0.2s; }
-.game-item:hover .subtasks-row.empty { opacity: 0.6; }
-
 .subtask {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 12px; padding: 4px 6px 4px 8px;
@@ -354,7 +339,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
   border-radius: 999px; transition: color 0.2s, background-color 0.2s;
   opacity: 0;
 }
-.game-item:hover .subtask-manage-link { opacity: 0.6; }
 .subtask-manage-link:hover { color: var(--accent); opacity: 1 !important; }
 
 /* Subtask manage modal */
@@ -406,10 +390,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .manage-close:hover { color: var(--accent); }
 
 /* Roster item */
-.roster-item { padding: 12px 0; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; transition: opacity 0.15s; flex-wrap: nowrap; }
-.roster-item:last-of-type { border-bottom: none; }
-.roster-item.dragging { opacity: 0.35; }
-
 .roster-check {
   width: 14px; height: 14px; border-radius: 3px;
   border: 1.5px solid var(--text-muted); flex-shrink: 0; cursor: pointer;
@@ -420,12 +400,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .roster-check.checked::after {
   content: ''; width: 4px; height: 7px; border: solid var(--bg);
   border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translate(0, -1px);
-}
-
-.roster-name-edit {
-  flex: 1; font-family: var(--body-font); font-size: 14px;
-  color: var(--text); background: transparent; border: none;
-  border-bottom: 1px solid var(--accent); outline: none; padding: 0; min-width: 0;
 }
 
 /* ============================================================
@@ -569,11 +543,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 }
 .roster-card:hover .rc-played, .rc-played.on { opacity: 0.9; }
 .rc-played.on .pc-checkin-label { color: var(--g-name, var(--accent)); }
-
-.roster-empty {
-  font-family: var(--body-font); font-size: 13px; font-style: italic;
-  color: var(--text-faint); padding: 8px 2px;
-}
 
 /* Finished shelf — Beaten (gold) · Completed (lilac/platinum) · Abandoned (muted) */
 .finished-group[data-fgroup="beaten"] { --g-line: #d8b85e; --g-name: #9a7d2e; }
@@ -881,38 +850,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .hidden-action:hover { color: var(--accent); background-color: var(--accent-faint); }
 .hidden-action.danger:hover { color: #a13a2a; background-color: transparent; }
 
-/* Heatmap */
-.heatmap-container { margin-top: 12px; }
-.heatmap {
-  display: grid; grid-template-columns: auto repeat(12, 14px);
-  grid-auto-rows: 14px; gap: 3px; align-items: center;
-}
-.heatmap-row-label {
-  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--text-faint); padding-right: 6px;
-  text-align: right; line-height: 14px; min-width: 20px;
-}
-.heatmap-cell { width: 14px; height: 14px; border-radius: 2px; cursor: pointer; transition: outline 0.15s ease; position: relative; }
-.heatmap-cell[data-intensity="0"] { background-color: rgba(184, 118, 62, 0.05); }
-.heatmap-cell[data-intensity="1"] { background-color: rgba(184, 118, 62, 0.25); }
-.heatmap-cell[data-intensity="2"] { background-color: rgba(184, 118, 62, 0.5); }
-.heatmap-cell[data-intensity="3"] { background-color: rgba(184, 118, 62, 0.75); }
-.heatmap-cell[data-intensity="4"] { background-color: var(--accent); }
-.heatmap-cell:hover { outline: 1px solid var(--text-muted); outline-offset: 1px; }
-.heatmap-cell.today { outline: 1.5px solid var(--text); outline-offset: 1px; }
-.heatmap-cell.viewing { outline: 1.5px solid var(--accent); outline-offset: 1px; }
-.heatmap-cell.future { background-color: transparent; cursor: default; }
-.heatmap-cell.future:hover { outline: none; }
-
-.heatmap-footer {
-  font-family: var(--label-font); margin-top: 18px;
-  display: flex; justify-content: space-between; align-items: center;
-  font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-faint);
-}
-.heatmap-legend { display: flex; align-items: center; gap: 4px; }
-.heatmap-legend .heatmap-cell { width: 10px; height: 10px; cursor: default; }
-.heatmap-legend .heatmap-cell:hover { outline: none; }
-
 /* ===== Review (回顾) ===== */
 .review-entry-row { display: flex; justify-content: flex-end; margin-bottom: 16px; }
 .review-entry {
@@ -1213,16 +1150,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .toast-close:hover { opacity: 1; background: rgba(236, 235, 225, 0.14); }
 
 /* Layout / entry animations: keyed list items for FLIP */
-.game-item, .roster-item {
-  view-transition-name: none;
-}
-.game-item.entering, .roster-item.entering {
-  animation: itemEnter 0.32s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-}
-.game-item.leaving, .roster-item.leaving {
-  animation: itemLeave 0.22s ease-in forwards;
-  pointer-events: none;
-}
 @keyframes itemEnter {
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -1243,7 +1170,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 }
 
 /* Day-switch fade */
-.day-fade { animation: dayFade 0.22s ease-out; }
 @keyframes dayFade { from { opacity: 0.4; } to { opacity: 1; } }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -1317,7 +1243,6 @@ body.first-load .section:nth-of-type(4) { animation-delay: 0.4s; }
 .journey-back{cursor:pointer;color:var(--text-muted);font-size:14px;font-family:var(--body-font);}
 .journey-back:hover{color:var(--accent);}
 .journey-title{font-family:var(--display-font);font-size:20px;font-weight:600;color:var(--text);}
-.journey-sub{font-size:12.5px;color:var(--text-faint);margin-bottom:18px;}
 .journey-filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;}
 .jf-chip{font-size:12px;padding:5px 11px;border-radius:14px;border:1px solid var(--line);background:transparent;color:var(--text-muted);cursor:pointer;font-family:var(--body-font);}
 .jf-chip:hover{border-color:var(--accent-soft);}
@@ -1467,6 +1392,140 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
    Calendar = wrapped month/week grid, blocks split per week row.
    Band     = linear day axis, one row per entry, drag to reorder.
    ============================================================ */
+
+/* ---- 计划 · 列表视图 ---- */
+.pl-list { display: flex; flex-direction: column; }
+.pl-lrow {
+  position: relative; display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 4px; border-bottom: 1px solid var(--line); transition: background 0.14s;
+}
+.pl-lrow:last-child { border-bottom: none; }
+.pl-lrow:hover { background: rgba(42, 36, 28, 0.02); }
+.pl-lrow.dragging { opacity: 0.4; }
+.pl-lrow.over { box-shadow: inset 0 2px 0 var(--accent); }
+.pl-lrow.tomb .pl-lname { color: var(--text-faint); font-style: italic; }
+.pl-lgrab { color: var(--text-faint); cursor: grab; opacity: 0; transition: opacity 0.16s; font-size: 11px; padding-top: 3px; }
+.pl-lrow:hover .pl-lgrab { opacity: 0.5; }
+.pl-lchip { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; margin-top: 5px; }
+.pl-lchip.hollow { background: transparent; border: 1.5px solid transparent; }
+.pl-lbody { flex: 1 1 auto; min-width: 0; }
+.pl-ltop { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pl-lname { font-size: 14px; color: var(--text); }
+.pl-lwhen { font-size: 11px; color: var(--text-faint); letter-spacing: 0.02em; }
+.pl-ldays { font-size: 10px; color: var(--text-faint); letter-spacing: 0.04em; }
+.pl-ldesc {
+  font-size: 12px; color: var(--text-muted); line-height: 1.65; margin-top: 4px;
+  cursor: text; white-space: pre-wrap; word-break: break-word;
+}
+.pl-ldesc.empty { color: var(--text-faint); opacity: 0; transition: opacity 0.16s; }
+.pl-lrow:hover .pl-ldesc.empty { opacity: 0.6; }
+.pl-lmenu {
+  flex: 0 0 auto; color: var(--text-faint); cursor: pointer; padding: 0 6px;
+  opacity: 0; transition: opacity 0.16s, color 0.16s; font-size: 15px; line-height: 1;
+}
+.pl-lrow:hover .pl-lmenu { opacity: 0.7; }
+.pl-lmenu:hover { color: var(--accent); opacity: 1; }
+.pl-lrow.sel-able .sel-box { top: 14px; }
+.pl-desc-wrap { margin-top: 4px; }
+.pl-desc-wrap textarea {
+  width: 100%; font-family: var(--body-font); font-size: 13px; line-height: 1.7; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line-strong); border-radius: 10px;
+  padding: 10px 11px; resize: vertical; box-sizing: border-box;
+}
+.pl-desc-wrap textarea:focus { outline: none; border-color: var(--accent); }
+
+/* ---- 换颜色 色板 ---- */
+.hue-pop {
+  position: fixed; z-index: 320; padding: 10px; border-radius: 12px;
+  background: var(--bg); border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(42, 36, 28, 0.16);
+  animation: huePop 0.14s ease-out;
+}
+@keyframes huePop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.hue-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+.hue-sw {
+  width: 24px; height: 24px; border-radius: 8px; cursor: pointer;
+  border: 2px solid transparent; transition: transform 0.12s, border-color 0.12s;
+}
+.hue-sw:hover { transform: scale(1.12); }
+.hue-sw.on { border-color: var(--text); }
+.hue-foot { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
+.hue-act {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.14em;
+  color: var(--text-faint); cursor: pointer; white-space: nowrap; transition: color 0.16s;
+}
+.hue-act:hover { color: var(--accent); }
+.hue-act.on { color: var(--accent); }
+
+/* ---- 购物单 ---- */
+.sh-count { font-size: 11px; color: var(--text-faint); letter-spacing: 0.04em; }
+.sh-alert {
+  margin: 4px 0 18px; padding: 9px 14px; border-radius: 10px;
+  background: var(--accent-faint); color: var(--accent); font-size: 12px; line-height: 1.5;
+}
+.sh-empty { text-align: center; padding: 40px 0; color: var(--text-faint); font-size: 12px; line-height: 1.7; }
+.sh-group { margin-bottom: 26px; }
+.sh-group-head {
+  display: flex; align-items: baseline; gap: 10px;
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text-faint); padding-bottom: 7px; border-bottom: 1px solid var(--line);
+}
+.sh-group-total { margin-left: auto; letter-spacing: 0.04em; text-transform: none; }
+.sh-row {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  padding: 11px 4px; border-bottom: 1px solid var(--line); transition: background 0.14s;
+}
+.sh-row:last-child { border-bottom: none; }
+.sh-row:hover { background: rgba(42, 36, 28, 0.02); }
+.sh-row.bought { opacity: 0.58; }
+.sh-tick {
+  flex: 0 0 auto; width: 17px; height: 17px; border-radius: 6px;
+  border: 1.5px solid var(--line-strong); cursor: pointer; position: relative;
+  transition: background 0.14s, border-color 0.14s;
+}
+.sh-tick::after {
+  content: '\2713'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: #fff; opacity: 0; transition: opacity 0.14s;
+}
+.sh-tick:hover { border-color: var(--accent); }
+.sh-tick.on { background: var(--accent); border-color: var(--accent); }
+.sh-tick.on::after { opacity: 1; }
+.sh-main { flex: 1 1 auto; min-width: 0; }
+.sh-name { display: flex; align-items: center; gap: 7px; font-size: 14px; color: var(--text); }
+.sh-row.bought .sh-name { text-decoration: line-through; text-decoration-color: var(--line-strong); }
+.sh-meta { font-size: 11px; color: var(--text-faint); margin-top: 3px; line-height: 1.5; }
+.sh-menu {
+  flex: 0 0 auto; color: var(--text-faint); cursor: pointer; padding: 0 6px;
+  opacity: 0; transition: opacity 0.16s, color 0.16s; font-size: 15px; line-height: 1;
+}
+.sh-row:hover .sh-menu { opacity: 0.7; }
+.sh-menu:hover { color: var(--accent); opacity: 1; }
+.sh-row.sel-able .sel-box { top: 50%; transform: translateY(-50%); }
+
+.sh-price { display: flex; gap: 9px; align-items: center; margin-top: 4px; }
+.sh-price select, .sh-price input {
+  font-family: var(--body-font); font-size: 13px; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 9px;
+}
+.sh-price input { flex: 1 1 auto; min-width: 0; }
+.sh-price select:focus, .sh-price input:focus { outline: none; border-color: var(--accent); }
+.sh-price-note { font-size: 11px; color: var(--text-faint); margin-top: 9px; text-align: left; line-height: 1.6; }
+.sh-kinds { display: flex; flex-direction: column; gap: 7px; text-align: left; }
+.sh-kind-row { display: flex; align-items: center; gap: 9px; }
+.sh-kind-name {
+  flex: 1 1 auto; min-width: 0; font-family: var(--body-font); font-size: 13px; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 9px;
+}
+.sh-kind-name:focus { outline: none; border-color: var(--accent); }
+.sh-kind-n { font-size: 10px; color: var(--text-faint); flex: 0 0 auto; white-space: nowrap; }
+.sh-kind-del { flex: 0 0 auto; color: var(--text-faint); cursor: pointer; padding: 0 4px; font-size: 15px; }
+.sh-kind-del:hover { color: #c0563a; }
+.sh-kind-add { margin-top: 10px; text-align: left; }
+.sh-kind-add input {
+  width: 100%; font-family: var(--body-font); font-size: 13px; color: var(--text); background: var(--bg);
+  border: 1px dashed var(--line-strong); border-radius: 8px; padding: 6px 9px;
+}
+.sh-kind-add input:focus { outline: none; border-color: var(--accent); border-style: solid; }
 
 /* ---- 多选 ---- */
 .sel-enter {
@@ -1987,6 +2046,24 @@ function migrate(state) {
       // Plan colour. null = derive from the id (stable forever, no bookkeeping);
       // an integer means Yiyu picked it by hand and it outranks the derivation.
       if (!Number.isInteger(base.hue) || base.hue < 0 || base.hue > 6) base.hue = null;
+      // Purchase record. ABSENT for almost every game and it must stay that way:
+      // absent means "never mentioned", which is not the same as "not wanted".
+      // Only sanitise what is already there — never create one here.
+      if (base.buy !== undefined) {
+        if (!base.buy || typeof base.buy !== 'object' || Array.isArray(base.buy)) delete base.buy;
+        else {
+          const d = /^\d{4}-\d{2}-\d{2}$/;
+          const b = base.buy;
+          if (!d.test(b.addedAt)) b.addedAt = b.boughtAt && d.test(b.boughtAt) ? b.boughtAt : GENESIS;
+          if (!d.test(b.boughtAt)) b.boughtAt = null;
+          if (!d.test(b.release)) b.release = null;
+          if (typeof b.kind !== 'string' || !b.kind) b.kind = 'k_buy';
+          if (typeof b.target !== 'number' || !isFinite(b.target)) b.target = null;
+          if (typeof b.paid !== 'number' || !isFinite(b.paid)) b.paid = null;
+          if (['CNY', 'EUR', 'HKD'].indexOf(b.currency) === -1) b.currency = 'CNY';
+          if (typeof b.note !== 'string') b.note = '';
+        }
+      }
       // Last meaningful milestone date — DERIVED from milestones (write-through)
       if (typeof base.lastMilestone !== 'string') base.lastMilestone = '';
       // Journey: media/sub tags + milestones[] (reaches). completion/lastMilestone derived from these.
@@ -2067,6 +2144,11 @@ function migrate(state) {
     // lives on the row — the same game can be committed in one period and merely
     // under consideration in another.
     if (typeof p.tentative !== 'boolean') p.tentative = false;
+    // Why this one is exciting. On the ENTRY, not the game: the anticipation
+    // belongs to the moment of planning it, and the same game planned again a
+    // year later deserves its own sentence.
+    if (typeof p.desc !== 'string') p.desc = '';
+    if (p.desc.length > 500) p.desc = p.desc.slice(0, 500);
     if (p.name != null && typeof p.name !== 'string') delete p.name;
     return p;
   });
@@ -2081,6 +2163,22 @@ function migrate(state) {
   // Show unplanned play on the plan calendar (the fourth quadrant). Persisted:
   // a display preference she sets once, not a session mode.
   if (typeof state.config.planShowActual !== 'boolean') state.config.planShowActual = true;
+  // Whether unplanned play includes Company. Off by default: a daily game paints
+  // a band across every single week and drowns everything else — but that band
+  // is also real information about a stretch, so it is hers to switch on.
+  if (typeof state.config.planActualCompany !== 'boolean') state.config.planActualCompany = false;
+  // Acquisition kinds: seeded once, then hers. Labels are editable, ids are not,
+  // so a rename re-labels history instead of orphaning it.
+  if (!Array.isArray(state.config.acqKinds) || !state.config.acqKinds.length) {
+    state.config.acqKinds = [
+      { id: 'k_buy', label: '购买' }, { id: 'k_sub', label: '订阅内含' },
+      { id: 'k_free', label: '免费领取' }, { id: 'k_gift', label: '赠送' }
+    ];
+  }
+  state.config.acqKinds = state.config.acqKinds
+    .filter(k => k && typeof k.id === 'string' && k.id)
+    .map(k => ({ id: k.id, label: (typeof k.label === 'string' && k.label.trim()) ? k.label.trim().slice(0, 12) : k.id }));
+  if (['CNY', 'EUR', 'HKD'].indexOf(state.config.lastCurrency) === -1) state.config.lastCurrency = 'CNY';
   if (!state.config.planSort || typeof state.config.planSort !== 'object') state.config.planSort = { key: null, dirty: false };
   if (typeof state.config.planSort.key !== 'string' && state.config.planSort.key !== null) state.config.planSort.key = null;
   if (typeof state.config.planSort.dirty !== 'boolean') state.config.planSort.dirty = false;
@@ -2266,6 +2364,11 @@ function showDialog({ title, message, confirmLabel = 'Confirm', cancelLabel = 'C
       overlay.style.animation = 'none';
       overlay.style.opacity = '0';
       overlay.style.transition = 'opacity 0.15s';
+      // It lingers for the fade; it must not linger clickable.
+      overlay.dataset.stale = '1';
+      overlay.style.pointerEvents = 'none';
+      overlay.querySelectorAll('button, .cancel, .confirm').forEach(el => { el.onclick = null; });
+      overlay.onclick = null;
       setTimeout(() => { host.innerHTML = ''; resolve(result); }, 150);
       document.removeEventListener('keydown', onKey);
     };
@@ -2333,7 +2436,9 @@ function showPicker(anchorEl, items, currentValue, onPick) {
     const row = document.createElement('div');
     row.className = 'picker-item' + (item.value === currentValue ? ' active' : '') + (item.clear ? ' clear' : '');
     row.innerHTML = `<span>${escapeHtml(item.label)}</span><span class="picker-check">✓</span>`;
-    row.onclick = (e) => { e.stopPropagation(); onPick(item.value); closePicker(); };
+    // close BEFORE the callback: a callback that opens another picker must not
+    // have it torn down by this one's close
+    row.onclick = (e) => { e.stopPropagation(); closePicker(); onPick(item.value); };
     menu.appendChild(row);
   });
   host.appendChild(menu);
@@ -2414,11 +2519,10 @@ function toggleExtra(gameId) {
     ex.classList.toggle('active', !!g.extra);
     ex.innerHTML = g.extra ? '✦' : '✧';
   }
-  updateHeatmapCell(viewDate);
 }
 
 // 深入 for Playing/Roster — stored in the per-day `day.extra` map (created lazily so
-// untouched days stay clean). Does NOT touch tier1/heatmap. Updates the star in place.
+// untouched days stay clean). Does NOT touch tier1. Updates the star in place.
 function toggleExtra2(gameId) {
   const day = getDay(viewDate);
   if (!day.extra) day.extra = {};
@@ -2471,7 +2575,6 @@ function updateTier1Row(gameId) {
     if (sid) sub.classList.toggle('checked', !!gd.subtasks[sid]);
   });
   updateStreak(item, gameId);
-  updateHeatmapCell(viewDate);
 }
 function updateTier2Row(gameId) {
   const day = getDay(viewDate);
@@ -2488,7 +2591,6 @@ function updateTier2Row(gameId) {
     if (lbl) lbl.textContent = checked ? '今日已玩' : '打卡';
   }
   updateStreak(item, gameId);
-  updateHeatmapCell(viewDate);
 }
 function updateTier3Row(gameId) {
   const day = getDay(viewDate);
@@ -2505,7 +2607,6 @@ function updateTier3Row(gameId) {
   }
   item.querySelector('.roster-check')?.classList.toggle('checked', checked);
   updateStreak(item, gameId);
-  updateHeatmapCell(viewDate);
 }
 
 function updateStreak(rowEl, gameId) {
@@ -2521,12 +2622,6 @@ function updateStreak(rowEl, gameId) {
     void el.offsetWidth;
     el.style.animation = 'streakPop 0.45s cubic-bezier(0.16, 1, 0.3, 1)';
   }
-}
-
-function updateHeatmapCell(dateStr) {
-  const cell = document.querySelector(`.heatmap-cell[data-date-key="${dateStr}"]`);
-  if (!cell || cell.classList.contains('future')) return;
-  cell.dataset.intensity = getDayIntensity(dateStr);
 }
 
 // ============================================================
@@ -3137,10 +3232,6 @@ function gamesInTierOnDate(tier, dateStr) {
 }
 
 // Which tier is the game currently in (today's tier)?
-function currentTier(game) {
-  return tierOnDate(game, todayKey());
-}
-
 function getDayCompanions(dateStr) {
   const day = state.history[dateStr];
   if (!day) return 0;
@@ -3222,7 +3313,7 @@ function goToNextDay() {
 }
 function goToToday() { viewDate = todayKey(); refreshDayView(); }
 
-// Refresh check-states / streaks / progress / heatmap viewing — no structural rebuild
+// Refresh check-states / streaks / progress — no structural rebuild
 function refreshDayView() {
   if (!state) return;
   applyWeekTheme();
@@ -3271,11 +3362,6 @@ function refreshDayView() {
     }
     updateStreak(item, id);
   });
-  // Heatmap viewing class
-  document.querySelectorAll('.heatmap-cell').forEach(c => {
-    c.classList.toggle('viewing', c.dataset.dateKey === viewDate);
-    if (!c.classList.contains('future')) c.dataset.intensity = getDayIntensity(c.dataset.dateKey);
-  });
 }
 
 // ============================================================
@@ -3321,11 +3407,18 @@ function render() {
   closePicker();
   // A scope only exists while its screen does — leaving the page drops the mode
   // rather than leaving an invisible selection armed behind another view.
-  if (_selMode === 'plan' && !planOpen) { _selMode = null; _selIds = new Set(); _selAnchor = null; }
-  if (_selMode && _selMode !== 'plan' && (planOpen || reviewOpen || journeyOpen)) { _selMode = null; _selIds = new Set(); _selAnchor = null; }
+  // a scope only exists while its own screen does
+  const _selHome = { plan: planOpen, shop: shopOpen };
+  if (_selMode) {
+    const onOwnScreen = (_selMode in _selHome)
+      ? _selHome[_selMode]
+      : !(planOpen || shopOpen || reviewOpen || journeyOpen);
+    if (!onOwnScreen) { _selMode = null; _selIds = new Set(); _selAnchor = null; }
+  }
   if (!session) { renderSignIn(); return; }
   if (!state) { renderLoading(); return; }
   applyWeekTheme();
+  if (shopOpen) { renderShop(); return; }
   if (planOpen) { renderPlan(); return; }
   if (journeyOpen) { renderJourney(); return; }
   if (reviewOpen) { renderReview(); return; }
@@ -3390,6 +3483,14 @@ function renderApp() {
           </svg>
           计划
         </button>
+        <button class="review-entry" id="shop-entry" title="购物单" style="margin-left:14px">
+          <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true">
+            <path d="M2 3.4h8.6l-1 6.1H3.2z" fill="none" stroke="var(--accent)" stroke-width="1.1" opacity="0.8"></path>
+            <circle cx="4.6" cy="11.3" r="0.9" fill="var(--accent)" opacity="0.7"></circle>
+            <circle cx="8.6" cy="11.3" r="0.9" fill="var(--accent)" opacity="0.7"></circle>
+          </svg>
+          购物单
+        </button>
       </div>
       <div class="date-nav">
         <div class="date-arrow" id="prev-day" title="Previous day">‹</div>
@@ -3452,6 +3553,7 @@ function renderApp() {
   document.getElementById('review-entry').onclick = openReview;
   var _je = document.getElementById('journey-entry'); if (_je) _je.onclick = openJourney;
   var _pe = document.getElementById('plan-entry'); if (_pe) _pe.onclick = openPlan;
+  var _se = document.getElementById('shop-entry'); if (_se) _se.onclick = openShop;
 }
 
 // ── Companion band — removed (header progress bar deleted). The check-in history
@@ -4288,6 +4390,7 @@ function openRosterCardMenu(anchor, game) {
       else addingNoteFor = { tier: 'tier3', id: game.id };
       render();
     }
+    else if (v === 'shop') shopAddOne(game.id);
     else if (v === 'playing') moveRosterTo(game.id, 'tier2');
     else if (v === 'daily') moveRosterTo(game.id, 'tier1');
     else if (v === 'hide') hideGame('tier3', game.id);
@@ -4734,7 +4837,7 @@ function gameById(id) {
 
 function openReview() {
   reviewOpen = true;
-  planOpen = false; journeyOpen = false;
+  planOpen = false; journeyOpen = false; shopOpen = false;
   reviewSpan = 'quarter';
   reviewAnchor = todayKey();
   reviewSelectedDay = todayKey();
@@ -5033,65 +5136,6 @@ function renderReviewDetail() {
   host.innerHTML = html;
   const jump = document.getElementById('rv-dt-jump');
   if (jump) jump.onclick = () => { viewDate = key; reviewOpen = false; render(); };
-}
-
-function renderHeatmap() {
-  const container = document.getElementById('heatmap');
-  container.innerHTML = '';
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const numWeeks = 12;
-  const dayOfWeek = (today.getDay() + 6) % 7;
-  const startDate = new Date(today); startDate.setDate(today.getDate() - dayOfWeek - (numWeeks - 1) * 7);
-  const showLabel = [true, false, true, false, true, false, false];
-  const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-  for (let row = 0; row < 7; row++) {
-    const label = document.createElement('div');
-    label.className = 'heatmap-row-label';
-    label.textContent = showLabel[row] ? dayLetters[row] : '';
-    container.appendChild(label);
-    for (let col = 0; col < numWeeks; col++) {
-      const cellDate = new Date(startDate);
-      cellDate.setDate(startDate.getDate() + col * 7 + row);
-      const key = dateKey(cellDate);
-      const isToday = key === todayKey();
-      const isViewing = key === viewDate;
-      const isFuture = cellDate > today;
-      const cell = document.createElement('div');
-      let cls = 'heatmap-cell';
-      if (isFuture) cls += ' future';
-      if (isToday && !isViewing) cls += ' today';
-      if (isViewing) cls += ' viewing';
-      cell.className = cls;
-      cell.dataset.dateKey = key;
-      if (!isFuture) {
-        cell.dataset.intensity = getDayIntensity(key);
-        cell.onclick = () => { viewDate = key; refreshDayView(); };
-        cell.addEventListener('mouseenter', () => {
-          const tt = document.getElementById('tooltip');
-          const dd = state.history[key];
-          let label = key;
-          const relevant = gamesInTierOnDate('tier1', key);
-          if (dd) {
-            let c = 0;
-            relevant.forEach(g => { if (dd.tier1 && dd.tier1[g.id] && dd.tier1[g.id].checkedIn) c++; });
-            label += ' · ' + c + '/' + relevant.length;
-          } else label += ' · —';
-          tt.textContent = label;
-          tt.classList.add('visible');
-        });
-        cell.addEventListener('mousemove', (e) => {
-          const tt = document.getElementById('tooltip');
-          tt.style.left = (e.clientX + 14) + 'px';
-          tt.style.top = (e.clientY - 32) + 'px';
-        });
-        cell.addEventListener('mouseleave', () => {
-          document.getElementById('tooltip').classList.remove('visible');
-        });
-      }
-      container.appendChild(cell);
-    }
-  }
 }
 
 // ============================================================
@@ -5692,7 +5736,7 @@ function journeyView() {
 }
 function setJourneyView(v) { state.config.journeyView = v; scheduleSave(); render(); }
 
-function openJourney() { journeyOpen = true; reviewOpen = false; planOpen = false; _journeyFilter = { type: '', outcome: '', tag: '' }; render(); }
+function openJourney() { journeyOpen = true; reviewOpen = false; planOpen = false; shopOpen = false; _journeyFilter = { type: '', outcome: '', tag: '' }; render(); }
 function closeJourney() { journeyOpen = false; render(); }
 
 // Stable warm color per game (cross-refresh consistent) — drives river/star/shelf accents.
@@ -5975,7 +6019,7 @@ function renderJRiver(container, rows) {
   container.appendChild(wrap);
 }
 
-// ---- 星图 (到达热力) — calendar echo of the heartbeat heatmap; lit days = reaches ----
+// ---- 星图 (到达热力) — calendar of reaches; lit days = reaches ----
 function renderJStar(container, nodes) {
   if (nodes.length === 0) { journeyEmpty(container, '这个筛选下没有里程碑'); return; }
   const byDate = {};
@@ -6267,7 +6311,6 @@ function attachChipDrag(chip, groupKey, fromIdx, key) {
 function chainAddKey(groupKey, key) { const gs = groupSortState(groupKey); if (gs.chain.some(s => s.key === key)) return; gs.chain.push({ key, dir: (key === 'extra' || key === 'todayCheck') ? 'desc' : 'asc' }); applySortChain(groupKey); }
 function chainToggleDir(groupKey, key) { const gs = groupSortState(groupKey); const s = gs.chain.find(x => x.key === key); if (s) { s.dir = s.dir === 'asc' ? 'desc' : 'asc'; applySortChain(groupKey); } }
 function chainRemoveKey(groupKey, key) { const gs = groupSortState(groupKey); gs.chain = gs.chain.filter(s => s.key !== key); applySortChain(groupKey); }
-function chainClear(groupKey) { const gs = groupSortState(groupKey); gs.chain = []; gs.dirty = false; scheduleSave(); smoothRender(); }
 
 // A manual drag breaks the chain → keep it but flag dirty (only if a chain exists).
 function markGroupDirtyByGame(tier, game) {
@@ -6899,20 +6942,105 @@ function planToggleTentative(entryId) {
 }
 
 // Colour lives on the GAME, not the plan row: one game, one colour, everywhere.
+const PLAN_HUE_NAMES = ['珊瑚', '蜜桃', '蜂蜜', '鼠尾草', '粉蓝', '薰衣草', '玫瑰'];
+
+// A swatch popup rather than a list of colour names — you pick a colour by
+// looking at it. Deliberately NOT a picker: showPicker closes any open picker on
+// entry, and a picker callback runs after that close, so a picker opened from
+// inside one is built and then immediately destroyed. That is exactly why
+// 换颜色 did nothing at all before this.
 function planHueMenu(anchor, entry) {
   const g = planEntryGame(entry);
   if (!g) return;
-  const names = ['珊瑚', '蜜桃', '蜂蜜', '鼠尾草', '粉蓝', '薰衣草', '玫瑰'];
-  const items = PLAN_HUE_POOL.map(i => ({ value: String(i), label: names[i] || ('色 ' + (i + 1)) }));
-  // a game already on the excluded twin keeps that option so she can see it
-  if (Number.isInteger(g.hue) && PLAN_HUE_POOL.indexOf(g.hue) === -1)
-    items.push({ value: String(g.hue), label: (names[g.hue] || '色') + ' · 旧' });
-  items.push({ value: 'auto', label: '↺ Auto' });
-  const cur = Number.isInteger(g.hue) ? String(g.hue) : 'auto';
-  showPicker(anchor, items, cur, v => {
-    g.hue = v === 'auto' ? null : Number(v);
-    scheduleSave(); smoothRender();
+  closePicker();
+  document.querySelectorAll('.hue-pop').forEach(e => e.remove());
+
+  const pop = document.createElement('div');
+  pop.className = 'hue-pop';
+
+  const grid = document.createElement('div');
+  grid.className = 'hue-grid';
+  // the excluded twin is still offered if this game already sits on it, so a
+  // hand-picked colour never silently disappears from its own menu
+  const pool = PLAN_HUE_POOL.slice();
+  if (Number.isInteger(g.hue) && pool.indexOf(g.hue) === -1) pool.push(g.hue);
+  pool.forEach(i => {
+    const rgb = RV_MACARON[i];
+    const sw = document.createElement('div');
+    sw.className = 'hue-sw' + (g.hue === i ? ' on' : '');
+    sw.dataset.hue = String(i);
+    sw.title = PLAN_HUE_NAMES[i] || ('色 ' + (i + 1));
+    sw.style.background = planTint(rgb, PLAN_A_DONE);
+    sw.onclick = () => setPlanHue(g.id, i);
+    grid.appendChild(sw);
   });
+  pop.appendChild(grid);
+
+  const foot = document.createElement('div');
+  foot.className = 'hue-foot';
+  const rnd = document.createElement('span');
+  rnd.className = 'hue-act';
+  rnd.id = 'hue-random';
+  rnd.textContent = '🎲 随机';
+  rnd.title = '从没被占用的颜色里挑';
+  rnd.onclick = () => setPlanHue(g.id, planPickRandomHue(g.id));
+  foot.appendChild(rnd);
+  const auto = document.createElement('span');
+  auto.className = 'hue-act' + (Number.isInteger(g.hue) ? '' : ' on');
+  auto.id = 'hue-auto';
+  auto.textContent = '↺ Auto';
+  auto.title = '交还给按 id 推导的颜色';
+  auto.onclick = () => setPlanHue(g.id, null);
+  foot.appendChild(auto);
+  pop.appendChild(foot);
+
+  document.body.appendChild(pop);
+  positionPopup(pop, anchor);
+  const off = ev => {
+    if (pop.contains(ev.target)) return;
+    pop.remove();
+    document.removeEventListener('pointerdown', off, true);
+  };
+  setTimeout(() => document.addEventListener('pointerdown', off, true), 0);
+}
+
+function setPlanHue(gameId, hue) {
+  const hit = findGameAnywhere(gameId);
+  if (!hit) return;
+  hit.game.hue = hue;
+  document.querySelectorAll('.hue-pop').forEach(e => e.remove());
+  scheduleSave(); smoothRender();
+}
+
+// Prefer a colour no other planned game is using; once they are all taken, any
+// colour but the current one — so 随机 always visibly does something.
+function planPickRandomHue(gameId) {
+  const w = planWindow();
+  const taken = new Set();
+  planEntriesInWindow(w.from, w.to).forEach(e => {
+    if (e.gameId === gameId) return;
+    const g2 = planEntryGame(e);
+    if (g2) taken.add(planHueIndex(g2));
+  });
+  const cur = findGameAnywhere(gameId);
+  const curHue = cur ? cur.game.hue : null;
+  let pool = PLAN_HUE_POOL.filter(i => !taken.has(i) && i !== curHue);
+  if (!pool.length) pool = PLAN_HUE_POOL.filter(i => i !== curHue);
+  if (!pool.length) pool = PLAN_HUE_POOL.slice();
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// Place a floating popup near its anchor, kept inside the viewport.
+function positionPopup(pop, anchor) {
+  const r = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: 20, bottom: 20, top: 20 };
+  const pw = pop.offsetWidth || 210, ph = pop.offsetHeight || 90;
+  let left = r.left;
+  let top = r.bottom + 6;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  if (left + pw > vw - 10) left = Math.max(10, vw - pw - 10);
+  if (top + ph > vh - 10) top = Math.max(10, r.top - ph - 6);
+  pop.style.left = Math.max(10, left) + 'px';
+  pop.style.top = top + 'px';
 }
 
 // Dated → thought: keep where it started, open the end.
@@ -7044,8 +7172,9 @@ function planPaintFills(bar, e, clip, rgb, cls) {
 // Every check-in day in the window that no DATED plan entry for that game covers,
 // grouped into consecutive runs. Thoughts are undated, so their days count as
 // unplanned here — the grid compares reality to the dated plan; the strip's dots
-// speak for thoughts. Company (tier1) is excluded outright: daily maintenance
-// would paint a permanent band across every week and drown the plan.
+// speak for thoughts. Company (tier1) is excluded by DEFAULT, not by rule: daily
+// maintenance would paint a band across every week, but that band is real
+// information about a stretch, so planActualCompany can switch it back on.
 // Runs are synthetic entries (never stored) so the lane packer and both grid
 // renderers treat them like any other bar.
 function planUnplannedRuns(w) {
@@ -7059,7 +7188,8 @@ function planUnplannedRuns(w) {
   const runs = [];
   scan.hits.forEach((days, gameId) => {
     const hit = findGameAnywhere(gameId);
-    if (!hit || hit.tier === 'tier1') return;
+    if (!hit) return;
+    if (hit.tier === 'tier1' && !state.config.planActualCompany) return;
     const mine = dated.filter(e => e.gameId === gameId);
     const free = Array.from(days).filter(k =>
       k >= ext.from && k < ext.to && !mine.some(e => e.from <= k && k < e.to)).sort();
@@ -7116,7 +7246,7 @@ document.addEventListener('keydown', ev => {
 });
 
 function openPlan() {
-  planOpen = true; reviewOpen = false; journeyOpen = false;
+  planOpen = true; reviewOpen = false; journeyOpen = false; shopOpen = false;
   if (!planAnchor) planAnchor = todayKey();
   render();
 }
@@ -7149,6 +7279,7 @@ function renderPlan() {
         </div>
         <div class="pl-seg">
           <div class="pl-seg-btn" data-view="calendar">日历</div>
+          <div class="pl-seg-btn" data-view="list">列表</div>
           <div class="pl-seg-btn" data-view="stack" id="pl-view-stack">逐月</div>
           <div class="pl-seg-btn" data-view="band">时间带</div>
         </div>
@@ -7156,6 +7287,7 @@ function renderPlan() {
           <div class="pl-tool" id="pl-ymode"></div>
           <div class="pl-tool" id="pl-select"></div>
           <div class="pl-tool" id="pl-actual"></div>
+          <div class="pl-tool" id="pl-actual-co"></div>
           <div class="pl-tool" id="pl-sort">↑↓ 排序</div>
           <div class="pl-tool" id="pl-carry">结转未完成 →</div>
         </div>
@@ -7166,7 +7298,7 @@ function renderPlan() {
         <span class="pl-leg"><span class="pl-leg-sw anchor"></span>计划开始日</span>
         <span class="pl-leg">✦ 里程碑</span>
         <span class="pl-leg"><span class="pl-leg-tent"></span>掂量中 · 还没定</span>
-        <span class="pl-leg"><span class="pl-leg-un"></span>方头无壳 = 玩了但没计划（Company 不计）</span>
+        <span class="pl-leg"><span class="pl-leg-un"></span>方头无壳 = 玩了但没计划</span>
         <span class="pl-leg">没排日期的会一直跟着你，直到通关或「到此为止」</span>
         <span class="pl-leg">颜色按游戏区分 · 菜单里可换</span>
         <span class="pl-leg">← → 翻周期 · 双击已打卡的格子看那天</span>
@@ -7187,6 +7319,8 @@ function renderPlan() {
   // 逐月 only means something across many months; outside the year it is just
   // the month view, so hide it and fold the state back to 'calendar'.
   if (planKind !== 'year' && planView === 'stack') planView = 'calendar';
+  // the list is the one view where sorting is legible, so it stays available
+  // in every period kind
   root.querySelectorAll('[data-view]').forEach(el => {
     if (el.dataset.view === 'stack' && planKind !== 'year') { el.style.display = 'none'; return; }
     el.classList.toggle('on', el.dataset.view === planView);
@@ -7200,6 +7334,20 @@ function renderPlan() {
   act.textContent = (state.config.planShowActual ? '◉' : '○') + ' 计划外';
   act.title = state.config.planShowActual ? '正在显示计划外的实际打卡 · 点击隐藏' : '计划外的实际打卡已隐藏 · 点击显示';
   act.onclick = () => { state.config.planShowActual = !state.config.planShowActual; scheduleSave(); smoothRender(); };
+  // Nested under the first: with 计划外 off there is nothing for it to qualify,
+  // so it disappears rather than sitting there doing nothing.
+  const actCo = document.getElementById('pl-actual-co');
+  if (state.config.planShowActual) {
+    actCo.style.display = '';
+    actCo.textContent = (state.config.planActualCompany ? '◉' : '○') + ' 含 Company';
+    actCo.title = state.config.planActualCompany
+      ? '每日维护型游戏也算进计划外 · 点击排除'
+      : '每日维护型游戏不算进计划外 · 点击包含';
+    actCo.onclick = () => { state.config.planActualCompany = !state.config.planActualCompany; scheduleSave(); smoothRender(); };
+  } else {
+    actCo.style.display = 'none';
+    actCo.onclick = null;
+  }
   const ym = document.getElementById('pl-ymode');
   if (planKind === 'year') {
     const cur = PLAN_YEAR_MODES.find(m => m.value === planYearMode) || PLAN_YEAR_MODES[0];
@@ -7216,7 +7364,8 @@ function renderPlan() {
 
   const body = document.getElementById('pl-body');
   selRenderBar();
-  if (planView === 'band') renderPlanBand(body, w);
+  if (planView === 'list') renderPlanList(body, w);
+  else if (planView === 'band') renderPlanBand(body, w);
   else if (planKind === 'year' && planView === 'stack') renderPlanStacked(body, w);
   else if (planKind === 'year') renderPlanYearCalendar(body, w);
   else renderPlanCalendar(body, w);
@@ -7257,12 +7406,25 @@ function planLabelNav() {
 // Two keys live on the plan row, not the game; the other eight delegate to the
 // roster's comparator. Newest thought first, most-played first — the natural
 // reading for each.
+// Only keys that mean something for a plan entry. The roster's full set carried
+// things like milestone count and last check-in, which say nothing about an
+// intention and made the menu look richer than it was.
 const PLAN_SORT_KEYS = [
-  { key: 'thought', label: '起念时间' },
-  { key: 'played', label: '本期打卡天数' }
+  { key: 'thought',  label: '起念时间' },
+  { key: 'played',   label: '本期打卡天数' },
+  { key: 'startsOn', label: '开始日' }
 ];
+const PLAN_SORT_GAME_KEYS = ['pinyin', 'platform'];
 function planCompare(a, b, key, w) {
   if (key === 'thought') return a.from < b.from ? 1 : a.from > b.from ? -1 : 0;
+  if (key === 'startsOn') {
+    // undated entries have no start day — they sort last, not first
+    const da = a.dated ? a.from : '', db = b.dated ? b.from : '';
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return da < db ? -1 : da > db ? 1 : 0;
+  }
   if (key === 'played') {
     const na = planEntryIsTomb(a) ? -1 : planCheckinDays(a.gameId, w.from, w.to).size;
     const nb = planEntryIsTomb(b) ? -1 : planCheckinDays(b.gameId, w.from, w.to).size;
@@ -7274,21 +7436,31 @@ function planCompare(a, b, key, w) {
   if (!gb) return -1;
   return compareChain(ga, gb, [{ key, dir: 'asc' }]);
 }
-function planSortState() { return state.config.planSort || (state.config.planSort = { key: null, dirty: false }); }
-function planSortLabel() {
-  const st = planSortState();
-  const all = PLAN_SORT_KEYS.concat(SORT_KEYS);
-  const cur = all.find(k => k.key === st.key);
+// One-shot sort state, shared by every page that has a hand-ordered list: which
+// key was last applied, and whether the order has been touched since. Keyed by
+// config field so a second page never needs a second copy of these three.
+function sortStateOf(field) {
+  if (!state.config[field] || typeof state.config[field] !== 'object') state.config[field] = { key: null, dirty: false };
+  return state.config[field];
+}
+function sortLabelOf(field, keyDefs) {
+  const st = sortStateOf(field);
+  const cur = keyDefs.find(k => k.key === st.key);
   return '↑↓ 排序' + (cur ? ' · ' + cur.label : '') + (st.dirty ? ' ·已改' : '');
 }
 // Any hand move after a sort marks the order as edited, exactly like the roster.
-function planMarkDirty() { const st = planSortState(); if (st.key) st.dirty = true; }
+function markSortDirty(field) { const st = sortStateOf(field); if (st.key) st.dirty = true; }
+
+function planSortState() { return sortStateOf('planSort'); }
+function planSortDefs() { return PLAN_SORT_KEYS.concat(SORT_KEYS.filter(k => PLAN_SORT_GAME_KEYS.indexOf(k.key) !== -1)); }
+function planSortLabel() { return sortLabelOf('planSort', planSortDefs()); }
+function planMarkDirty() { markSortDirty('planSort'); }
 
 // One-shot sort: rewrites the plan array, exactly like the roster sort bars.
 // There is no live sort anywhere in this app — order is data, not a rule.
 function planSortMenu(anchor) {
   const st = planSortState();
-  const items = PLAN_SORT_KEYS.concat(SORT_KEYS).map(k => ({ value: k.key, label: k.label }));
+  const items = planSortDefs().map(k => ({ value: k.key, label: k.label }));
   items.push({ value: '__clear', label: '× 清除排序标记', clear: true });
   showPicker(anchor, items, st.key || '', key => {
     if (key === '__clear') { st.key = null; st.dirty = false; scheduleSave(); smoothRender(); return; }
@@ -7336,7 +7508,7 @@ function planLooseStrip(host, w) {
     if (e.tentative) pill.style.borderColor = planDashEdge(rgb);
     const hits = tomb ? new Set() : planCheckinDays(e.gameId, w.from, w.to);
     pill.innerHTML = `<span>${escapeHtml(planEntryName(e))}</span>`;
-    pill.title = planEntryFullName(e);
+    pill.title = planEntryFullName(e) + (e.desc ? '\n\n' + e.desc : '');
     const pillChip = tomb ? null : planPlatChip(planEntryFullName(e));
     if (pillChip) pill.appendChild(pillChip);
     if (hits.size) {
@@ -7425,13 +7597,15 @@ function planEntryMenu(anchor, entry) {
   if (!tomb && entry.dated) items.push({ value: 'jump', label: '跳到那天' });
   if (!tomb && !entry.dated) items.push({ value: 'front', label: '↑ 移到最前' });
   if (!tomb) items.push({ value: 'tent', label: entry.tentative ? '✓ 确定要玩' : '~ 改为掂量中' });
+  if (!tomb) items.push({ value: 'desc', label: entry.desc ? '改描述' : '写点描述' });
   if (!tomb) items.push({ value: 'hue', label: '换颜色' });
   if (!tomb) items.push({ value: 'dates', label: '改日期…' });
   if (!tomb && entry.dated) items.push({ value: 'loose', label: '取消日期' });
   if (!tomb && !entry.dated && planIsOpen(entry)) items.push({ value: 'close', label: '到此为止' });
   items.push({ value: 'remove', label: tomb ? '× 彻底移除' : '× 移出计划', clear: true });
   showPicker(anchor, items, '', v => {
-    if (v === 'front') planMoveToFront(entry.id);
+    if (v === 'desc') planDescDialog(entry.id);
+    else if (v === 'front') planMoveToFront(entry.id);
     else if (v === 'tent') planToggleTentative(entry.id);
     else if (v === 'hue') planHueMenu(anchor, entry);
     else if (v === 'jump') planJumpToDay(entry.from);
@@ -7900,11 +8074,138 @@ function planWireDragCreate(cal, w) {
   }
 }
 
+// Every entry in the window, dated or not, one per row. The other three views
+// are all time-axed; this is the one where sorting is visible, because rows sit
+// in a single column instead of two partitioned grids.
+function renderPlanList(host, w) {
+  const entries = planEntriesInWindow(w.from, w.to);
+  if (!entries.length) {
+    const e = document.createElement('div');
+    e.className = 'pl-band-empty';
+    e.textContent = '这个周期还没有计划。';
+    host.appendChild(e);
+    return;
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'pl-list';
+  entries.forEach(e => wrap.appendChild(buildPlanListRow(e, w)));
+  host.appendChild(wrap);
+}
+
+function buildPlanListRow(e, w) {
+  const tomb = planEntryIsTomb(e);
+  const rgb = planRgb(e);
+  const row = document.createElement('div');
+  row.className = 'pl-lrow' + (e.tentative ? ' tent' : '') + (tomb ? ' tomb' : '');
+  row.dataset.entry = e.id;
+
+  const grab = document.createElement('span');
+  grab.className = 'pl-lgrab';
+  grab.textContent = '⠿';
+  row.appendChild(grab);
+
+  const chip = document.createElement('span');
+  chip.className = 'pl-lchip' + (e.tentative ? ' hollow' : '');
+  if (e.tentative) chip.style.borderColor = planTint(rgb, 0.9);
+  else chip.style.background = planTint(rgb, 0.85);
+  row.appendChild(chip);
+
+  const body = document.createElement('div');
+  body.className = 'pl-lbody';
+  const top = document.createElement('div');
+  top.className = 'pl-ltop';
+  const name = document.createElement('span');
+  name.className = 'pl-lname';
+  name.textContent = planEntryName(e);
+  top.appendChild(name);
+  if (!tomb) { const pc = planPlatChip(planEntryFullName(e)); if (pc) top.appendChild(pc); }
+  const when = document.createElement('span');
+  when.className = 'pl-lwhen';
+  when.textContent = e.dated
+    ? planFmtShort(e.from) + ' – ' + planFmtShort(planAddDays(planEffTo(e), -1))
+    : (e.tentative ? '掂量中' : '还没排日期');
+  top.appendChild(when);
+  const hits = tomb ? new Set() : planCheckinDays(e.gameId, w.from, w.to);
+  if (hits.size) {
+    const n = document.createElement('span');
+    n.className = 'pl-ldays';
+    n.textContent = hits.size + ' 天';
+    top.appendChild(n);
+  }
+  body.appendChild(top);
+
+  const desc = document.createElement('div');
+  desc.className = 'pl-ldesc' + (e.desc ? '' : ' empty');
+  desc.textContent = e.desc || '写点什么…';
+  desc.title = '点一下编辑';
+  desc.onclick = ev => { ev.stopPropagation(); planDescDialog(e.id); };
+  body.appendChild(desc);
+  row.appendChild(body);
+
+  const menu = document.createElement('span');
+  menu.className = 'pl-lmenu';
+  menu.textContent = '⋯';
+  menu.onclick = ev => { ev.stopPropagation(); planEntryMenu(ev.currentTarget, e); };
+  row.appendChild(menu);
+
+  planWireListDrag(row, e.id, grab);
+  if (selActive('plan') && !tomb) selDecorate(row, e.id);
+  return row;
+}
+
+// Same convention as everywhere else: the array is the order, dragging rewrites
+// it. Unlike the strip there is no partition here, so a row can move anywhere.
+function planWireListDrag(row, entryId, grab) {
+  grab.onpointerdown = () => { row.draggable = true; };
+  row.ondragstart = ev => {
+    _planRowDrag = entryId;
+    row.classList.add('dragging');
+    if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
+  };
+  row.ondragend = () => { row.draggable = false; row.classList.remove('dragging'); _planRowDrag = null; };
+  row.ondragover = ev => { if (_planRowDrag && _planRowDrag !== entryId) { ev.preventDefault(); row.classList.add('over'); } };
+  row.ondragleave = () => row.classList.remove('over');
+  row.ondrop = ev => {
+    ev.preventDefault();
+    row.classList.remove('over');
+    if (!_planRowDrag || _planRowDrag === entryId) return;
+    const list = planList();
+    const from = list.findIndex(x => x.id === _planRowDrag);
+    const to = list.findIndex(x => x.id === entryId);
+    if (from === -1 || to === -1) return;
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved);
+    planMarkDirty();
+    scheduleSave(); smoothRender();
+  };
+}
+
+function planDescDialog(entryId) {
+  const e = planList().find(x => x.id === entryId);
+  if (!e) return;
+  showDialog({
+    title: planEntryName(e),
+    message: `<div class="pl-desc-wrap">
+        <textarea id="pl-desc" rows="4" maxlength="500"
+          placeholder="想到它的时候在期待什么？&#10;写几句，以后翻回来会记得。">${escapeHtml(e.desc || '')}</textarea>
+      </div>`,
+    confirmLabel: '保存', cancelLabel: '取消',
+    onConfirm: () => {
+      const el = document.getElementById('pl-desc');
+      const t = planList().find(x => x.id === entryId);
+      if (!el || !t) return;
+      t.desc = el.value.trim().slice(0, 500);
+      scheduleSave(); smoothRender();
+    }
+  });
+}
+
 function renderPlanBand(host, w) {
   planLooseStrip(host, w);
 
   const entries = planEntriesInWindow(w.from, w.to);
-  if (!entries.length) {
+  const earlyRuns = planUnplannedRuns(w).filter(r => r.from < w.to && w.from < r.to);
+  if (!entries.length && !earlyRuns.length) {
     const e = document.createElement('div');
     e.className = 'pl-band-empty';
     e.textContent = planKind === 'year'
@@ -8257,7 +8558,8 @@ const SEL_SCOPES = {
   tier2:    { host: 'tier2-list',    card: '.playing-card' },
   tier3:    { host: 'tier3-list',    card: '.roster-card' },
   finished: { host: 'finished-list', card: '.roster-card' },
-  plan:     { host: null,            card: '.pl-loose-row .pl-pill' }
+  plan:     { host: null,            card: '.pl-loose-row .pl-pill, .pl-lrow' },
+  shop:     { host: null,            card: '.sh-row' }
 };
 
 function selActive(scope) { return _selMode === scope; }
@@ -8328,7 +8630,15 @@ function selBulkActions() {
       { v: 'to2', label: '移到 Playing' },
       { v: 'to3', label: '移到 Roster' },
       { v: 'plan', label: '加入计划' },
+      { v: 'shop', label: '加入购物单' },
       { v: 'hide', label: '隐藏', danger: true }
+    ];
+    case 'shop': return [
+      { v: 'bought', label: '标为已购' },
+      { v: 'unbought', label: '标为未购' },
+      { v: 'kind', label: '改获取方式' },
+      { v: 'currency', label: '改币种' },
+      { v: 'unshop', label: '移出购物单', danger: true }
     ];
     case 'tier2': return [
       { v: 'beaten', label: '标为 Beaten' },
@@ -8337,6 +8647,7 @@ function selBulkActions() {
       { v: 'sated', label: '标为 Sated' },
       { v: 'to1', label: '移到 Company' },
       { v: 'plan', label: '加入计划' },
+      { v: 'shop', label: '加入购物单' },
       { v: 'hide', label: '隐藏', danger: true }
     ];
     case 'tier3': return [
@@ -8346,6 +8657,7 @@ function selBulkActions() {
       { v: 'to2', label: '移到 Playing' },
       { v: 'to1', label: '移到 Company' },
       { v: 'plan', label: '加入计划' },
+      { v: 'shop', label: '加入购物单' },
       { v: 'hide', label: '隐藏', danger: true }
     ];
     case 'finished': return [
@@ -8463,6 +8775,31 @@ function selApply(action, label, ids) {
         else if (action === 'close') { if (!e.dated && planIsOpen(e)) e.to = w.to; }
       });
     }
+  } else if (scope === 'shop') {
+    if (action === 'bought') shopMarkBought(ids, true);
+    else if (action === 'unbought') shopMarkBought(ids, false);
+    else if (action === 'unshop') shopRemove(ids);
+    else if (action === 'kind' || action === 'currency') {
+      // a batch that needs a value asks once, then applies to all of them
+      const opts = action === 'kind'
+        ? shopKinds().map(k => ({ value: k.id, label: k.label }))
+        : SHOP_CURRENCIES.map(c => ({ value: c.code, label: c.sym + ' ' + c.code }));
+      const anchor = document.getElementById('sel-more') || document.querySelector('.sel-act');
+      showPicker(anchor, opts, '', v => {
+        ids.forEach(id => {
+          const h = findGameAnywhere(id);
+          if (!h || !h.game.buy) return;
+          if (action === 'kind') h.game.buy.kind = v; else h.game.buy.currency = v;
+        });
+        if (action === 'currency') state.config.lastCurrency = v;
+        _selMode = null; _selIds = new Set(); _selAnchor = null;
+        scheduleSave(); render();
+        showUndoToast(label + ' · ' + ids.length + ' 项', snap);
+      });
+      return;   // the picker finishes the batch
+    }
+  } else if (action === 'shop') {
+    shopAdd(ids);
   } else if (action === 'plan') {
     // Cross-feature: straight from a shelf into the plan, as thoughts starting today.
     const w = planWindow();
@@ -8509,11 +8846,469 @@ function selMountEntry(sectionId, scope) {
 }
 
 function selMountAll() {
+  if (shopOpen) { selRenderBar(); return; }
   selMountEntry('section-tier1', 'tier1');
   selMountEntry('section-tier2', 'tier2');
   selMountEntry('section-tier3', 'tier3');
   selMountEntry('section-finished', 'finished');
   selRenderBar();
+}
+
+
+// ============================================================
+// 购物单 (shopping list)
+//
+// game.buy is ABSENT for almost every game. Absent means "never mentioned",
+// which is different from "not wanted" — the app knows what Yiyu told it, not
+// what she owns. Migration sanitises an existing record; it never creates one.
+//
+// Sections are derived from dates every render (unreleased → buyable → bought),
+// so a release day arriving moves a row on its own. There is no status to keep
+// in step with the calendar.
+// ============================================================
+
+let shopOpen = false;
+
+const SHOP_CURRENCIES = [
+  { code: 'CNY', sym: '¥' },
+  { code: 'EUR', sym: '€' },
+  { code: 'HKD', sym: 'HK$' }
+];
+function shopSym(code) { const c = SHOP_CURRENCIES.find(x => x.code === code); return c ? c.sym : (code || ''); }
+
+// Acquisition kinds are editable, and rows store the ID. Renaming a kind
+// re-labels every historical row without touching a byte of their data; that is
+// the whole reason this is an id and not a string.
+const SHOP_DEFAULT_KINDS = [
+  { id: 'k_buy',  label: '购买' },
+  { id: 'k_sub',  label: '订阅内含' },
+  { id: 'k_free', label: '免费领取' },
+  { id: 'k_gift', label: '赠送' }
+];
+function shopKinds() {
+  if (!Array.isArray(state.config.acqKinds)) state.config.acqKinds = SHOP_DEFAULT_KINDS.map(k => ({ ...k }));
+  return state.config.acqKinds;
+}
+function shopKindLabel(id) {
+  const k = shopKinds().find(x => x.id === id);
+  return k ? k.label : '已删除的分类';
+}
+
+// ---------- data ----------
+
+function shopAddOne(gameId) {
+  const snap = snapshotState();
+  const hit = findGameAnywhere(gameId);
+  if (!hit) return;
+  if (hit.game.buy) { showToast({ message: '已经在购物单里了', actionLabel: '' }); return; }
+  shopAdd([gameId]);
+  scheduleSave(); smoothRender();
+  showUndoToast('加入购物单 · ' + parsePlatform(hit.game.name).base, snap);
+}
+
+function shopEntries() {
+  const out = [];
+  ['tier1', 'tier2', 'tier3'].forEach(t => (state.config[t] || []).forEach(g => {
+    if (g.buy && typeof g.buy === 'object') out.push(g);
+  }));
+  return out;
+}
+function shopIsBought(g) { return !!(g.buy && g.buy.boughtAt); }
+function shopIsUnreleased(g) { return !!(g.buy && g.buy.release && g.buy.release > todayKey()); }
+// Released today or earlier and still unbought: the only thing the page nags about.
+function shopJustBuyable(g) { return !!(g.buy && g.buy.release && g.buy.release <= todayKey() && !shopIsBought(g)); }
+
+function shopRank(g) { return shopIsBought(g) ? 2 : (shopIsUnreleased(g) ? 1 : 0); }
+
+function shopAdd(gameIds) {
+  const today = todayKey();
+  const cur = state.config.lastCurrency || 'CNY';
+  let n = 0;
+  gameIds.forEach(id => {
+    const hit = findGameAnywhere(id);
+    if (!hit || (hit.game.buy && typeof hit.game.buy === 'object')) return;   // already on the list
+    hit.game.buy = { addedAt: today, boughtAt: null, kind: 'k_buy', target: null, paid: null, currency: cur, release: null, note: '' };
+    n++;
+  });
+  return n;
+}
+function shopRemove(gameIds) {
+  gameIds.forEach(id => {
+    const hit = findGameAnywhere(id);
+    if (hit) delete hit.game.buy;
+  });
+}
+function shopMarkBought(gameIds, on) {
+  const today = todayKey();
+  gameIds.forEach(id => {
+    const hit = findGameAnywhere(id);
+    if (!hit || !hit.game.buy) return;
+    hit.game.buy.boughtAt = on ? (hit.game.buy.boughtAt || today) : null;
+  });
+}
+
+// Totals never cross currencies — no rates, because a rate is a thing to
+// maintain and to be wrong about. One line per currency instead.
+function shopTotals(games, field) {
+  const by = new Map();
+  games.forEach(g => {
+    const v = g.buy && g.buy[field];
+    if (typeof v !== 'number' || !isFinite(v)) return;
+    const c = (g.buy.currency) || 'CNY';
+    by.set(c, (by.get(c) || 0) + v);
+  });
+  return Array.from(by.entries()).map(([c, sum]) => shopSym(c) + sum.toFixed(2).replace(/\.00$/, ''));
+}
+
+// ---------- sorting ----------
+
+const SHOP_SORT_KEYS = [
+  { key: 'release', label: '发售日' },
+  { key: 'added',   label: '加入时间' },
+  { key: 'target',  label: '目标价' }
+];
+function shopCompare(a, b, key) {
+  if (key === 'release') {
+    // A blank release date sorts LAST, never first: an unknown date is not "soon".
+    const ra = a.buy.release || '', rb = b.buy.release || '';
+    if (!ra && !rb) return 0;
+    if (!ra) return 1;
+    if (!rb) return -1;
+    return ra < rb ? -1 : ra > rb ? 1 : 0;
+  }
+  if (key === 'added') { const x = a.buy.addedAt || '', y = b.buy.addedAt || ''; return x < y ? 1 : x > y ? -1 : 0; }
+  if (key === 'target') {
+    const ta = typeof a.buy.target === 'number' ? a.buy.target : Infinity;
+    const tb = typeof b.buy.target === 'number' ? b.buy.target : Infinity;
+    return ta - tb;
+  }
+  return compareChain(a, b, [{ key, dir: 'asc' }]);
+}
+// The order lives in the tier arrays, same as everywhere else — a sort rewrites
+// them in place, so hand-dragging afterwards is just the array again.
+function shopSortMenu(anchor) {
+  const st = sortStateOf('shopSort');
+  const defs = SHOP_SORT_KEYS.concat(SORT_KEYS.filter(k => ['pinyin', 'platform'].indexOf(k.key) !== -1));
+  const items = defs.map(k => ({ value: k.key, label: k.label }));
+  items.push({ value: '__clear', label: '× 清除排序标记', clear: true });
+  showPicker(anchor, items, st.key || '', key => {
+    if (key === '__clear') { st.key = null; st.dirty = false; scheduleSave(); smoothRender(); return; }
+    const sorted = shopEntries().slice().sort((a, b) => shopCompare(a, b, key));
+    shopApplyOrder(sorted.map(g => g.id));
+    st.key = key; st.dirty = false;
+    scheduleSave(); smoothRender();
+  });
+}
+// Write an order back into the tier arrays without moving anything between them.
+function shopApplyOrder(idsInOrder) {
+  const rank = new Map(idsInOrder.map((id, i) => [id, i]));
+  ['tier1', 'tier2', 'tier3'].forEach(t => {
+    const arr = state.config[t];
+    const idx = [], picked = [];
+    arr.forEach((g, i) => { if (rank.has(g.id)) { idx.push(i); picked.push(g); } });
+    picked.sort((a, b) => rank.get(a.id) - rank.get(b.id));
+    idx.forEach((at, i) => { arr[at] = picked[i]; });
+  });
+}
+
+// ---------- page ----------
+
+function openShop() { shopOpen = true; planOpen = false; reviewOpen = false; journeyOpen = false; render(); }
+function closeShop() { shopOpen = false; render(); }
+
+function renderShop() {
+  const root = document.getElementById('root');
+  const all = shopEntries();
+  const open = all.filter(g => !shopIsBought(g));
+  const nowBuyable = open.filter(g => shopJustBuyable(g));
+  root.innerHTML = `
+    <header class="header narrow">
+      <div class="review-entry-row"><button class="review-entry" id="shop-back">← 返回</button></div>
+    </header>
+    <section class="section narrow">
+      <div class="pl-head">
+        <div class="pl-title">购物单</div>
+        <div class="pl-nav"><span class="sh-count" id="sh-count"></span></div>
+      </div>
+      <div class="pl-switches">
+        <div class="pl-tools">
+          <div class="pl-tool" id="sh-kinds">⌗ 获取方式</div>
+          <div class="pl-tool" id="sh-sort"></div>
+        </div>
+      </div>
+      <div id="sh-alert"></div>
+      <div id="sh-body"></div>
+    </section>`;
+  document.getElementById('shop-back').onclick = closeShop;
+  document.getElementById('sh-sort').textContent = sortLabelOf('shopSort',
+    SHOP_SORT_KEYS.concat(SORT_KEYS.filter(k => ['pinyin', 'platform'].indexOf(k.key) !== -1)));
+  document.getElementById('sh-sort').onclick = ev => shopSortMenu(ev.currentTarget);
+  document.getElementById('sh-kinds').onclick = ev => shopKindsDialog();
+  const targets = shopTotals(open, 'target');
+  document.getElementById('sh-count').textContent =
+    open.length ? `${open.length} 项待入手${targets.length ? ' · 目标 ' + targets.join(' / ') : ''}` : '';
+
+  if (nowBuyable.length) {
+    const a = document.createElement('div');
+    a.className = 'sh-alert';
+    a.textContent = '可以买了：' + nowBuyable.map(g => parsePlatform(g.name).base).join('、');
+    document.getElementById('sh-alert').appendChild(a);
+  }
+
+  const body = document.getElementById('sh-body');
+  if (!all.length) {
+    const e = document.createElement('div');
+    e.className = 'sh-empty';
+    e.textContent = '购物单是空的。在 Roster / Playing / Company 的卡片菜单里「加入购物单」。';
+    body.appendChild(e);
+    selRenderBar();
+    return;
+  }
+  const groups = [
+    { rank: 0, label: '可以买了' },
+    { rank: 1, label: '未发售' },
+    { rank: 2, label: '已购', fold: true }
+  ];
+  groups.forEach(gr => {
+    const rows = all.filter(g => shopRank(g) === gr.rank);
+    if (!rows.length) return;
+    const sec = document.createElement('div');
+    sec.className = 'sh-group';
+    const head = document.createElement('div');
+    head.className = 'sh-group-head';
+    head.textContent = gr.label + ' · ' + rows.length;
+    if (gr.fold) {
+      const totals = shopTotals(rows, 'paid');
+      if (totals.length) {
+        const t = document.createElement('span');
+        t.className = 'sh-group-total';
+        t.textContent = '共 ' + totals.join(' / ');
+        head.appendChild(t);
+      }
+    }
+    sec.appendChild(head);
+    const list = document.createElement('div');
+    list.className = 'sh-list';
+    list.id = gr.rank === 2 ? 'sh-list-bought' : 'sh-list-' + gr.rank;
+    rows.forEach(g => list.appendChild(buildShopRow(g)));
+    sec.appendChild(list);
+    body.appendChild(sec);
+  });
+  selRenderBar();
+}
+
+function buildShopRow(g) {
+  const b = g.buy;
+  const bought = shopIsBought(g);
+  const row = document.createElement('div');
+  row.className = 'sh-row' + (bought ? ' bought' : '');
+  row.dataset.gameId = g.id;
+
+  const tick = document.createElement('div');
+  tick.className = 'sh-tick' + (bought ? ' on' : '');
+  tick.title = bought ? '标为未购' : '标为已购';
+  tick.onclick = ev => { ev.stopPropagation(); shopToggleBought(g.id); };
+  row.appendChild(tick);
+
+  const main = document.createElement('div');
+  main.className = 'sh-main';
+  const name = document.createElement('div');
+  name.className = 'sh-name';
+  name.textContent = parsePlatform(g.name).base;
+  const chip = planPlatChip(g.name);
+  if (chip) name.appendChild(chip);
+  main.appendChild(name);
+
+  const meta = document.createElement('div');
+  meta.className = 'sh-meta';
+  const bits = [];
+  bits.push(shopKindLabel(b.kind));
+  if (b.release) bits.push((shopIsUnreleased(g) ? '发售 ' : '已发售 ') + b.release);
+  if (!bought && typeof b.target === 'number') bits.push('目标 ' + shopSym(b.currency) + b.target);
+  if (bought) {
+    bits.push('购于 ' + b.boughtAt);
+    if (typeof b.paid === 'number') bits.push('实付 ' + shopSym(b.currency) + b.paid);
+  }
+  if (b.note) bits.push(b.note);
+  meta.textContent = bits.join(' · ');
+  main.appendChild(meta);
+  row.appendChild(main);
+
+  const menu = document.createElement('div');
+  menu.className = 'sh-menu';
+  menu.textContent = '⋯';
+  menu.onclick = ev => { ev.stopPropagation(); shopRowMenu(ev.currentTarget, g); };
+  row.appendChild(menu);
+
+  if (selActive('shop')) selDecorate(row, g.id);
+  return row;
+}
+
+function shopToggleBought(gameId) {
+  const hit = findGameAnywhere(gameId);
+  if (!hit || !hit.game.buy) return;
+  const snap = snapshotState();
+  const wasBought = shopIsBought(hit.game);
+  shopMarkBought([gameId], !wasBought);
+  scheduleSave(); smoothRender();
+  if (wasBought) { showUndoToast('标为未购 · ' + parsePlatform(hit.game.name).base, snap); return; }
+  // Ask for what it cost, skippable — a price nobody typed is a blank, not a zero.
+  shopPriceDialog(gameId, 'paid', '实付多少?', snap);
+}
+
+function shopPriceDialog(gameId, field, title, snap) {
+  const hit = findGameAnywhere(gameId);
+  if (!hit || !hit.game.buy) return;
+  const b = hit.game.buy;
+  const cur = b.currency || state.config.lastCurrency || 'CNY';
+  const opts = SHOP_CURRENCIES.map(c =>
+    `<option value="${c.code}"${c.code === cur ? ' selected' : ''}>${c.sym} ${c.code}</option>`).join('');
+  showDialog({
+    title,
+    message: `<div class="sh-price">
+        <select id="sh-cur">${opts}</select>
+        <input type="number" step="0.01" inputmode="decimal" id="sh-amt" placeholder="留空表示不记"
+               value="${typeof b[field] === 'number' ? b[field] : ''}">
+      </div>
+      <div class="sh-price-note">不填也没关系 · 订阅或免费领取通常没有单价</div>`,
+    confirmLabel: '保存',
+    cancelLabel: '跳过',
+    onConfirm: () => {
+      const amt = document.getElementById('sh-amt');
+      const sel = document.getElementById('sh-cur');
+      if (!amt || !sel) return;
+      const g2 = findGameAnywhere(gameId);
+      if (!g2 || !g2.game.buy) return;
+      const raw = amt.value.trim();
+      const n = raw === '' ? null : Number(raw);
+      g2.game.buy[field] = (n === null || !isFinite(n)) ? null : n;
+      g2.game.buy.currency = sel.value;
+      state.config.lastCurrency = sel.value;      // the next entry starts here
+      scheduleSave(); smoothRender();
+    },
+    onCancel: snap ? null : null
+  });
+}
+
+function shopRowMenu(anchor, g) {
+  const bought = shopIsBought(g);
+  const items = [
+    { value: 'kind', label: '获取方式 · ' + shopKindLabel(g.buy.kind) },
+    { value: 'release', label: g.buy.release ? '改发售日 · ' + g.buy.release : '设发售日' },
+    { value: bought ? 'paid' : 'target', label: bought ? '改实付' : '设目标价' },
+    { value: 'note', label: g.buy.note ? '改备注' : '加备注' },
+    { value: 'remove', label: '× 移出购物单', clear: true }
+  ];
+  showPicker(anchor, items, '', v => {
+    if (v === 'kind') {
+      showPicker(anchor, shopKinds().map(k => ({ value: k.id, label: k.label })), g.buy.kind, id => {
+        const h = findGameAnywhere(g.id); if (!h || !h.game.buy) return;
+        h.game.buy.kind = id; scheduleSave(); smoothRender();
+      });
+    } else if (v === 'release') {
+      shopDateDialog(g.id);
+    } else if (v === 'paid' || v === 'target') {
+      shopPriceDialog(g.id, v, v === 'paid' ? '实付多少?' : '等到多少钱?', null);
+    } else if (v === 'note') {
+      shopNoteDialog(g.id);
+    } else if (v === 'remove') {
+      const snap = snapshotState();
+      shopRemove([g.id]);
+      scheduleSave(); smoothRender();
+      showUndoToast('移出购物单 · ' + parsePlatform(g.name).base, snap);
+    }
+  });
+}
+
+function shopDateDialog(gameId) {
+  const hit = findGameAnywhere(gameId);
+  if (!hit || !hit.game.buy) return;
+  showDialog({
+    title: '发售日 · ' + parsePlatform(hit.game.name).base,
+    message: `<div class="sh-price"><input type="date" id="sh-rel" value="${hit.game.buy.release || ''}"></div>
+      <div class="sh-price-note">留空表示不知道 · 未发售的会自动沉到下面一组，到日子自己浮上来</div>`,
+    confirmLabel: '保存', cancelLabel: '取消',
+    onConfirm: () => {
+      const el = document.getElementById('sh-rel');
+      const h = findGameAnywhere(gameId);
+      if (!el || !h || !h.game.buy) return;
+      const v = el.value.trim();
+      h.game.buy.release = /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+      scheduleSave(); smoothRender();
+    }
+  });
+}
+function shopNoteDialog(gameId) {
+  const hit = findGameAnywhere(gameId);
+  if (!hit || !hit.game.buy) return;
+  showDialog({
+    title: '备注 · ' + parsePlatform(hit.game.name).base,
+    message: `<div class="sh-price"><input type="text" id="sh-note" maxlength="60" placeholder="等打折 / 十月开预购"
+        value="${escapeHtml(hit.game.buy.note || '')}"></div>`,
+    confirmLabel: '保存', cancelLabel: '取消',
+    onConfirm: () => {
+      const el = document.getElementById('sh-note');
+      const h = findGameAnywhere(gameId);
+      if (!el || !h || !h.game.buy) return;
+      h.game.buy.note = el.value.trim().slice(0, 60);
+      scheduleSave(); smoothRender();
+    }
+  });
+}
+
+// Kinds are editable; rows store the id, so renaming re-labels history without
+// touching it. Deleting one that rows still use is reported, never silent — the
+// orphaned rows read 已删除的分类 rather than vanishing.
+function shopKindsDialog() {
+  const rows = () => shopKinds().map(k => {
+    const n = shopEntries().filter(g => g.buy.kind === k.id).length;
+    return `<div class="sh-kind-row" data-kind="${k.id}">
+        <input class="sh-kind-name" data-kind="${k.id}" value="${escapeHtml(k.label)}" maxlength="12">
+        <span class="sh-kind-n">${n} 项</span>
+        <span class="sh-kind-del" data-kind="${k.id}">×</span>
+      </div>`;
+  }).join('');
+  showDialog({
+    title: '获取方式',
+    message: `<div class="sh-kinds">${rows()}</div>
+      <div class="sh-kind-add"><input id="sh-kind-new" placeholder="新增一种…" maxlength="12"></div>
+      <div class="sh-price-note">改名不会影响已有条目 · 删除时会告诉你有多少项在用</div>`,
+    confirmLabel: '保存', cancelLabel: '取消',
+    onConfirm: () => {
+      document.querySelectorAll('.sh-kind-name').forEach(inp => {
+        const k = shopKinds().find(x => x.id === inp.dataset.kind);
+        const v = inp.value.trim();
+        if (k && v) k.label = v.slice(0, 12);      // rename only; the id never moves
+      });
+      const nu = document.getElementById('sh-kind-new');
+      if (nu && nu.value.trim()) {
+        shopKinds().push({ id: 'k_' + Date.now().toString(36), label: nu.value.trim().slice(0, 12) });
+      }
+      scheduleSave(); smoothRender();
+    }
+  });
+  // deletes act immediately inside the dialog, with their own confirmation
+  setTimeout(() => {
+    document.querySelectorAll('.sh-kind-del').forEach(el => {
+      el.onclick = () => {
+        const id = el.dataset.kind;
+        const n = shopEntries().filter(g => g.buy.kind === id).length;
+        const k = shopKinds().find(x => x.id === id);
+        if (!k) return;
+        const go = () => {
+          state.config.acqKinds = shopKinds().filter(x => x.id !== id);
+          scheduleSave();
+          el.closest('.sh-kind-row').remove();
+        };
+        if (n) showDialog({
+          title: `删除「${k.label}」?`,
+          message: `有 ${n} 项在用它。删除后那些条目会显示「已删除的分类」，数据不会丢。`,
+          confirmLabel: '删除', cancelLabel: '取消', danger: true, onConfirm: go
+        });
+        else go();
+      };
+    });
+  }, 0);
 }
 
 </script>
