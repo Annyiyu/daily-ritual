@@ -1426,11 +1426,13 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
   color: var(--text-faint); margin: 22px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--line);
 }
 .bd-year-head:first-child { margin-top: 0; }
-:root { --bd-card-w: 208px; }
-@media (max-width: 900px) { :root { --bd-card-w: 172px; } }
+:root { --bd-card-w: 172px; }
 @media (max-width: 600px) { :root { --bd-card-w: 140px; } }
 /* One width for every card: a long title should not get an ellipsis while a
-   short one wastes the row. 208px fits ~12 CJK characters plus a platform chip. */
+   short one wastes the row. 172px is the widest width that still fits four
+   cards across the 758px surface under BOTH the free placer and the ⊞对齐
+   grid — and four columns line up one-per-旬 with the week separators. The
+   full name is always on the card's tooltip, so an ellipsis costs nothing. */
 .bd-card {
   position: absolute; display: flex; align-items: center; gap: 6px;
   width: var(--bd-card-w); box-sizing: border-box;
@@ -9653,10 +9655,11 @@ function boardRemoveMonth(key) {
 // deliberate over-estimates: leaving a gap is better than landing on top of
 // something.
 const BOARD_ROW_H = 42;
-const BOARD_NOTE_W = 190;
 const BOARD_NOTE_H = 58;
 function boardBox(it) {
-  if (it.kind === 'note') return { w: BOARD_NOTE_W, h: BOARD_NOTE_H };
+  // .bd-note is `width: var(--bd-card-w)` in CSS — same width as a card, so
+  // the placer has to read the same variable rather than keep its own number.
+  if (it.kind === 'note') return { w: boardCardW(), h: BOARD_NOTE_H };
   // a card with a scribble is taller; ignoring that would let the next card
   // land on the scribble
   return { w: boardCardW(), h: it && it.text ? 34 + 30 : 34 };
@@ -10141,20 +10144,48 @@ function boardAlignAll() {
       if (r) { r.items.push(it); r.y = Math.min(r.y, it.y || 0); }
       else rows.push({ y: it.y || 0, items: [it] });
     });
+    // Nearest free column to the one a card actually wants. Prefer moving
+    // right, then left; -1 means the row is full and the card has to spill.
+    const seatNear = (want, taken) => {
+      if (!taken.has(want)) return want;
+      for (let d = 1; d < cols; d++) {
+        if (want + d < cols && !taken.has(want + d)) return want + d;
+        if (want - d >= 0 && !taken.has(want - d)) return want - d;
+      }
+      return -1;
+    };
+
     let y = BOARD_PAD;
     rows.forEach(r => {
-      r.items.sort((a, b) => (a.x || 0) - (b.x || 0));
-      let col = 0, rowH = 0;
-      r.items.forEach(it => {
-        if (col >= cols) { col = 0; y += rowH + gapY; rowH = 0; }
-        const nx = BOARD_PAD + col * colW;
-        const b = boardBox(it);
-        if (it.x !== nx || it.y !== y) touched++;
-        it.x = nx; it.y = y;
-        rowH = Math.max(rowH, b.h);
-        col++;
-      });
-      y += rowH + gapY;
+      // First pass keeps each card in the column it is already nearest to.
+      // Anything that spills has lost its column intent, so later passes pack
+      // from the left.
+      let pending = r.items.slice().sort((a, b) => (a.x || 0) - (b.x || 0));
+      let keepColumns = true;
+      while (pending.length) {
+        const taken = new Set(), seats = new Map(), spill = [];
+        pending.forEach(it => {
+          const want = keepColumns
+            ? Math.max(0, Math.min(cols - 1, Math.round(((it.x || 0) - BOARD_PAD) / colW)))
+            : 0;
+          const seat = seatNear(want, taken);
+          if (seat < 0) { spill.push(it); return; }
+          taken.add(seat);
+          seats.set(it, seat);
+        });
+        let rowH = 0;
+        pending.forEach(it => {
+          if (!seats.has(it)) return;
+          const nx = BOARD_PAD + seats.get(it) * colW;
+          const b = boardBox(it);
+          if (it.x !== nx || it.y !== y) touched++;
+          it.x = nx; it.y = y;
+          rowH = Math.max(rowH, b.h);
+        });
+        y += rowH + gapY;
+        pending = spill;
+        keepColumns = false;
+      }
     });
   });
   if (!touched) { showToast({ message: '已经是对齐的', actionLabel: '' }); return; }
