@@ -1409,24 +1409,55 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .bd-act.danger:hover { color: #c0563a; }
 .bd-surface {
   position: relative; border: 1px dashed var(--line-strong); border-radius: 12px;
-  background: rgba(42, 36, 28, 0.012); overflow: hidden;
+  background: rgba(42, 36, 28, 0.012); overflow: hidden; cursor: copy;
+  transition: background 0.14s, border-color 0.14s;
 }
+.bd-surface.drop { background: var(--accent-faint); border-color: var(--accent); border-style: solid; }
+.bd-surface.weeks { padding-top: 18px; }
+.bd-wsep { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); pointer-events: none; }
+.bd-wlabel {
+  position: absolute; top: 3px; text-align: center; pointer-events: none;
+  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-faint); opacity: 0.75;
+}
+.bd-surface.weeks .bd-card, .bd-surface.weeks .bd-cardwrap, .bd-surface.weeks .bd-note { margin-top: 18px; }
+.bd-year-head {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--text-faint); margin: 22px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--line);
+}
+.bd-year-head:first-child { margin-top: 0; }
+:root { --bd-card-w: 208px; }
+@media (max-width: 900px) { :root { --bd-card-w: 172px; } }
+@media (max-width: 600px) { :root { --bd-card-w: 140px; } }
+/* One width for every card: a long title should not get an ellipsis while a
+   short one wastes the row. 208px fits ~12 CJK characters plus a platform chip. */
 .bd-card {
-  position: absolute; display: inline-flex; align-items: center; gap: 6px;
-  max-width: 200px; padding: 7px 11px; border-radius: 999px;
+  position: absolute; display: flex; align-items: center; gap: 6px;
+  width: var(--bd-card-w); box-sizing: border-box;
+  padding: 7px 12px; border-radius: 999px;
   font-size: 12px; cursor: grab; user-select: none; touch-action: none;
   transition: box-shadow 0.14s;
 }
 .bd-card.dragging { cursor: grabbing; box-shadow: 0 6px 18px rgba(42, 36, 28, 0.18); }
-.bd-cname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bd-cname { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bd-card .rc-platform { color: inherit; opacity: 0.6; flex: 0 0 auto; }
 .bd-game.tomb { background: rgba(42, 36, 28, 0.05); color: var(--text-faint); font-style: italic; }
 .bd-note {
   border-radius: 6px; background: rgba(226, 200, 120, 0.22); color: var(--text-muted);
   border: 1px solid rgba(190, 160, 80, 0.28); white-space: pre-wrap; line-height: 1.5;
-  max-width: 190px; display: block; padding: 8px 10px;
+  width: var(--bd-card-w); box-sizing: border-box; display: block; padding: 8px 10px; cursor: grab;
 }
 .bd-note.empty { color: var(--text-faint); font-style: italic; }
+.bd-cardwrap { position: absolute; width: var(--bd-card-w); }
+.bd-cardwrap .bd-card { position: relative; left: 0; top: 0; }
+.bd-scribble {
+  margin: 4px 0 0 10px; padding-left: 8px; border-left: 2px solid var(--line-strong);
+  font-size: 11px; line-height: 1.55; color: var(--text-faint);
+  white-space: pre-wrap; word-break: break-word; cursor: text;
+}
+.bd-scribble:hover { color: var(--text-muted); }
+.bd-card.has-note { box-shadow: inset 0 0 0 1px rgba(42, 36, 28, 0.07); }
+.bd-note-hint { font-size: 10px; }
 .bd-addmonth {
   display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 999px;
   border: 1px dashed var(--line-strong); font-family: var(--label-font); font-size: 10px;
@@ -2043,7 +2074,11 @@ const DEFAULT_CONFIG = {
 };
 
 function makeDefault() {
-  return { config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)), history: {} };
+  // Through migrate(), not around it: a first-run state has to arrive in the
+  // same shape a loaded one does, or the seeded lists (acqKinds, tagList,
+  // nodeTypes) and the per-game fields are simply missing on a new account.
+  // migrate() is idempotent, so this costs nothing.
+  return migrate({ config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)), history: {} });
 }
 
 // ============================================================
@@ -2235,7 +2270,12 @@ function migrate(state) {
           id: it.id,
           kind: it.kind === 'note' ? 'note' : 'game',
           gameId: it.kind === 'note' ? undefined : String(it.gameId || ''),
-          text: it.kind === 'note' ? String(it.text || '').slice(0, 200) : undefined,
+          // Both kinds carry text now: a sticky IS its text, a game card may
+          // have a scribble hanging off it. Board text never touches the plan
+          // entry's desc — this surface is a draft on purpose.
+          // only a real string is text; a number that wandered in is junk, not
+          // content to be stringified into the board
+          text: (typeof it.text === 'string' ? it.text : '').slice(0, 200),
           x: Number.isFinite(it.x) ? Math.max(0, Math.round(it.x)) : 8,
           y: Number.isFinite(it.y) ? Math.max(0, Math.round(it.y)) : 8
         }))
@@ -2690,9 +2730,6 @@ function updateStreak(rowEl, gameId) {
 // ============================================================
 // Status cycling / picker
 // ============================================================
-const TIER2_COMPLETION_SEQ = ['', 'beaten', 'completed', 'sated', 'abandoned'];
-const TIER3_STATUS_SEQ = ['considering', 'up_next', 'backlog'];
-
 function setTier2Completion(gameId, value) {
   const g = state.config.tier2.find(x => x.id === gameId);
   if (!g) return;
@@ -3228,7 +3265,7 @@ function commitRosterReorder(gameId, insertBeforeId, grouped) {
 // ============================================================
 // Computed
 // ============================================================
-function getStreak(gameId, currentTierKey) {
+function getStreak(gameId) {
   // Find the game across all tier arrays
   let game = null;
   ['tier1', 'tier2', 'tier3'].forEach(t => {
@@ -3241,20 +3278,18 @@ function getStreak(gameId, currentTierKey) {
 
   const today = new Date(); today.setHours(0, 0, 0, 0);
   let streak = 0;
-  for (let i = 0; i < 365; i++) {
+  // No display cap: the ceiling is however many days she actually strung
+  // together. The loop already stops at the first day with no record, so the
+  // 20000 below is a runaway guard (~55 years), never a limit on the count.
+  for (let i = 0; i < 20000; i++) {
     const d = new Date(today); d.setDate(today.getDate() - i);
     const key = dateKey(d);
     // 一天是否计入连续天数，看的是「这天在任意档碰过这个游戏」——Daily 主勾 / Playing 打卡 /
     // Roster played 随手标记 三者任一即算，而非这天历史上在哪一档。原因：卡片永远按游戏【当前】
     // 所在档渲染，所以无论你今天打卡还是回填过去某天，勾选都写进【当前档】的桶里。三档全收，
     // 跨档来回挪 / 回填过去日期都不会断（用户想法常变，移到待玩区随手摸一下也算连续）。
-    const day = state.history[key];
-    let checked = false;
-    if (day) {
-      checked = (day.tier1 && day.tier1[gameId] && day.tier1[gameId].checkedIn === true)
-             || (day.tier2 && day.tier2[gameId] === true)
-             || (day.tier3 && day.tier3[gameId] === true);
-    }
+    // One canonical read of "played on this day" — see isCheckedInOn().
+    const checked = isCheckedInOn(state.history[key], gameId);
     if (checked) streak++;
     else if (i === 0) continue;
     else break;
@@ -3839,7 +3874,7 @@ function renderTier1() {
   renderColumnSwitch('tier1');
   visible.forEach(game => {
     const gd = day.tier1[game.id] || { checkedIn: false, subtasks: {}, extra: false };
-    const streak = getStreak(game.id, 'tier1');
+    const streak = getStreak(game.id);
     const visibleSubs = game.subtasks.filter(st => !st.hidden);
     const hiddenSubsCount = game.subtasks.length - visibleSubs.length;
     const hasSubtasks = visibleSubs.length > 0;
@@ -4053,7 +4088,7 @@ function renderTier2() {
 // that makes Playing a "ritual" tier.
 function buildPlayingCard(game, day) {
   const checked = day.tier2[game.id] === true;
-  const streak = getStreak(game.id, 'tier2');
+  const streak = getStreak(game.id);
   const parsed = parsePlatform(game.name);
   const completion = game.completion || '';
 
@@ -4226,7 +4261,7 @@ function renderTier3() {
     const games = visible;
     const grid = document.createElement('div');
     grid.className = 'roster-grid ungrouped';
-    games.forEach(g => grid.appendChild(buildRosterCard(g, prefs, g.status || 'considering')));
+    games.forEach(g => grid.appendChild(buildRosterCard(g, g.status || 'considering')));
     container.appendChild(grid);
   }
 
@@ -4297,13 +4332,13 @@ function buildRosterGroup(status, games, prefs) {
   const grid = document.createElement('div');
   grid.className = 'roster-grid';
   if (folded) grid.style.display = 'none';
-  games.forEach(g => grid.appendChild(buildRosterCard(g, prefs, status)));
+  games.forEach(g => grid.appendChild(buildRosterCard(g, status)));
   wrap.appendChild(grid);
 
   return wrap;
 }
 
-function buildRosterCard(game, prefs, status) {
+function buildRosterCard(game, status) {
   const day = getDay(viewDate);
   const playedToday = day.tier3[game.id] === true;
   const parsed = parsePlatform(game.name);
@@ -4425,7 +4460,7 @@ function buildRosterCard(game, prefs, status) {
   footLeft.appendChild(played);
   if (status === 'up_next' || status === 'considering' || status === 'backlog') footLeft.appendChild(buildDeepStar(game, day));
 
-  const rstreak = getStreak(game.id, 'tier3');
+  const rstreak = getStreak(game.id);
   const streakEl = document.createElement('div');
   streakEl.className = 'streak rc-streak' + (rstreak > 0 ? ' active' : '');
   streakEl.textContent = rstreak > 0 ? rstreak + 'd' : '·';
@@ -4945,7 +4980,15 @@ function canPageNext() {
 function pageReview(dir) {
   if (dir > 0 && !canPageNext()) return;
   const a = parseDateKey(reviewAnchor);
-  if (reviewSpan === 'month') a.setMonth(a.getMonth() + dir);
+  if (reviewSpan === 'month') {
+    // setMonth alone overflows: Aug 31 stepped back twice lands on Jul 1, so
+    // June is skipped and one click looks dead. Pin to the 1st, step, then
+    // clamp the day to the target month's length.
+    const day = a.getDate();
+    a.setDate(1);
+    a.setMonth(a.getMonth() + dir);
+    a.setDate(Math.min(day, new Date(a.getFullYear(), a.getMonth() + 1, 0).getDate()));
+  }
   else if (reviewSpan === 'year') a.setFullYear(a.getFullYear() + dir);
   else a.setDate(a.getDate() + dir * 7 * 13);
   const t = new Date(); t.setHours(0, 0, 0, 0);
@@ -5763,7 +5806,7 @@ function buildMilestoneForm(gameId) {
   return form;
 }
 
-function makePickField(labelText, current, placeholder, list, listKey, onPick, isOutcome) {
+function makePickField(labelText, current, placeholder, list, listKey, onPick) {
   const wrap = document.createElement('div');
   wrap.className = 'ms-field';
   const lab = document.createElement('label'); lab.textContent = labelText; wrap.appendChild(lab);
@@ -6212,9 +6255,7 @@ function lastCheckInDate(id) {
   const dates = Object.keys(state.history || {}).sort().reverse();
   for (const d of dates) {
     const day = state.history[d]; if (!day) continue;
-    if ((day.tier1 && day.tier1[id] && day.tier1[id].checkedIn === true)
-      || (day.tier2 && day.tier2[id] === true)
-      || (day.tier3 && day.tier3[id] === true)) return d;
+    if (isCheckedInOn(day, id)) return d;
   }
   return '';
 }
@@ -7834,7 +7875,7 @@ function renderPlanMonthGrid(host, w, laneOfShared, runsShared) {
     cal.appendChild(week);
   }
   host.appendChild(cal);
-  planWireDragCreate(cal, w);
+  planWireDragCreate(cal);
 }
 
 // ---------- resize / move an existing range ----------
@@ -8100,7 +8141,7 @@ function renderPlanYearCalendar(host, w) {
   host.appendChild(grid);
 }
 
-function planWireDragCreate(cal, w) {
+function planWireDragCreate(cal) {
   const paint = (a, b) => {
     const lo = a < b ? a : b, hi = a < b ? b : a;
     planPaintRange(lo, planAddDays(hi, 1));
@@ -9566,9 +9607,27 @@ function shopKindsDialog() {
 // ============================================================
 
 let boardOpen = false;
+let boardZoom = 'month';   // 'week' | 'month' | 'year'
+
+const BOARD_WEEKS = 4;
+// Time runs left to right, so a card's week comes from its x. Nothing is stored:
+// drag a card rightwards in the week view and it IS in a later week.
+function boardWeekOf(it, surfW) {
+  const W = Math.max(200, surfW || 720);
+  const w = Math.floor(((it.x || 0) + boardCardW() / 2) / (W / BOARD_WEEKS));
+  return Math.max(0, Math.min(BOARD_WEEKS - 1, w));
+}
+function boardWeekLabel(i) { return ['上旬', '中旬前', '中旬后', '下旬'][i] || ('第 ' + (i + 1) + ' 段'); }
 let _bDrag = null;      // { id, dx, dy, moved }
 
-const BOARD_CARD_W = 132;
+// Read from the stylesheet rather than duplicated here: the placer and the
+// rendered card must agree, and a second constant is a second thing to forget.
+function boardCardW() {
+  if (typeof document === 'undefined' || !document.documentElement) return 208;
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--bd-card-w');
+  const n = parseInt(v, 10);
+  return isFinite(n) && n > 40 ? n : 208;
+}
 const BOARD_PAD = 8;
 
 function boardData() {
@@ -9597,14 +9656,15 @@ const BOARD_ROW_H = 42;
 const BOARD_NOTE_W = 190;
 const BOARD_NOTE_H = 58;
 function boardBox(it) {
-  return it.kind === 'note'
-    ? { w: BOARD_NOTE_W, h: BOARD_NOTE_H }
-    : { w: BOARD_CARD_W, h: 34 };
+  if (it.kind === 'note') return { w: BOARD_NOTE_W, h: BOARD_NOTE_H };
+  // a card with a scribble is taller; ignoring that would let the next card
+  // land on the scribble
+  return { w: boardCardW(), h: it && it.text ? 34 + 30 : 34 };
 }
 // Walk the grid left-to-right, top-to-bottom and take the first slot that
 // overlaps nothing already placed. Only stack when the surface is full — a new
 // card must never silently bury one that is already there.
-function boardFreeSlot(items, w, h, surfaceW) {
+function boardFreeSlot(items, w, h, surfaceW, near) {
   const W = surfaceW || 720;
   const stepX = Math.max(60, Math.round(w / 2));
   const stepY = 12;
@@ -9612,10 +9672,18 @@ function boardFreeSlot(items, w, h, surfaceW) {
     const b = boardBox(it);
     return { x: it.x || 0, y: it.y || 0, w: b.w, h: b.h };
   });
+  const maxX = Math.max(W, w + BOARD_PAD * 2) - BOARD_PAD - w;
   const clear = (x, y) => !boxes.some(b =>
     x < b.x + b.w && b.x < x + w && y < b.y + b.h && b.y < y + h);
+  if (near) {
+    const nx = Math.max(BOARD_PAD, Math.min(Math.round(near.x), maxX));
+    const ny = Math.max(BOARD_PAD, Math.round(near.y));
+    if (clear(nx, ny)) return { x: nx, y: ny };
+    // taken: walk down from there before falling back to the whole surface
+    for (let y = ny; y < ny + 20 * BOARD_ROW_H; y += stepY) if (clear(nx, y)) return { x: nx, y };
+  }
   for (let y = BOARD_PAD; y < BOARD_PAD + 90 * BOARD_ROW_H; y += stepY) {
-    for (let x = BOARD_PAD; x + w <= Math.max(W, w + BOARD_PAD * 2) - BOARD_PAD; x += stepX) {
+    for (let x = BOARD_PAD; x <= maxX; x += stepX) {
       if (clear(x, y)) return { x, y };
     }
   }
@@ -9631,15 +9699,16 @@ function boardSurfaceWidth(monthKey) {
   return w > 100 ? w : 720;
 }
 
-function boardAddCards(monthKey, gameIds) {
+function boardAddCards(monthKey, gameIds, near) {
   const m = boardMonth(monthKey);
   if (!m) return 0;
   const surfW = boardSurfaceWidth(monthKey);
   let n = 0;
   gameIds.forEach(id => {
     const box = boardBox({ kind: 'game' });
-    // recomputed per card, against the ones just placed too
-    const at = boardFreeSlot(m.items, box.w, box.h, surfW);
+    // recomputed per card, against the ones just placed too; a click gives a
+    // starting point, and the scan walks on from there if it is taken
+    const at = boardFreeSlot(m.items, box.w, box.h, surfW, near);
     m.items.push({
       id: 'bi_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       kind: 'game', gameId: id, x: at.x, y: at.y
@@ -9648,16 +9717,29 @@ function boardAddCards(monthKey, gameIds) {
   });
   return n;
 }
-function boardAddNote(monthKey) {
+function boardAddNote(monthKey, near) {
   const m = boardMonth(monthKey);
   if (!m) return null;
   const box = boardBox({ kind: 'note' });
-  const at = boardFreeSlot(m.items, box.w, box.h, boardSurfaceWidth(monthKey));
+  const at = boardFreeSlot(m.items, box.w, box.h, boardSurfaceWidth(monthKey), near);
   const it = { id: 'bn_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
                kind: 'note', text: '', x: at.x, y: at.y };
   m.items.push(it);
   return it;
 }
+// Keep the first card of each game (leftmost wins, since time runs left to
+// right); notes always stay. Only affects what is DRAWN — nothing is deleted.
+function boardDedupe(items, surfW) {
+  const seen = new Set();
+  const wk = it => boardWeekOf(it, surfW);
+  return items.slice().sort((a, b) => (wk(a) - wk(b)) || ((a.x || 0) - (b.x || 0))).filter(it => {
+    if (it.kind !== 'game') return true;
+    if (seen.has(it.gameId)) return false;
+    seen.add(it.gameId);
+    return true;
+  }).sort((a, b) => items.indexOf(a) - items.indexOf(b));
+}
+
 function boardFindItem(itemId) {
   const b = boardData();
   for (const m of b.months) {
@@ -9693,11 +9775,24 @@ function renderBoard() {
         <div class="pl-title">白板</div>
         <div class="pl-nav"><span class="bd-hint">草稿 · 跟正式计划完全分开</span></div>
       </div>
+      <div class="pl-switches">
+        <div class="pl-seg">
+          <div class="pl-seg-btn" data-zoom="week">周</div>
+          <div class="pl-seg-btn" data-zoom="month">月</div>
+          <div class="pl-seg-btn" data-zoom="year">年</div>
+        </div>
+        <div class="pl-tools"><div class="pl-tool" id="bd-align">⊞ 对齐</div></div>
+      </div>
       <div id="bd-body"></div>
       <div class="bd-addmonth" id="bd-addmonth">＋ 加一个月</div>
     </section>`;
   document.getElementById('board-back').onclick = closeBoard;
   document.getElementById('bd-addmonth').onclick = ev => boardMonthPicker(ev.currentTarget);
+  root.querySelectorAll('[data-zoom]').forEach(el => {
+    el.classList.toggle('on', el.dataset.zoom === boardZoom);
+    el.onclick = () => { boardZoom = el.dataset.zoom; render(); };
+  });
+  document.getElementById('bd-align').onclick = () => boardAlignAll();
 
   const body = document.getElementById('bd-body');
   if (!b.months.length) {
@@ -9705,6 +9800,23 @@ function renderBoard() {
     e.className = 'bd-empty';
     e.textContent = '空白板。加一个月，然后把游戏拖进去随便摆。';
     body.appendChild(e);
+    return;
+  }
+  if (boardZoom === 'year') {
+    // Year = the same months, grouped under their year. Still one set of cards.
+    const byYear = new Map();
+    b.months.forEach(m => {
+      const y = m.key.slice(0, 4);
+      if (!byYear.has(y)) byYear.set(y, []);
+      byYear.get(y).push(m);
+    });
+    byYear.forEach((ms, y) => {
+      const h = document.createElement('div');
+      h.className = 'bd-year-head';
+      h.textContent = y + ' 年';
+      body.appendChild(h);
+      ms.forEach(m => body.appendChild(buildBoardMonth(m)));
+    });
     return;
   }
   b.months.forEach(m => body.appendChild(buildBoardMonth(m)));
@@ -9752,10 +9864,40 @@ function buildBoardMonth(m) {
   box.appendChild(head);
 
   const surface = document.createElement('div');
-  surface.className = 'bd-surface';
+  surface.className = 'bd-surface' + (boardZoom === 'week' ? ' weeks' : '') + (boardZoom === 'year' ? ' mini' : '');
   surface.dataset.month = m.key;
+  surface.title = '点空白处加游戏';
+  // Click anywhere empty and the cards land where you clicked — reaching for a
+  // button in the corner is the wrong gesture on a surface you're arranging by
+  // hand. Cards stop the event themselves, so this only fires on bare board.
+  surface.onclick = ev => {
+    if (ev.target !== surface) return;
+    if (_bDrag && _bDrag.moved) return;
+    const r = surface.getBoundingClientRect();
+    boardGamePicker(m.key, { x: Math.max(0, ev.clientX - r.left - 20), y: Math.max(0, ev.clientY - r.top - 14) });
+  };
+  if (boardZoom === 'week') {
+    for (let i = 1; i < BOARD_WEEKS; i++) {
+      const sep = document.createElement('div');
+      sep.className = 'bd-wsep';
+      sep.style.left = (i / BOARD_WEEKS * 100) + '%';
+      surface.appendChild(sep);
+    }
+    for (let i = 0; i < BOARD_WEEKS; i++) {
+      const lb = document.createElement('div');
+      lb.className = 'bd-wlabel';
+      lb.style.left = (i / BOARD_WEEKS * 100) + '%';
+      lb.style.width = (100 / BOARD_WEEKS) + '%';
+      lb.textContent = boardWeekLabel(i);
+      surface.appendChild(lb);
+    }
+  }
+  // In the month view a game is drawn ONCE however many weeks it sits in —
+  // otherwise the month view is just the week view with the lines rubbed out,
+  // and the granularity means nothing.
+  const shown = boardZoom === 'week' ? m.items : boardDedupe(m.items, boardSurfaceWidth(m.key));
   let maxY = 0;
-  m.items.forEach(it => {
+  shown.forEach(it => {
     surface.appendChild(buildBoardCard(it, m.key));
     maxY = Math.max(maxY, (it.y || 0) + 44);
   });
@@ -9788,7 +9930,11 @@ function buildBoardCard(it, monthKey) {
       el.appendChild(nm);
       const pc = planPlatChip(hit.game.name);
       if (pc) el.appendChild(pc);
-      el.title = hit.game.name;
+      el.title = hit.game.name
+        + (boardZoom === 'week' ? '\n' + boardWeekLabel(boardWeekOf(it, boardSurfaceWidth(monthKey))) : '')
+        + (it.text ? '\n\n' + it.text : '');
+      if (boardZoom === 'week') el.dataset.week = String(boardWeekOf(it, boardSurfaceWidth(monthKey)));
+      if (it.text) el.classList.add('has-note');
     } else {
       el.textContent = '已删除的游戏';
     }
@@ -9796,6 +9942,25 @@ function buildBoardCard(it, monthKey) {
   }
 
   boardWireDrag(el, it, monthKey);
+
+  // The scribble hangs under the card rather than inside it, so a long one can
+  // never squash the name it belongs to.
+  if (it.kind === 'game' && it.text) {
+    const wrap = document.createElement('div');
+    wrap.className = 'bd-cardwrap';
+    wrap.style.left = (it.x || 0) + 'px';
+    wrap.style.top = (it.y || 0) + 'px';
+    el.style.left = '0'; el.style.top = '0';
+    el.style.position = 'relative';
+    wrap.appendChild(el);
+    const sc = document.createElement('div');
+    sc.className = 'bd-scribble';
+    sc.textContent = it.text;
+    sc.title = '点一下改';
+    sc.onclick = ev => { ev.stopPropagation(); boardEditText(it.id); };
+    wrap.appendChild(sc);
+    return wrap;
+  }
   return el;
 }
 
@@ -9816,39 +9981,71 @@ function boardWireDrag(el, it, monthKey) {
       let x = e.clientX - rr.left - _bDrag.dx;
       let y = e.clientY - rr.top - _bDrag.dy;
       // stay inside the month it belongs to; crossing months is an explicit action
-      x = Math.max(0, Math.min(x, rr.width - el.offsetWidth));
+      x = Math.max(0, Math.min(x, Math.max(0, rr.width - (el.offsetWidth || boardCardW()))));
       y = Math.max(0, y);
       if (Math.abs(x - (it.x || 0)) > 2 || Math.abs(y - (it.y || 0)) > 2) _bDrag.moved = true;
+      // highlight the month it would land in
+      const over = boardSurfaceUnder(e.clientX, e.clientY);
+      document.querySelectorAll('.bd-surface.drop').forEach(s => { if (s !== over) s.classList.remove('drop'); });
+      if (over && over.dataset.month !== monthKey) over.classList.add('drop');
       it.x = Math.round(x); it.y = Math.round(y);
       el.style.left = it.x + 'px';
       el.style.top = it.y + 'px';
     };
-    const onUp = () => {
+    const onUp = (e) => {
       document.removeEventListener('pointermove', onMove, true);
       document.removeEventListener('pointerup', onUp, true);
       el.classList.remove('dragging');
       el.style.zIndex = '';
+      document.querySelectorAll('.bd-surface.drop').forEach(s => s.classList.remove('drop'));
       const moved = _bDrag && _bDrag.moved;
-      // keep .moved readable by the click handler that fires right after
       setTimeout(() => { _bDrag = null; }, 0);
-      if (moved) {
-        const surf = el.parentElement;
-        if (surf) surf.style.minHeight = Math.max(120, (it.y || 0) + 60) + 'px';
-        scheduleSave();
+      if (!moved) return;
+      // Whatever surface the pointer was released over wins — dragging a card
+      // out of its month and into another is the obvious gesture, and making it
+      // work means the menu's 挪到别的月 is a convenience, not the only way.
+      const over = boardSurfaceUnder(e.clientX, e.clientY);
+      if (over && over.dataset.month !== monthKey) {
+        const from = boardFindItem(it.id);
+        const to = boardMonth(over.dataset.month);
+        if (from && to) {
+          const r = over.getBoundingClientRect();
+          from.month.items = from.month.items.filter(x => x.id !== it.id);
+          it.x = Math.max(0, Math.round(e.clientX - r.left - (_bDrag ? _bDrag.dx : 20)));
+          it.y = Math.max(0, Math.round(e.clientY - r.top - (_bDrag ? _bDrag.dy : 14)));
+          to.items.push(it);
+          scheduleSave(); render();
+          return;
+        }
       }
+      const surf = el.closest('.bd-surface');
+      if (surf) surf.style.minHeight = Math.max(120, (it.y || 0) + 60) + 'px';
+      scheduleSave();
     };
     document.addEventListener('pointermove', onMove, true);
     document.addEventListener('pointerup', onUp, true);
   };
 }
 
+function boardSurfaceUnder(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return el && el.closest ? el.closest('.bd-surface') : null;
+}
+
 function boardCardMenu(anchor, it) {
   const hit = findGameAnywhere(it.gameId);
   const items = [];
+  if (hit) items.push({ value: 'note', label: it.text ? '改碎碎念' : '写点碎碎念' });
+  // the colour lives on the game, so changing it here changes it everywhere
+  if (hit) items.push({ value: 'hue', label: '换颜色' });
   if (hit) items.push({ value: 'move', label: '挪到别的月' });
+  if (hit) items.push({ value: 'copy', label: '复制到别的月' });
   items.push({ value: 'remove', label: '× 从白板移除', clear: true });
   showPicker(anchor, items, '', v => {
-    if (v === 'move') boardMoveCard(anchor, it);
+    if (v === 'note') boardEditText(it.id);
+    else if (v === 'hue') planHueMenu(anchor, { gameId: it.gameId });
+    else if (v === 'move') boardMoveCard(anchor, it);
+    else if (v === 'copy') boardCopyCard(anchor, it);
     else if (v === 'remove') {
       const snap = snapshotState();
       boardRemoveItem(it.id);
@@ -9875,23 +10072,94 @@ function boardMoveCard(anchor, it) {
   });
 }
 
-function boardEditNote(itemId) {
+// One editor, two meanings. Emptying a standalone sticky deletes it (a blank
+// sticky is just clutter); emptying a game card's scribble only clears the
+// text — the card is still a game you put on the board.
+// A copy is a NEW card: same game, its own position, its own scribble from
+// here on. Editing one must never reach into the other.
+function boardCopyCard(anchor, it) {
+  const here = boardFindItem(it.id);
+  const opts = boardData().months.filter(m => !here || m.key !== here.month.key)
+    .map(m => ({ value: m.key, label: boardMonthLabel(m.key) }));
+  if (!opts.length) { showToast({ message: '白板上只有这一个月', actionLabel: '' }); return; }
+  showPicker(anchor, opts, '', key => {
+    const target = boardMonth(key);
+    if (!target) return;
+    const snap = snapshotState();
+    const box = boardBox(it);
+    const at = boardFreeSlot(target.items, box.w, box.h, boardSurfaceWidth(key));
+    target.items.push({
+      id: 'bi_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      kind: it.kind, gameId: it.gameId, text: it.text || '', x: at.x, y: at.y
+    });
+    scheduleSave(); render();
+    showUndoToast('复制到 ' + boardMonthLabel(key), snap);
+  });
+}
+
+function boardEditText(itemId) {
   const hit = boardFindItem(itemId);
-  if (!hit || hit.item.kind !== 'note') return;
+  if (!hit) return;
+  const isNote = hit.item.kind === 'note';
+  const g = isNote ? null : findGameAnywhere(hit.item.gameId);
   showDialog({
-    title: '便签',
+    title: isNote ? '便签' : (g ? parsePlatform(g.game.name).base : '碎碎念'),
     message: `<div class="pl-desc-wrap"><textarea id="bd-note" rows="3" maxlength="200"
-        placeholder="为什么这几个适合放一起？">${escapeHtml(hit.item.text || '')}</textarea></div>`,
+        placeholder="${isNote ? '为什么这几个适合放一起？' : '想到它的时候在想什么？'}">${escapeHtml(hit.item.text || '')}</textarea></div>`
+      + (isNote ? '' : '<div class="pl-price-note bd-note-hint">白板上的碎碎念跟正式计划的描述是两份，互不影响</div>'),
     confirmLabel: '保存', cancelLabel: '取消',
     onConfirm: () => {
       const el = document.getElementById('bd-note');
       const h = boardFindItem(itemId);
       if (!el || !h) return;
       h.item.text = el.value.trim().slice(0, 200);
-      if (!h.item.text) boardRemoveItem(itemId);   // an empty note is just clutter
+      if (!h.item.text && h.item.kind === 'note') boardRemoveItem(itemId);
       scheduleSave(); render();
     }
   });
+}
+// kept: the sticky button and the old call sites read better with this name
+function boardEditNote(itemId) { boardEditText(itemId); }
+
+// Snap to a grid without reshuffling: cards keep their order in both axes, only
+// their edges line up. Sorting by coordinate and assigning columns/rows in that
+// order is what preserves "A is left of B" and "A is above B".
+function boardAlignAll() {
+  const snap = snapshotState();
+  const gapX = 12, gapY = 10;
+  let touched = 0;
+  boardData().months.forEach(m => {
+    if (!m.items.length) return;
+    const surfW = boardSurfaceWidth(m.key);
+    const w = boardCardW();
+    const colW = w + gapX;
+    const cols = Math.max(1, Math.floor((surfW - BOARD_PAD) / colW));
+    // bucket by rough row first (things you put side by side stay side by side)
+    const rows = [];
+    m.items.slice().sort((a, b) => (a.y || 0) - (b.y || 0) || (a.x || 0) - (b.x || 0)).forEach(it => {
+      const r = rows.find(rr => Math.abs(rr.y - (it.y || 0)) < 34);
+      if (r) { r.items.push(it); r.y = Math.min(r.y, it.y || 0); }
+      else rows.push({ y: it.y || 0, items: [it] });
+    });
+    let y = BOARD_PAD;
+    rows.forEach(r => {
+      r.items.sort((a, b) => (a.x || 0) - (b.x || 0));
+      let col = 0, rowH = 0;
+      r.items.forEach(it => {
+        if (col >= cols) { col = 0; y += rowH + gapY; rowH = 0; }
+        const nx = BOARD_PAD + col * colW;
+        const b = boardBox(it);
+        if (it.x !== nx || it.y !== y) touched++;
+        it.x = nx; it.y = y;
+        rowH = Math.max(rowH, b.h);
+        col++;
+      });
+      y += rowH + gapY;
+    });
+  });
+  if (!touched) { showToast({ message: '已经是对齐的', actionLabel: '' }); return; }
+  scheduleSave(); render();
+  showUndoToast('对齐了 ' + touched + ' 张', snap);
 }
 
 function boardMonthPicker(anchor) {
@@ -9909,7 +10177,7 @@ function boardMonthPicker(anchor) {
 }
 
 // The picker is the board's own: it must not touch the plan's entries.
-function boardGamePicker(monthKey) {
+function boardGamePicker(monthKey, at) {
   const chosen = new Set();
   const overlay = document.createElement('div');
   overlay.className = 'pl-pick-overlay';
@@ -9966,7 +10234,7 @@ function boardGamePicker(monthKey) {
   setTimeout(() => q.focus(), 30);
   okBtn.onclick = () => {
     if (!chosen.size) return;
-    boardAddCards(monthKey, Array.from(chosen));
+    boardAddCards(monthKey, Array.from(chosen), at);
     overlay.remove();
     scheduleSave(); render();
   };
