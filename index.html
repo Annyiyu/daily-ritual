@@ -1393,6 +1393,47 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
    Band     = linear day axis, one row per entry, drag to reorder.
    ============================================================ */
 
+/* ---- 白板 ---- */
+.bd-hint { font-size: 11px; color: var(--text-faint); letter-spacing: 0.04em; }
+.bd-empty { text-align: center; padding: 44px 0; color: var(--text-faint); font-size: 12px; }
+.bd-month { margin-bottom: 22px; }
+.bd-month-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 7px; }
+.bd-month-title { font-family: var(--display-font); font-size: 15px; color: var(--text); }
+.bd-month-n { font-size: 10px; color: var(--text-faint); letter-spacing: 0.06em; }
+.bd-month-acts { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.bd-act {
+  font-family: var(--label-font); font-size: 10px; letter-spacing: 0.12em;
+  color: var(--text-faint); cursor: pointer; transition: color 0.16s; white-space: nowrap;
+}
+.bd-act:hover { color: var(--accent); }
+.bd-act.danger:hover { color: #c0563a; }
+.bd-surface {
+  position: relative; border: 1px dashed var(--line-strong); border-radius: 12px;
+  background: rgba(42, 36, 28, 0.012); overflow: hidden;
+}
+.bd-card {
+  position: absolute; display: inline-flex; align-items: center; gap: 6px;
+  max-width: 200px; padding: 7px 11px; border-radius: 999px;
+  font-size: 12px; cursor: grab; user-select: none; touch-action: none;
+  transition: box-shadow 0.14s;
+}
+.bd-card.dragging { cursor: grabbing; box-shadow: 0 6px 18px rgba(42, 36, 28, 0.18); }
+.bd-cname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bd-card .rc-platform { color: inherit; opacity: 0.6; flex: 0 0 auto; }
+.bd-game.tomb { background: rgba(42, 36, 28, 0.05); color: var(--text-faint); font-style: italic; }
+.bd-note {
+  border-radius: 6px; background: rgba(226, 200, 120, 0.22); color: var(--text-muted);
+  border: 1px solid rgba(190, 160, 80, 0.28); white-space: pre-wrap; line-height: 1.5;
+  max-width: 190px; display: block; padding: 8px 10px;
+}
+.bd-note.empty { color: var(--text-faint); font-style: italic; }
+.bd-addmonth {
+  display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 999px;
+  border: 1px dashed var(--line-strong); font-family: var(--label-font); font-size: 10px;
+  letter-spacing: 0.14em; color: var(--text-faint); cursor: pointer; transition: border-color 0.16s, color 0.16s;
+}
+.bd-addmonth:hover { border-color: var(--accent); color: var(--accent); }
+
 /* ---- 计划 · 列表视图 ---- */
 .pl-list { display: flex; flex-direction: column; }
 .pl-lrow {
@@ -2179,6 +2220,28 @@ function migrate(state) {
     .filter(k => k && typeof k.id === 'string' && k.id)
     .map(k => ({ id: k.id, label: (typeof k.label === 'string' && k.label.trim()) ? k.label.trim().slice(0, 12) : k.id }));
   if (['CNY', 'EUR', 'HKD'].indexOf(state.config.lastCurrency) === -1) state.config.lastCurrency = 'CNY';
+  // Whiteboard. A sibling of plans, never a mirror of it: nothing in this block
+  // reads or writes state.config.plans, and nothing in the plan's migration
+  // reads this. A scratch surface you can't scribble on freely is not a draft.
+  if (!state.config.board || typeof state.config.board !== 'object' || Array.isArray(state.config.board)) state.config.board = { months: [] };
+  if (!Array.isArray(state.config.board.months)) state.config.board.months = [];
+  state.config.board.months = state.config.board.months
+    .filter(m => m && typeof m === 'object' && /^\d{4}-\d{2}$/.test(m.key))
+    .map(m => ({
+      key: m.key,
+      items: (Array.isArray(m.items) ? m.items : [])
+        .filter(it => it && typeof it === 'object' && typeof it.id === 'string' && it.id)
+        .map(it => ({
+          id: it.id,
+          kind: it.kind === 'note' ? 'note' : 'game',
+          gameId: it.kind === 'note' ? undefined : String(it.gameId || ''),
+          text: it.kind === 'note' ? String(it.text || '').slice(0, 200) : undefined,
+          x: Number.isFinite(it.x) ? Math.max(0, Math.round(it.x)) : 8,
+          y: Number.isFinite(it.y) ? Math.max(0, Math.round(it.y)) : 8
+        }))
+        .filter(it => it.kind === 'note' || it.gameId)
+    }))
+    .sort((a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
   if (!state.config.planSort || typeof state.config.planSort !== 'object') state.config.planSort = { key: null, dirty: false };
   if (typeof state.config.planSort.key !== 'string' && state.config.planSort.key !== null) state.config.planSort.key = null;
   if (typeof state.config.planSort.dirty !== 'boolean') state.config.planSort.dirty = false;
@@ -2733,7 +2796,7 @@ function addGame(tier, name, opts) {
   const jf = { media: '', sub: '', milestones: [], lastMilestone: '', completionPin: null };
   if (tier === 'tier1') state.config.tier1.push({ id, name, subtasks: [], hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence, ...jf });
   else if (tier === 'tier2') state.config.tier2.push({ id, name, hidden: false, hiddenAt: null, note: '', completion: '', status: 'considering', createdAt: today, tierResidence: residence, ...jf });
-  else state.config.tier3.push({ id, name, status: 'considering', hidden: false, hiddenAt: null, note: '', completion: '', createdAt: today, tierResidence: residence, ...jf });
+  else state.config.tier3.push({ id, name, status: (opts && opts.status) || 'considering', hidden: false, hiddenAt: null, note: '', completion: '', createdAt: today, tierResidence: residence, ...jf });
   // silent: the caller is about to save + render itself (the plan picker adds
   // the game and a plan row in one gesture, and a render here would tear the
   // picker down halfway through)
@@ -3412,12 +3475,13 @@ function render() {
   if (_selMode) {
     const onOwnScreen = (_selMode in _selHome)
       ? _selHome[_selMode]
-      : !(planOpen || shopOpen || reviewOpen || journeyOpen);
+      : !(planOpen || shopOpen || reviewOpen || journeyOpen || boardOpen);
     if (!onOwnScreen) { _selMode = null; _selIds = new Set(); _selAnchor = null; }
   }
   if (!session) { renderSignIn(); return; }
   if (!state) { renderLoading(); return; }
   applyWeekTheme();
+  if (boardOpen) { renderBoard(); return; }
   if (shopOpen) { renderShop(); return; }
   if (planOpen) { renderPlan(); return; }
   if (journeyOpen) { renderJourney(); return; }
@@ -3491,6 +3555,14 @@ function renderApp() {
           </svg>
           购物单
         </button>
+        <button class="review-entry" id="board-entry" title="白板" style="margin-left:14px">
+          <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true">
+            <rect x="0.6" y="1.6" width="11.8" height="9" rx="1.6" fill="none" stroke="var(--accent)" stroke-width="1.1" opacity="0.8"></rect>
+            <rect x="2.4" y="3.6" width="4" height="2.6" rx="0.8" fill="var(--accent)" opacity="0.45"></rect>
+            <rect x="7.4" y="5.4" width="3.2" height="2.6" rx="0.8" fill="var(--accent)" opacity="0.7"></rect>
+          </svg>
+          白板
+        </button>
       </div>
       <div class="date-nav">
         <div class="date-arrow" id="prev-day" title="Previous day">‹</div>
@@ -3554,6 +3626,7 @@ function renderApp() {
   var _je = document.getElementById('journey-entry'); if (_je) _je.onclick = openJourney;
   var _pe = document.getElementById('plan-entry'); if (_pe) _pe.onclick = openPlan;
   var _se = document.getElementById('shop-entry'); if (_se) _se.onclick = openShop;
+  var _be = document.getElementById('board-entry'); if (_be) _be.onclick = openBoard;
 }
 
 // ── Companion band — removed (header progress bar deleted). The check-in history
@@ -4837,7 +4910,7 @@ function gameById(id) {
 
 function openReview() {
   reviewOpen = true;
-  planOpen = false; journeyOpen = false; shopOpen = false;
+  planOpen = false; journeyOpen = false; shopOpen = false; boardOpen = false;
   reviewSpan = 'quarter';
   reviewAnchor = todayKey();
   reviewSelectedDay = todayKey();
@@ -5736,7 +5809,7 @@ function journeyView() {
 }
 function setJourneyView(v) { state.config.journeyView = v; scheduleSave(); render(); }
 
-function openJourney() { journeyOpen = true; reviewOpen = false; planOpen = false; shopOpen = false; _journeyFilter = { type: '', outcome: '', tag: '' }; render(); }
+function openJourney() { journeyOpen = true; reviewOpen = false; planOpen = false; shopOpen = false; boardOpen = false; _journeyFilter = { type: '', outcome: '', tag: '' }; render(); }
 function closeJourney() { journeyOpen = false; render(); }
 
 // Stable warm color per game (cross-refresh consistent) — drives river/star/shelf accents.
@@ -7246,7 +7319,7 @@ document.addEventListener('keydown', ev => {
 });
 
 function openPlan() {
-  planOpen = true; reviewOpen = false; journeyOpen = false; shopOpen = false;
+  planOpen = true; reviewOpen = false; journeyOpen = false; shopOpen = false; boardOpen = false;
   if (!planAnchor) planAnchor = todayKey();
   render();
 }
@@ -8635,7 +8708,11 @@ function selBulkActions() {
     ];
     case 'shop': return [
       { v: 'bought', label: '标为已购' },
+      { v: 'tier3:backlog', label: '→ Roster · Backlog' },
+      { v: 'plan', label: '加入计划' },
       { v: 'unbought', label: '标为未购' },
+      { v: 'tier3:up_next', label: '→ Roster · Up next' },
+      { v: 'tier2', label: '→ Playing' },
       { v: 'kind', label: '改获取方式' },
       { v: 'currency', label: '改币种' },
       { v: 'unshop', label: '移出购物单', danger: true }
@@ -8776,6 +8853,12 @@ function selApply(action, label, ids) {
       });
     }
   } else if (scope === 'shop') {
+    // destinations share one implementation with the row menu
+    if (action === 'plan' || action === 'tier1' || action === 'tier2' || action.indexOf('tier3:') === 0) {
+      _selMode = null; _selIds = new Set(); _selAnchor = null;
+      shopSendTo(ids, action, label);
+      return;                                   // shopSendTo owns the snapshot + toast
+    }
     if (action === 'bought') shopMarkBought(ids, true);
     else if (action === 'unbought') shopMarkBought(ids, false);
     else if (action === 'unshop') shopRemove(ids);
@@ -8846,7 +8929,7 @@ function selMountEntry(sectionId, scope) {
 }
 
 function selMountAll() {
-  if (shopOpen) { selRenderBar(); return; }
+  if (shopOpen || boardOpen) { selRenderBar(); return; }
   selMountEntry('section-tier1', 'tier1');
   selMountEntry('section-tier2', 'tier2');
   selMountEntry('section-tier3', 'tier3');
@@ -8895,6 +8978,153 @@ function shopKindLabel(id) {
 }
 
 // ---------- data ----------
+
+// The shop's own way in. A game you're about to buy usually doesn't exist in
+// the library yet — being able to type it here is the difference between one
+// step and three. A created game goes to Roster · Backlog: you don't own it, so
+// it is not Up next, and 'considering' would overstate it too.
+function shopPicker() {
+  const chosen = new Set();
+  const overlay = document.createElement('div');
+  overlay.className = 'pl-pick-overlay';
+  const box = document.createElement('div');
+  box.className = 'pl-pick';
+  box.innerHTML = `
+    <div class="pl-pick-top">
+      <div class="pl-pick-title">加入购物单</div>
+      <input class="pl-pick-search" id="shp-q" placeholder="搜索，或直接打一个新游戏的名字" autocomplete="off">
+    </div>
+    <div class="pl-pick-list" id="shp-list"></div>
+    <div class="pl-pick-foot">
+      <span class="pl-pick-cancel" id="shp-cancel">取消</span>
+      <span class="pl-pick-hint" id="shp-hint"></span>
+      <button class="pl-pick-btn" id="shp-ok" disabled>加入</button>
+    </div>`;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  overlay.onclick = ev => { if (ev.target === overlay) overlay.remove(); };
+  document.getElementById('shp-cancel').onclick = () => overlay.remove();
+
+  const listEl = document.getElementById('shp-list');
+  const okBtn = document.getElementById('shp-ok');
+  const hint = document.getElementById('shp-hint');
+  const groups = [{ tier: 'tier1', label: 'Company' }, { tier: 'tier2', label: 'Playing' }, { tier: 'tier3', label: 'Roster' }];
+
+  function createAndAdd(name) {
+    if (!name) return;
+    const snap = snapshotState();
+    const id = addGame('tier3', name, { silent: true, status: 'backlog' });
+    shopAdd([id]);
+    overlay.remove();
+    scheduleSave(); render();
+    showUndoToast('新建并加入购物单 · ' + parsePlatform(name).base, snap);
+  }
+
+  function paint(q) {
+    listEl.innerHTML = '';
+    const needle = (q || '').trim().toLowerCase();
+    groups.forEach(g => {
+      const games = (state.config[g.tier] || []).filter(x => !needle || String(x.name).toLowerCase().indexOf(needle) !== -1);
+      if (!games.length) return;
+      const h = document.createElement('div');
+      h.className = 'pl-pick-group'; h.textContent = g.label;
+      listEl.appendChild(h);
+      games.forEach(x => {
+        const dup = !!x.buy;
+        const it = document.createElement('div');
+        it.className = 'pl-pick-item' + (chosen.has(x.id) ? ' on' : '') + (dup ? ' dim' : '');
+        it.dataset.gameId = x.id;
+        it.innerHTML = `<span class="pl-pick-box">✓</span><span>${escapeHtml(parsePlatform(x.name).base)}</span>`;
+        const pc = planPlatChip(x.name); if (pc) it.appendChild(pc);
+        if (dup) it.innerHTML += `<span class="pl-pick-note">已在购物单里</span>`;
+        it.onclick = () => {
+          if (dup) return;
+          if (chosen.has(x.id)) chosen.delete(x.id); else chosen.add(x.id);
+          it.classList.toggle('on', chosen.has(x.id));
+          okBtn.disabled = chosen.size === 0;
+          hint.textContent = chosen.size ? '已选 ' + chosen.size : '';
+        };
+        listEl.appendChild(it);
+      });
+    });
+    if (needle) {
+      const raw = (q || '').trim();
+      const dup = ['tier1', 'tier2', 'tier3'].some(t =>
+        (state.config[t] || []).some(x => String(x.name).trim().toLowerCase() === raw.toLowerCase()));
+      const row = document.createElement('div');
+      row.className = 'pl-pick-new' + (dup ? ' dup' : '');
+      row.innerHTML = dup
+        ? `<span>已有同名游戏「${escapeHtml(raw)}」</span>`
+        : `<span>＋ 新建「${escapeHtml(raw)}」</span><span class="pl-pick-note">进 Roster · Backlog</span>`;
+      if (!dup) row.onclick = () => createAndAdd(raw);
+      listEl.appendChild(row);
+      if (!listEl.querySelector('.pl-pick-item')) {
+        const h = document.createElement('div');
+        h.className = 'pl-pick-group'; h.textContent = '写法照旧：名字（平台）';
+        listEl.insertBefore(h, row);
+      }
+    } else if (!listEl.children.length) {
+      const e = document.createElement('div');
+      e.className = 'pl-pick-group'; e.textContent = '还没有游戏 — 在上面打个名字就能新建';
+      listEl.appendChild(e);
+    }
+  }
+  paint('');
+  const q = document.getElementById('shp-q');
+  q.oninput = () => paint(q.value);
+  q.onkeydown = ev => {
+    if (ev.key !== 'Enter') return;
+    ev.preventDefault();
+    if (listEl.querySelector('.pl-pick-item')) return;   // a match exists; don't guess
+    const row = listEl.querySelector('.pl-pick-new:not(.dup)');
+    if (row) row.onclick();
+  };
+  setTimeout(() => q.focus(), 30);
+  okBtn.onclick = () => {
+    if (!chosen.size) return;
+    const snap = snapshotState();
+    const n = shopAdd(Array.from(chosen));
+    overlay.remove();
+    scheduleSave(); render();
+    showUndoToast('加入购物单 · ' + n + ' 项', snap);
+  };
+}
+
+// Out of the shop and into the library / the plan. Nothing here is automatic:
+// buying something is not a claim that you want to play it next.
+function shopSendTo(gameIds, dest, label) {
+  const snap = snapshotState();
+  if (dest === 'plan') {
+    const w = planWindow();
+    const already = new Set(planEntriesInWindow(w.from, w.to).map(e => e.gameId));
+    const fresh = gameIds.filter(id => !already.has(id));
+    if (!fresh.length) { showToast({ message: '都已经在计划里了', actionLabel: '' }); return; }
+    planAdd(fresh, todayKey(), PLAN_OPEN, false, false);
+  } else if (dest.indexOf('tier3:') === 0) {
+    const status = dest.slice(6);
+    gameIds.slice().reverse().forEach(id => {
+      const hit = findGameAnywhere(id);
+      if (!hit) return;
+      if (hit.tier !== 'tier3') commitGameMove(hit.tier, id, 'tier3', state.config.tier3.length);
+      setTier3Status(id, status);
+    });
+  } else {
+    gameIds.forEach(id => {
+      const hit = findGameAnywhere(id);
+      if (!hit || hit.tier === dest) return;
+      commitGameMove(hit.tier, id, dest, state.config[dest].length);
+    });
+  }
+  scheduleSave(); render();
+  showUndoToast(label + ' · ' + gameIds.length + ' 项', snap);
+}
+const SHOP_DESTS = [
+  { v: 'tier3:backlog', label: '→ Roster · Backlog' },
+  { v: 'tier3:up_next', label: '→ Roster · Up next' },
+  { v: 'tier2', label: '→ Playing' },
+  { v: 'tier1', label: '→ Company' },
+  { v: 'plan', label: '加入计划' }
+];
 
 function shopAddOne(gameId) {
   const snap = snapshotState();
@@ -9013,7 +9243,7 @@ function shopApplyOrder(idsInOrder) {
 
 // ---------- page ----------
 
-function openShop() { shopOpen = true; planOpen = false; reviewOpen = false; journeyOpen = false; render(); }
+function openShop() { shopOpen = true; planOpen = false; reviewOpen = false; journeyOpen = false; boardOpen = false; render(); }
 function closeShop() { shopOpen = false; render(); }
 
 function renderShop() {
@@ -9032,6 +9262,7 @@ function renderShop() {
       </div>
       <div class="pl-switches">
         <div class="pl-tools">
+          <div class="pl-tool" id="sh-add">＋ 加入购物单</div>
           <div class="pl-tool" id="sh-kinds">⌗ 获取方式</div>
           <div class="pl-tool" id="sh-sort"></div>
         </div>
@@ -9044,6 +9275,7 @@ function renderShop() {
     SHOP_SORT_KEYS.concat(SORT_KEYS.filter(k => ['pinyin', 'platform'].indexOf(k.key) !== -1)));
   document.getElementById('sh-sort').onclick = ev => shopSortMenu(ev.currentTarget);
   document.getElementById('sh-kinds').onclick = ev => shopKindsDialog();
+  document.getElementById('sh-add').onclick = () => shopPicker();
   const targets = shopTotals(open, 'target');
   document.getElementById('sh-count').textContent =
     open.length ? `${open.length} 项待入手${targets.length ? ' · 目标 ' + targets.join(' / ') : ''}` : '';
@@ -9059,7 +9291,7 @@ function renderShop() {
   if (!all.length) {
     const e = document.createElement('div');
     e.className = 'sh-empty';
-    e.textContent = '购物单是空的。在 Roster / Playing / Company 的卡片菜单里「加入购物单」。';
+    e.textContent = '购物单是空的。用上面的「＋ 加入购物单」，或在卡片菜单里加。';
     body.appendChild(e);
     selRenderBar();
     return;
@@ -9197,6 +9429,7 @@ function shopRowMenu(anchor, g) {
     { value: 'release', label: g.buy.release ? '改发售日 · ' + g.buy.release : '设发售日' },
     { value: bought ? 'paid' : 'target', label: bought ? '改实付' : '设目标价' },
     { value: 'note', label: g.buy.note ? '改备注' : '加备注' },
+    { value: 'send', label: '挪到别处…' },
     { value: 'remove', label: '× 移出购物单', clear: true }
   ];
   showPicker(anchor, items, '', v => {
@@ -9211,6 +9444,14 @@ function shopRowMenu(anchor, g) {
       shopPriceDialog(g.id, v, v === 'paid' ? '实付多少?' : '等到多少钱?', null);
     } else if (v === 'note') {
       shopNoteDialog(g.id);
+    } else if (v === 'send') {
+      const here = findGameAnywhere(g.id);
+      const opts = SHOP_DESTS.filter(d =>
+        !(here && d.v === 'tier3:' + here.game.status && here.tier === 'tier3') && !(here && d.v === here.tier));
+      showPicker(anchor, opts.map(d => ({ value: d.v, label: d.label })), '', dest => {
+        const d = SHOP_DESTS.find(x => x.v === dest);
+        shopSendTo([g.id], dest, d ? d.label : '挪动');
+      });
     } else if (v === 'remove') {
       const snap = snapshotState();
       shopRemove([g.id]);
@@ -9309,6 +9550,379 @@ function shopKindsDialog() {
       };
     });
   }, 0);
+}
+
+
+// ============================================================
+// 白板 (whiteboard) — a scratch surface, deliberately isolated
+//
+// state.config.board is a SIBLING of state.config.plans and never reads or
+// writes it. A game on the board's March says nothing about March's plan, and
+// vice versa. Only the games themselves are shared.
+//
+// Cards carry x/y inside their month, not a list index: "these two belong
+// together" has to mean they are actually next to each other, which a
+// one-dimensional order can't express.
+// ============================================================
+
+let boardOpen = false;
+let _bDrag = null;      // { id, dx, dy, moved }
+
+const BOARD_CARD_W = 132;
+const BOARD_PAD = 8;
+
+function boardData() {
+  if (!state.config.board || typeof state.config.board !== 'object') state.config.board = { months: [] };
+  if (!Array.isArray(state.config.board.months)) state.config.board.months = [];
+  return state.config.board;
+}
+function boardMonth(key) { return boardData().months.find(m => m.key === key) || null; }
+
+function boardAddMonth(key) {
+  const b = boardData();
+  if (b.months.some(m => m.key === key)) return false;
+  b.months.push({ key, items: [] });
+  b.months.sort((x, y) => x.key < y.key ? -1 : x.key > y.key ? 1 : 0);
+  return true;
+}
+function boardRemoveMonth(key) {
+  const b = boardData();
+  b.months = b.months.filter(m => m.key !== key);
+}
+// A game may sit in two months at once — on paper you'd just write it twice.
+function boardAddCards(monthKey, gameIds) {
+  const m = boardMonth(monthKey);
+  if (!m) return 0;
+  let n = 0, col = 0;
+  gameIds.forEach(id => {
+    m.items.push({
+      id: 'bi_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      kind: 'game', gameId: id,
+      x: BOARD_PAD + (col % 3) * (BOARD_CARD_W + 10),
+      y: BOARD_PAD + Math.floor(col / 3) * 46 + m.items.length % 2 * 4
+    });
+    col++; n++;
+  });
+  return n;
+}
+function boardAddNote(monthKey) {
+  const m = boardMonth(monthKey);
+  if (!m) return null;
+  const it = { id: 'bn_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+               kind: 'note', text: '', x: BOARD_PAD, y: BOARD_PAD };
+  m.items.push(it);
+  return it;
+}
+function boardFindItem(itemId) {
+  const b = boardData();
+  for (const m of b.months) {
+    const it = m.items.find(x => x.id === itemId);
+    if (it) return { month: m, item: it };
+  }
+  return null;
+}
+function boardRemoveItem(itemId) {
+  const hit = boardFindItem(itemId);
+  if (!hit) return;
+  hit.month.items = hit.month.items.filter(x => x.id !== itemId);
+}
+function boardMonthLabel(key) {
+  const [y, m] = key.split('-');
+  return y + ' 年 ' + Number(m) + ' 月';
+}
+
+// ---------- render ----------
+
+function openBoard() { boardOpen = true; planOpen = false; shopOpen = false; reviewOpen = false; journeyOpen = false; render(); }
+function closeBoard() { boardOpen = false; render(); }
+
+function renderBoard() {
+  const root = document.getElementById('root');
+  const b = boardData();
+  root.innerHTML = `
+    <header class="header narrow">
+      <div class="review-entry-row"><button class="review-entry" id="board-back">← 返回</button></div>
+    </header>
+    <section class="section wide">
+      <div class="pl-head">
+        <div class="pl-title">白板</div>
+        <div class="pl-nav"><span class="bd-hint">草稿 · 跟正式计划完全分开</span></div>
+      </div>
+      <div id="bd-body"></div>
+      <div class="bd-addmonth" id="bd-addmonth">＋ 加一个月</div>
+    </section>`;
+  document.getElementById('board-back').onclick = closeBoard;
+  document.getElementById('bd-addmonth').onclick = ev => boardMonthPicker(ev.currentTarget);
+
+  const body = document.getElementById('bd-body');
+  if (!b.months.length) {
+    const e = document.createElement('div');
+    e.className = 'bd-empty';
+    e.textContent = '空白板。加一个月，然后把游戏拖进去随便摆。';
+    body.appendChild(e);
+    return;
+  }
+  b.months.forEach(m => body.appendChild(buildBoardMonth(m)));
+}
+
+function buildBoardMonth(m) {
+  const box = document.createElement('div');
+  box.className = 'bd-month';
+  box.dataset.month = m.key;
+
+  const head = document.createElement('div');
+  head.className = 'bd-month-head';
+  const title = document.createElement('span');
+  title.className = 'bd-month-title';
+  title.textContent = boardMonthLabel(m.key);
+  head.appendChild(title);
+  const n = document.createElement('span');
+  n.className = 'bd-month-n';
+  n.textContent = m.items.length ? m.items.length + ' 张' : '';
+  head.appendChild(n);
+  const acts = document.createElement('span');
+  acts.className = 'bd-month-acts';
+  const addG = document.createElement('span');
+  addG.className = 'bd-act'; addG.textContent = '＋ 游戏';
+  addG.onclick = () => boardGamePicker(m.key);
+  acts.appendChild(addG);
+  const addN = document.createElement('span');
+  addN.className = 'bd-act'; addN.textContent = '＋ 便签';
+  addN.onclick = () => { const it = boardAddNote(m.key); scheduleSave(); render(); if (it) boardEditNote(it.id); };
+  acts.appendChild(addN);
+  const del = document.createElement('span');
+  del.className = 'bd-act danger'; del.textContent = '×';
+  del.title = '移除这个月';
+  del.onclick = () => {
+    const go = () => { const snap = snapshotState(); boardRemoveMonth(m.key); scheduleSave(); render(); showUndoToast('移除 ' + boardMonthLabel(m.key), snap); };
+    if (m.items.length) showDialog({
+      title: '移除 ' + boardMonthLabel(m.key) + '?',
+      message: '里面有 ' + m.items.length + ' 张卡。可以撤销。',
+      confirmLabel: '移除', cancelLabel: '取消', danger: true, onConfirm: go
+    });
+    else go();
+  };
+  acts.appendChild(del);
+  head.appendChild(acts);
+  box.appendChild(head);
+
+  const surface = document.createElement('div');
+  surface.className = 'bd-surface';
+  surface.dataset.month = m.key;
+  let maxY = 0;
+  m.items.forEach(it => {
+    surface.appendChild(buildBoardCard(it, m.key));
+    maxY = Math.max(maxY, (it.y || 0) + 44);
+  });
+  surface.style.minHeight = Math.max(120, maxY + 16) + 'px';
+  box.appendChild(surface);
+  return box;
+}
+
+function buildBoardCard(it, monthKey) {
+  const el = document.createElement('div');
+  el.dataset.item = it.id;
+  el.style.left = (it.x || 0) + 'px';
+  el.style.top = (it.y || 0) + 'px';
+
+  if (it.kind === 'note') {
+    el.className = 'bd-card bd-note';
+    el.textContent = it.text || '写点什么…';
+    if (!it.text) el.classList.add('empty');
+    el.onclick = ev => { if (_bDrag && _bDrag.moved) return; ev.stopPropagation(); boardEditNote(it.id); };
+  } else {
+    const hit = findGameAnywhere(it.gameId);
+    el.className = 'bd-card bd-game' + (hit ? '' : ' tomb');
+    if (hit) {
+      const rgb = RV_MACARON[planHueIndex(hit.game)];
+      el.style.background = planTint(rgb, 0.28);
+      el.style.color = planInk(rgb);
+      const nm = document.createElement('span');
+      nm.className = 'bd-cname';
+      nm.textContent = parsePlatform(hit.game.name).base;
+      el.appendChild(nm);
+      const pc = planPlatChip(hit.game.name);
+      if (pc) el.appendChild(pc);
+      el.title = hit.game.name;
+    } else {
+      el.textContent = '已删除的游戏';
+    }
+    el.onclick = ev => { if (_bDrag && _bDrag.moved) return; ev.stopPropagation(); boardCardMenu(el, it); };
+  }
+
+  boardWireDrag(el, it, monthKey);
+  return el;
+}
+
+// Free placement: pointer events write x/y straight onto the item. No list, no
+// slots — a card ends up exactly where it was let go.
+function boardWireDrag(el, it, monthKey) {
+  el.onpointerdown = ev => {
+    if (ev.button !== undefined && ev.button !== 0) return;
+    ev.preventDefault();
+    const surf = el.parentElement;
+    const r = surf.getBoundingClientRect();
+    _bDrag = { id: it.id, dx: ev.clientX - r.left - (it.x || 0), dy: ev.clientY - r.top - (it.y || 0), moved: false, surf };
+    el.classList.add('dragging');
+    el.style.zIndex = '20';
+    const onMove = e => {
+      if (!_bDrag) return;
+      const rr = _bDrag.surf.getBoundingClientRect();
+      let x = e.clientX - rr.left - _bDrag.dx;
+      let y = e.clientY - rr.top - _bDrag.dy;
+      // stay inside the month it belongs to; crossing months is an explicit action
+      x = Math.max(0, Math.min(x, rr.width - el.offsetWidth));
+      y = Math.max(0, y);
+      if (Math.abs(x - (it.x || 0)) > 2 || Math.abs(y - (it.y || 0)) > 2) _bDrag.moved = true;
+      it.x = Math.round(x); it.y = Math.round(y);
+      el.style.left = it.x + 'px';
+      el.style.top = it.y + 'px';
+    };
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove, true);
+      document.removeEventListener('pointerup', onUp, true);
+      el.classList.remove('dragging');
+      el.style.zIndex = '';
+      const moved = _bDrag && _bDrag.moved;
+      // keep .moved readable by the click handler that fires right after
+      setTimeout(() => { _bDrag = null; }, 0);
+      if (moved) {
+        const surf = el.parentElement;
+        if (surf) surf.style.minHeight = Math.max(120, (it.y || 0) + 60) + 'px';
+        scheduleSave();
+      }
+    };
+    document.addEventListener('pointermove', onMove, true);
+    document.addEventListener('pointerup', onUp, true);
+  };
+}
+
+function boardCardMenu(anchor, it) {
+  const hit = findGameAnywhere(it.gameId);
+  const items = [];
+  if (hit) items.push({ value: 'move', label: '挪到别的月' });
+  items.push({ value: 'remove', label: '× 从白板移除', clear: true });
+  showPicker(anchor, items, '', v => {
+    if (v === 'move') boardMoveCard(anchor, it);
+    else if (v === 'remove') {
+      const snap = snapshotState();
+      boardRemoveItem(it.id);
+      scheduleSave(); render();
+      showUndoToast('从白板移除', snap);
+    }
+  });
+}
+function boardMoveCard(anchor, it) {
+  const here = boardFindItem(it.id);
+  const opts = boardData().months.filter(m => !here || m.key !== here.month.key)
+    .map(m => ({ value: m.key, label: boardMonthLabel(m.key) }));
+  if (!opts.length) { showToast({ message: '白板上只有这一个月', actionLabel: '' }); return; }
+  showPicker(anchor, opts, '', key => {
+    const h = boardFindItem(it.id);
+    const target = boardMonth(key);
+    if (!h || !target) return;
+    h.month.items = h.month.items.filter(x => x.id !== it.id);
+    it.x = BOARD_PAD; it.y = BOARD_PAD;
+    target.items.push(it);
+    scheduleSave(); render();
+  });
+}
+
+function boardEditNote(itemId) {
+  const hit = boardFindItem(itemId);
+  if (!hit || hit.item.kind !== 'note') return;
+  showDialog({
+    title: '便签',
+    message: `<div class="pl-desc-wrap"><textarea id="bd-note" rows="3" maxlength="200"
+        placeholder="为什么这几个适合放一起？">${escapeHtml(hit.item.text || '')}</textarea></div>`,
+    confirmLabel: '保存', cancelLabel: '取消',
+    onConfirm: () => {
+      const el = document.getElementById('bd-note');
+      const h = boardFindItem(itemId);
+      if (!el || !h) return;
+      h.item.text = el.value.trim().slice(0, 200);
+      if (!h.item.text) boardRemoveItem(itemId);   // an empty note is just clutter
+      scheduleSave(); render();
+    }
+  });
+}
+
+function boardMonthPicker(anchor) {
+  const have = new Set(boardData().months.map(m => m.key));
+  const opts = [];
+  const t = parseDateKey(todayKey());
+  for (let i = -1; i < 15; i++) {
+    const d = new Date(t.getFullYear(), t.getMonth() + i, 1);
+    const key = d.getFullYear() + '-' + pad(d.getMonth() + 1);
+    if (have.has(key)) continue;
+    opts.push({ value: key, label: boardMonthLabel(key) });
+  }
+  if (!opts.length) { showToast({ message: '这些月份都加过了', actionLabel: '' }); return; }
+  showPicker(anchor, opts, '', key => { boardAddMonth(key); scheduleSave(); render(); });
+}
+
+// The picker is the board's own: it must not touch the plan's entries.
+function boardGamePicker(monthKey) {
+  const chosen = new Set();
+  const overlay = document.createElement('div');
+  overlay.className = 'pl-pick-overlay';
+  const box = document.createElement('div');
+  box.className = 'pl-pick';
+  box.innerHTML = `
+    <div class="pl-pick-top">
+      <div class="pl-pick-title">放到白板 · ${escapeHtml(boardMonthLabel(monthKey))}</div>
+      <input class="pl-pick-search" id="bd-q" placeholder="搜索游戏名" autocomplete="off">
+    </div>
+    <div class="pl-pick-list" id="bd-list"></div>
+    <div class="pl-pick-foot">
+      <span class="pl-pick-cancel" id="bd-cancel">取消</span>
+      <span class="pl-pick-hint" id="bd-hint"></span>
+      <button class="pl-pick-btn" id="bd-ok" disabled>放上去</button>
+    </div>`;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  overlay.onclick = ev => { if (ev.target === overlay) overlay.remove(); };
+  document.getElementById('bd-cancel').onclick = () => overlay.remove();
+
+  const listEl = document.getElementById('bd-list');
+  const okBtn = document.getElementById('bd-ok');
+  const hint = document.getElementById('bd-hint');
+  const groups = [{ tier: 'tier1', label: 'Company' }, { tier: 'tier2', label: 'Playing' }, { tier: 'tier3', label: 'Roster' }];
+  function paint(q) {
+    listEl.innerHTML = '';
+    const needle = (q || '').trim().toLowerCase();
+    groups.forEach(g => {
+      const games = (state.config[g.tier] || []).filter(x => !needle || String(x.name).toLowerCase().indexOf(needle) !== -1);
+      if (!games.length) return;
+      const h = document.createElement('div');
+      h.className = 'pl-pick-group'; h.textContent = g.label;
+      listEl.appendChild(h);
+      games.forEach(x => {
+        const it = document.createElement('div');
+        it.className = 'pl-pick-item' + (chosen.has(x.id) ? ' on' : '');
+        it.dataset.gameId = x.id;
+        it.innerHTML = `<span class="pl-pick-box">✓</span><span>${escapeHtml(parsePlatform(x.name).base)}</span>`;
+        const pc = planPlatChip(x.name); if (pc) it.appendChild(pc);
+        it.onclick = () => {
+          if (chosen.has(x.id)) chosen.delete(x.id); else chosen.add(x.id);
+          it.classList.toggle('on', chosen.has(x.id));
+          okBtn.disabled = chosen.size === 0;
+          hint.textContent = chosen.size ? '已选 ' + chosen.size : '';
+        };
+        listEl.appendChild(it);
+      });
+    });
+  }
+  paint('');
+  const q = document.getElementById('bd-q');
+  q.oninput = () => paint(q.value);
+  setTimeout(() => q.focus(), 30);
+  okBtn.onclick = () => {
+    if (!chosen.size) return;
+    boardAddCards(monthKey, Array.from(chosen));
+    overlay.remove();
+    scheduleSave(); render();
+  };
 }
 
 </script>
