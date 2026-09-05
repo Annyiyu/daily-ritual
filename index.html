@@ -9590,26 +9590,71 @@ function boardRemoveMonth(key) {
   b.months = b.months.filter(m => m.key !== key);
 }
 // A game may sit in two months at once — on paper you'd just write it twice.
+// Rough card footprints. Exact widths depend on the name, so these are
+// deliberate over-estimates: leaving a gap is better than landing on top of
+// something.
+const BOARD_ROW_H = 42;
+const BOARD_NOTE_W = 190;
+const BOARD_NOTE_H = 58;
+function boardBox(it) {
+  return it.kind === 'note'
+    ? { w: BOARD_NOTE_W, h: BOARD_NOTE_H }
+    : { w: BOARD_CARD_W, h: 34 };
+}
+// Walk the grid left-to-right, top-to-bottom and take the first slot that
+// overlaps nothing already placed. Only stack when the surface is full — a new
+// card must never silently bury one that is already there.
+function boardFreeSlot(items, w, h, surfaceW) {
+  const W = surfaceW || 720;
+  const stepX = Math.max(60, Math.round(w / 2));
+  const stepY = 12;
+  const boxes = items.map(it => {
+    const b = boardBox(it);
+    return { x: it.x || 0, y: it.y || 0, w: b.w, h: b.h };
+  });
+  const clear = (x, y) => !boxes.some(b =>
+    x < b.x + b.w && b.x < x + w && y < b.y + b.h && b.y < y + h);
+  for (let y = BOARD_PAD; y < BOARD_PAD + 90 * BOARD_ROW_H; y += stepY) {
+    for (let x = BOARD_PAD; x + w <= Math.max(W, w + BOARD_PAD * 2) - BOARD_PAD; x += stepX) {
+      if (clear(x, y)) return { x, y };
+    }
+  }
+  // genuinely full: put it below everything rather than on top of anything
+  const lowest = boxes.reduce((mx, b) => Math.max(mx, b.y + b.h), 0);
+  return { x: BOARD_PAD, y: lowest + stepY };
+}
+// The surface is only measurable once it is on screen; before that (first add
+// into a fresh month, or a test) fall back to the container width.
+function boardSurfaceWidth(monthKey) {
+  const el = document.querySelector('.bd-surface[data-month="' + monthKey + '"]');
+  const w = el && el.clientWidth ? el.clientWidth : 0;
+  return w > 100 ? w : 720;
+}
+
 function boardAddCards(monthKey, gameIds) {
   const m = boardMonth(monthKey);
   if (!m) return 0;
-  let n = 0, col = 0;
+  const surfW = boardSurfaceWidth(monthKey);
+  let n = 0;
   gameIds.forEach(id => {
+    const box = boardBox({ kind: 'game' });
+    // recomputed per card, against the ones just placed too
+    const at = boardFreeSlot(m.items, box.w, box.h, surfW);
     m.items.push({
       id: 'bi_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      kind: 'game', gameId: id,
-      x: BOARD_PAD + (col % 3) * (BOARD_CARD_W + 10),
-      y: BOARD_PAD + Math.floor(col / 3) * 46 + m.items.length % 2 * 4
+      kind: 'game', gameId: id, x: at.x, y: at.y
     });
-    col++; n++;
+    n++;
   });
   return n;
 }
 function boardAddNote(monthKey) {
   const m = boardMonth(monthKey);
   if (!m) return null;
+  const box = boardBox({ kind: 'note' });
+  const at = boardFreeSlot(m.items, box.w, box.h, boardSurfaceWidth(monthKey));
   const it = { id: 'bn_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-               kind: 'note', text: '', x: BOARD_PAD, y: BOARD_PAD };
+               kind: 'note', text: '', x: at.x, y: at.y };
   m.items.push(it);
   return it;
 }
@@ -9822,7 +9867,9 @@ function boardMoveCard(anchor, it) {
     const target = boardMonth(key);
     if (!h || !target) return;
     h.month.items = h.month.items.filter(x => x.id !== it.id);
-    it.x = BOARD_PAD; it.y = BOARD_PAD;
+    const box = boardBox(it);
+    const at = boardFreeSlot(target.items, box.w, box.h, boardSurfaceWidth(key));
+    it.x = at.x; it.y = at.y;
     target.items.push(it);
     scheduleSave(); render();
   });
