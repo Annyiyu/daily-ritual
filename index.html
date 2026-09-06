@@ -1417,10 +1417,10 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 .bd-wsep { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); pointer-events: none; }
 .bd-wlabel {
   position: absolute; top: 3px; text-align: center; pointer-events: none;
-  font-family: var(--label-font); font-size: 9px; letter-spacing: 0.14em;
+  font-family: var(--label-font); font-size: 9px; line-height: 1; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--text-faint); opacity: 0.75;
 }
-.bd-surface.weeks .bd-card, .bd-surface.weeks .bd-cardwrap, .bd-surface.weeks .bd-note { margin-top: 18px; }
+.bd-surface.weeks .bd-card, .bd-surface.weeks .bd-cardwrap, .bd-surface.weeks .bd-note { margin-top: var(--bd-week-head, 12px); }
 .bd-year-head {
   font-family: var(--label-font); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
   color: var(--text-faint); margin: 22px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--line);
@@ -1533,10 +1533,6 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
 
 /* ---- 购物单 ---- */
 .sh-count { font-size: 11px; color: var(--text-faint); letter-spacing: 0.04em; }
-.sh-alert {
-  margin: 4px 0 18px; padding: 9px 14px; border-radius: 10px;
-  background: var(--accent-faint); color: var(--accent); font-size: 12px; line-height: 1.5;
-}
 .sh-empty { text-align: center; padding: 40px 0; color: var(--text-faint); font-size: 12px; line-height: 1.7; }
 .sh-group { margin-bottom: 26px; }
 .sh-group-head {
@@ -1789,7 +1785,7 @@ body.dragging .sort-chip-lab,body.dragging .sort-chip-x{cursor:grabbing;}
    halfway along a partly-played bar. */
 /* the fill is the double-click target, so the label above it must not swallow it */
 .pl-fill { position: absolute; top: 0; bottom: 0; }
-.pl-block-label { position: relative; z-index: 1; pointer-events: none; }
+.pl-block-label { position: relative; z-index: 1; pointer-events: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pl-star {
   position: absolute; z-index: 1; top: 50%; transform: translate(-50%, -50%);
   font-size: 9px; opacity: 0.9; pointer-events: none;
@@ -2140,6 +2136,8 @@ function migrate(state) {
           if (typeof b.paid !== 'number' || !isFinite(b.paid)) b.paid = null;
           if (['CNY', 'EUR', 'HKD'].indexOf(b.currency) === -1) b.currency = 'CNY';
           if (typeof b.note !== 'string') b.note = '';
+          if (typeof b.edition !== 'string') b.edition = '';
+          b.edition = b.edition.trim().slice(0, 20);
         }
       }
       // Last meaningful milestone date — DERIVED from milestones (write-through)
@@ -2256,6 +2254,15 @@ function migrate(state) {
   state.config.acqKinds = state.config.acqKinds
     .filter(k => k && typeof k.id === 'string' && k.id)
     .map(k => ({ id: k.id, label: (typeof k.label === 'string' && k.label.trim()) ? k.label.trim().slice(0, 12) : k.id }));
+  // Editions: seeded once, then hers — anything typed under 其他 lands here and
+  // is offered next time. Rows store the label itself, so this list is a
+  // convenience, not a source of truth: deleting an entry never orphans a row.
+  if (!Array.isArray(state.config.editionList) || !state.config.editionList.length) {
+    state.config.editionList = SHOP_DEFAULT_EDITIONS.slice();
+  }
+  state.config.editionList = [...new Set(state.config.editionList
+    .filter(s => typeof s === 'string' && s.trim())
+    .map(s => s.trim().slice(0, 20)))];
   if (['CNY', 'EUR', 'HKD'].indexOf(state.config.lastCurrency) === -1) state.config.lastCurrency = 'CNY';
   // Whiteboard. A sibling of plans, never a mirror of it: nothing in this block
   // reads or writes state.config.plans, and nothing in the plan's migration
@@ -7821,7 +7828,9 @@ function renderPlanMonthGrid(host, w, laneOfShared, runsShared) {
       }
       const lbl = document.createElement('span');
       lbl.className = 'pl-block-label';
-      lbl.textContent = e.from < s ? '' : planEntryName(e);
+      // Repeat the name on every row it spans. Tracing a bar upwards to find
+      // out whose it is costs more than the ink does.
+      lbl.textContent = planEntryName(e);
       b.appendChild(lbl);
       if (!tomb) b.title = planEntryFullName(e) + (e.run ? ' · 计划外' : '');
       if (e.run) {
@@ -9015,6 +9024,11 @@ function shopKinds() {
   if (!Array.isArray(state.config.acqKinds)) state.config.acqKinds = SHOP_DEFAULT_KINDS.map(k => ({ ...k }));
   return state.config.acqKinds;
 }
+const SHOP_DEFAULT_EDITIONS = ['本体', '豪华版', '终极版', '年度版', '典藏版'];
+function shopEditions() {
+  if (!Array.isArray(state.config.editionList)) state.config.editionList = SHOP_DEFAULT_EDITIONS.slice();
+  return state.config.editionList;
+}
 function shopKindLabel(id) {
   const k = shopKinds().find(x => x.id === id);
   return k ? k.label : '已删除的分类';
@@ -9188,9 +9202,6 @@ function shopEntries() {
 }
 function shopIsBought(g) { return !!(g.buy && g.buy.boughtAt); }
 function shopIsUnreleased(g) { return !!(g.buy && g.buy.release && g.buy.release > todayKey()); }
-// Released today or earlier and still unbought: the only thing the page nags about.
-function shopJustBuyable(g) { return !!(g.buy && g.buy.release && g.buy.release <= todayKey() && !shopIsBought(g)); }
-
 function shopRank(g) { return shopIsBought(g) ? 2 : (shopIsUnreleased(g) ? 1 : 0); }
 
 function shopAdd(gameIds) {
@@ -9200,7 +9211,7 @@ function shopAdd(gameIds) {
   gameIds.forEach(id => {
     const hit = findGameAnywhere(id);
     if (!hit || (hit.game.buy && typeof hit.game.buy === 'object')) return;   // already on the list
-    hit.game.buy = { addedAt: today, boughtAt: null, kind: 'k_buy', target: null, paid: null, currency: cur, release: null, note: '' };
+    hit.game.buy = { addedAt: today, boughtAt: null, kind: 'k_buy', edition: '', target: null, paid: null, currency: cur, release: null, note: '' };
     n++;
   });
   return n;
@@ -9293,7 +9304,6 @@ function renderShop() {
   const root = document.getElementById('root');
   const all = shopEntries();
   const open = all.filter(g => !shopIsBought(g));
-  const nowBuyable = open.filter(g => shopJustBuyable(g));
   root.innerHTML = `
     <header class="header narrow">
       <div class="review-entry-row"><button class="review-entry" id="shop-back">← 返回</button></div>
@@ -9310,7 +9320,6 @@ function renderShop() {
           <div class="pl-tool" id="sh-sort"></div>
         </div>
       </div>
-      <div id="sh-alert"></div>
       <div id="sh-body"></div>
     </section>`;
   document.getElementById('shop-back').onclick = closeShop;
@@ -9322,13 +9331,6 @@ function renderShop() {
   const targets = shopTotals(open, 'target');
   document.getElementById('sh-count').textContent =
     open.length ? `${open.length} 项待入手${targets.length ? ' · 目标 ' + targets.join(' / ') : ''}` : '';
-
-  if (nowBuyable.length) {
-    const a = document.createElement('div');
-    a.className = 'sh-alert';
-    a.textContent = '可以买了：' + nowBuyable.map(g => parsePlatform(g.name).base).join('、');
-    document.getElementById('sh-alert').appendChild(a);
-  }
 
   const body = document.getElementById('sh-body');
   if (!all.length) {
@@ -9398,6 +9400,7 @@ function buildShopRow(g) {
   meta.className = 'sh-meta';
   const bits = [];
   bits.push(shopKindLabel(b.kind));
+  if (b.edition) bits.push(b.edition);
   if (b.release) bits.push((shopIsUnreleased(g) ? '发售 ' : '已发售 ') + b.release);
   if (!bought && typeof b.target === 'number') bits.push('目标 ' + shopSym(b.currency) + b.target);
   if (bought) {
@@ -9442,10 +9445,9 @@ function shopPriceDialog(gameId, field, title, snap) {
     title,
     message: `<div class="sh-price">
         <select id="sh-cur">${opts}</select>
-        <input type="number" step="0.01" inputmode="decimal" id="sh-amt" placeholder="留空表示不记"
+        <input type="number" step="0.01" inputmode="decimal" id="sh-amt"
                value="${typeof b[field] === 'number' ? b[field] : ''}">
-      </div>
-      <div class="sh-price-note">不填也没关系 · 订阅或免费领取通常没有单价</div>`,
+      </div>`,
     confirmLabel: '保存',
     cancelLabel: '跳过',
     onConfirm: () => {
@@ -9469,6 +9471,7 @@ function shopRowMenu(anchor, g) {
   const bought = shopIsBought(g);
   const items = [
     { value: 'kind', label: '获取方式 · ' + shopKindLabel(g.buy.kind) },
+    { value: 'edition', label: g.buy.edition ? '版本 · ' + g.buy.edition : '设版本' },
     { value: 'release', label: g.buy.release ? '改发售日 · ' + g.buy.release : '设发售日' },
     { value: bought ? 'paid' : 'target', label: bought ? '改实付' : '设目标价' },
     { value: 'note', label: g.buy.note ? '改备注' : '加备注' },
@@ -9480,6 +9483,16 @@ function shopRowMenu(anchor, g) {
       showPicker(anchor, shopKinds().map(k => ({ value: k.id, label: k.label })), g.buy.kind, id => {
         const h = findGameAnywhere(g.id); if (!h || !h.game.buy) return;
         h.game.buy.kind = id; scheduleSave(); smoothRender();
+      });
+    } else if (v === 'edition') {
+      const items = shopEditions().map(e => ({ value: e, label: e }));
+      items.push({ value: '__other', label: '其他…' });
+      if (g.buy.edition) items.push({ value: '__clear', label: '× 不记版本', clear: true });
+      showPicker(anchor, items, g.buy.edition || '', v2 => {
+        if (v2 === '__other') { shopEditionDialog(g.id); return; }
+        const h = findGameAnywhere(g.id); if (!h || !h.game.buy) return;
+        h.game.buy.edition = v2 === '__clear' ? '' : v2;
+        scheduleSave(); smoothRender();
       });
     } else if (v === 'release') {
       shopDateDialog(g.id);
@@ -9518,6 +9531,27 @@ function shopDateDialog(gameId) {
       if (!el || !h || !h.game.buy) return;
       const v = el.value.trim();
       h.game.buy.release = /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+      scheduleSave(); smoothRender();
+    }
+  });
+}
+// 其他 means "type it" — and what she types joins the option list, so the
+// second Witcher edition is one tap instead of typing it again.
+function shopEditionDialog(gameId) {
+  const hit = findGameAnywhere(gameId);
+  if (!hit || !hit.game.buy) return;
+  showDialog({
+    title: '版本 · ' + parsePlatform(hit.game.name).base,
+    message: `<div class="sh-price"><input type="text" id="sh-ed" maxlength="20" placeholder="白金版 / 季票同捆"
+        value="${escapeHtml(hit.game.buy.edition || '')}"></div>`,
+    confirmLabel: '保存', cancelLabel: '取消',
+    onConfirm: () => {
+      const el = document.getElementById('sh-ed');
+      const h = findGameAnywhere(gameId);
+      if (!el || !h || !h.game.buy) return;
+      const v = el.value.trim().slice(0, 20);
+      h.game.buy.edition = v;
+      if (v && shopEditions().indexOf(v) === -1) shopEditions().push(v);
       scheduleSave(); smoothRender();
     }
   });
@@ -9838,6 +9872,36 @@ function renderBoard() {
     return;
   }
   b.months.forEach(m => body.appendChild(buildBoardMonth(m)));
+  boardTrimSurfaces(body);
+}
+
+function boardTrimSurfaces(scope) {
+  const host = scope || document;
+  host.querySelectorAll('.bd-surface').forEach(s => {
+    const sr = s.getBoundingClientRect();
+    if (!sr.height) return;                      // no layout to read — keep the model height
+    const bw = s.clientTop || 0;                 // the dashed border
+    // In the week view the cards hang off the bottom of the label strip, so the
+    // gap you see above the first row starts at the text, not at the border.
+    const lab = s.querySelector('.bd-wlabel');
+    if (lab) {
+      const lr = lab.getBoundingClientRect();
+      if (lr.height) s.style.setProperty('--bd-week-head', Math.round(lr.bottom - sr.top - bw) + 'px');
+    }
+    let bottom = 0;
+    s.querySelectorAll('.bd-card, .bd-cardwrap, .bd-note').forEach(el => {
+      if (el.parentElement !== s) return;
+      const r = el.getBoundingClientRect();      // read AFTER the offset above, so this reflows
+      if (r.height) bottom = Math.max(bottom, r.bottom - sr.top - bw);
+    });
+    if (bottom > 0) s.style.minHeight = Math.round(bottom + boardGrid(s.clientWidth).gutter + bw * 2) + 'px';
+  });
+  // Webfonts can land after the first paint and move the label strip; re-read
+  // once when they do. Guarded — not every browser exposes document.fonts.
+  if (!boardTrimSurfaces._fontHook && typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+    boardTrimSurfaces._fontHook = true;
+    document.fonts.ready.then(() => { if (boardOpen) boardTrimSurfaces(document); }).catch(() => {});
+  }
 }
 
 function buildBoardMonth(m) {
@@ -10033,7 +10097,7 @@ function boardWireDrag(el, it, monthKey) {
         }
       }
       const surf = el.closest('.bd-surface');
-      if (surf) boardFitSurface(surf, surf.dataset.month);
+      if (surf) { boardFitSurface(surf, surf.dataset.month); boardTrimSurfaces(surf.parentElement); }
       scheduleSave();
     };
     document.addEventListener('pointermove', onMove, true);
