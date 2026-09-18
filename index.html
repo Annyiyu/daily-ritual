@@ -2739,11 +2739,16 @@ function updateStreak(rowEl, gameId) {
 // ============================================================
 // Status cycling / picker
 // ============================================================
+// The one place a completion is set by hand. Pin travels with the value: doing
+// it through the UI IS the manual override, so milestones may not undo it.
+function pinCompletion(game, value) {
+  game.completion = value || '';
+  game.completionPin = value || '';
+}
 function setTier2Completion(gameId, value) {
   const g = state.config.tier2.find(x => x.id === gameId);
   if (!g) return;
-  g.completion = value || '';
-  g.completionPin = value || '';   // using the picker IS the manual override
+  pinCompletion(g, value);   // using the picker IS the manual override
   scheduleSave();
   // Completion now decides Playing-vs-Finished placement, so re-render (FLIP animates the move).
   smoothRender();
@@ -3168,7 +3173,7 @@ function handleDragEnd(e, moveHandler, endHandler) {
   smoothRender();
 }
 
-function commitGameMove(fromTier, gameId, toTier, toIndex) {
+function commitGameMove(fromTier, gameId, toTier, toIndex, silent) {
   const fromList = state.config[fromTier];
   const fromIndex = fromList.findIndex(g => g.id === gameId);
   if (fromIndex === -1) return;
@@ -3226,7 +3231,9 @@ function commitGameMove(fromTier, gameId, toTier, toIndex) {
   state.config[toTier].splice(toIndex, 0, game);
   scheduleSave();
 
-  // Tell user what happened, give them undo
+  // Tell user what happened, give them undo — unless this move is one step of a
+  // larger action that will report (and offer to undo) the whole thing itself.
+  if (silent) return;
   const tierLabels = { tier1: 'Company', tier2: 'Playing', tier3: 'Roster' };
   const baseMsg = `Moved "${game.name}" → ${tierLabels[toTier]}`;
   const msg = lostSubtasks > 0 ? `${baseMsg} · removed ${lostSubtasks} sub-task${lostSubtasks > 1 ? 's' : ''}` : baseMsg;
@@ -3898,6 +3905,9 @@ function renderTier1() {
 
     const item = document.createElement('div');
     item.className = 'daily-card';
+    // The 2/4-column tile decorates itself in buildCompanyTile; this is the
+    // single-column twin and needs the same mark, or 全选 sees nothing here.
+    if (selActive('tier1')) selDecorate(item, game.id);
     item.dataset.gameId = game.id;
 
     const row = document.createElement('div');
@@ -4053,6 +4063,7 @@ function openDailyCardMenu(anchor, game) {
     { value: 'addtask', label: 'Add task' },
     { value: 'playing', label: 'Move to Playing' },
     { value: 'roster', label: 'Move to Roster' },
+    { value: 'abandon', label: 'Abandon' },
     { value: 'hide', label: 'Hide', clear: true }
   ];
   showPicker(anchor, items, null, v => {
@@ -4066,6 +4077,7 @@ function openDailyCardMenu(anchor, game) {
     else if (v === 'addtask') { addSubtaskGameId = game.id; render(); }
     else if (v === 'playing') moveTier1To(game.id, 'tier2');
     else if (v === 'roster') moveTier1To(game.id, 'tier3');
+    else if (v === 'abandon') abandonGame(game.id);
     else if (v === 'hide') hideGame('tier1', game.id);
   });
 }
@@ -4190,6 +4202,7 @@ function openPlayingCardMenu(anchor, game) {
     { value: 'status', label: 'Set completion' },
     { value: 'roster', label: 'Move to Roster' },
     { value: 'daily', label: 'Move to Company' },
+    { value: 'abandon', label: 'Abandon' },
     { value: 'hide', label: 'Hide', clear: true }
   ];
   showPicker(anchor, items, null, v => {
@@ -4207,6 +4220,7 @@ function openPlayingCardMenu(anchor, game) {
     }
     else if (v === 'roster') moveTier2To(game.id, 'tier3');
     else if (v === 'daily') moveTier2To(game.id, 'tier1');
+    else if (v === 'abandon') abandonGame(game.id);
     else if (v === 'hide') hideGame('tier2', game.id);
   });
 }
@@ -4340,8 +4354,10 @@ function buildRosterGroup(status, games, prefs) {
 
   const grid = document.createElement('div');
   grid.className = 'roster-grid';
+  // A folded group renders NO cards — not hidden ones. Anything left in the DOM
+  // stays selectable by 全选 and shift-range, which have no idea it is invisible.
   if (folded) grid.style.display = 'none';
-  games.forEach(g => grid.appendChild(buildRosterCard(g, status)));
+  else games.forEach(g => grid.appendChild(buildRosterCard(g, status)));
   wrap.appendChild(grid);
 
   return wrap;
@@ -4497,6 +4513,8 @@ function openRosterCardMenu(anchor, game) {
     { value: 'note', label: (game.note && game.note.length) ? 'Edit note' : 'Add note' },
     { value: 'playing', label: 'Move to Playing' },
     { value: 'daily', label: 'Move to Company' },
+    { value: 'shop', label: '加入购物单' },
+    { value: 'abandon', label: 'Abandon' },
     { value: 'hide', label: 'Hide', clear: true }
   ];
   showPicker(anchor, items, null, v => {
@@ -4510,6 +4528,7 @@ function openRosterCardMenu(anchor, game) {
     else if (v === 'shop') shopAddOne(game.id);
     else if (v === 'playing') moveRosterTo(game.id, 'tier2');
     else if (v === 'daily') moveRosterTo(game.id, 'tier1');
+    else if (v === 'abandon') abandonGame(game.id);
     else if (v === 'hide') hideGame('tier3', game.id);
   });
 }
@@ -4574,13 +4593,18 @@ function buildFinishedGroup(status, games, fold) {
 
   const grid = document.createElement('div');
   grid.className = 'roster-grid';
+  // Same as the roster: folded means absent, not invisible. This shelf folds all
+  // four groups by default, so leaving them in the DOM made 全选 reach a whole
+  // shelf nobody could see.
   if (folded) grid.style.display = 'none';
-  const sorted = games.slice().sort((a, b) => {
-    const am = a.lastMilestone || '', bm = b.lastMilestone || '';
-    if (am !== bm) return am < bm ? 1 : -1; // most recent milestone first
-    return 0;
-  });
-  sorted.forEach(g => grid.appendChild(buildFinishedCard(g, status)));
+  else {
+    const sorted = games.slice().sort((a, b) => {
+      const am = a.lastMilestone || '', bm = b.lastMilestone || '';
+      if (am !== bm) return am < bm ? 1 : -1; // most recent milestone first
+      return 0;
+    });
+    sorted.forEach(g => grid.appendChild(buildFinishedCard(g, status)));
+  }
   wrap.appendChild(grid);
 
   return wrap;
@@ -4669,7 +4693,8 @@ function openFinishedCardMenu(anchor, game, status) {
       { value: 'beaten', label: 'Back to Beaten' },
       { value: 'milestone', label: 'DETAILS · MILESTONES' },
       { value: 'rename', label: 'Rename' },
-      { value: 'playing', label: 'Move to Playing', clear: true }
+      { value: 'playing', label: 'Move to Playing' },
+      { value: 'abandon', label: 'Abandon', clear: true }
     ];
   } else if (status === 'sated') {
     items = [
@@ -4695,6 +4720,39 @@ function openFinishedCardMenu(anchor, game, status) {
     else if (v === 'milestone') { openDetail(game.id); }
     else if (v === 'rename') { editingGameId = { tier: 'tier2', id: game.id }; render(); }
   });
+}
+
+// Giving up on a game, wherever it currently sits. "Abandoned" is a shelf, not
+// a per-tier flag: renderFinished reads tier2 only, so a Company or Roster game
+// has to land in tier2 to be on that shelf next to its Beaten and Completed
+// siblings. Reversible from the shelf card (移回 Playing).
+//
+// Data only — the caller takes the snapshot, saves, renders and offers the undo,
+// so one bulk abandon is one undoable step rather than N of them.
+function abandonGames(ids) {
+  let n = 0;
+  ids.forEach(id => {
+    const hit = findGameAnywhere(id);
+    if (!hit) return;
+    if (hit.tier !== 'tier2') {
+      commitGameMove(hit.tier, id, 'tier2', state.config.tier2.length, true);
+    }
+    const g = state.config.tier2.find(x => x.id === id);
+    if (!g) return;
+    pinCompletion(g, 'abandoned');
+    n++;
+  });
+  return n;
+}
+// Single-card entry point: one game, its own undo.
+function abandonGame(gameId) {
+  const hit = findGameAnywhere(gameId);
+  if (!hit) return;
+  const name = parsePlatform(hit.game.name).base;
+  const snap = snapshotState();
+  if (!abandonGames([gameId])) return;
+  scheduleSave(); smoothRender();
+  showUndoToast('弃坑 · ' + name, snap);
 }
 
 function finishedToPlaying(gameId) {
@@ -8692,8 +8750,9 @@ function selEnter(scope) { _selMode = scope; _selIds = new Set(); _selAnchor = n
 function selExit() { _selMode = null; _selIds = new Set(); _selAnchor = null; render(); }
 
 // The ids on screen in this scope, in visual order. Select-all, shift-range and
-// the count all read from here, so a folded group or a hidden card is simply not
-// selectable — which is what "select all" means in a filtered list.
+// the count all read from here. This only tells the truth because a folded group
+// renders no cards at all (buildRosterGroup / buildFinishedGroup) — this function
+// reads the DOM, which knows nothing about display:none.
 function selVisibleIds() {
   if (!_selMode) return [];
   const sc = SEL_SCOPES[_selMode];
@@ -8756,6 +8815,7 @@ function selBulkActions() {
       { v: 'to3', label: '移到 Roster' },
       { v: 'plan', label: '加入计划' },
       { v: 'shop', label: '加入购物单' },
+      { v: 'abandoned', label: '弃坑', danger: true },
       { v: 'hide', label: '隐藏', danger: true }
     ];
     case 'shop': return [
@@ -8777,6 +8837,7 @@ function selBulkActions() {
       { v: 'to1', label: '移到 Company' },
       { v: 'plan', label: '加入计划' },
       { v: 'shop', label: '加入购物单' },
+      { v: 'abandoned', label: '弃坑', danger: true },
       { v: 'hide', label: '隐藏', danger: true }
     ];
     case 'tier3': return [
@@ -8787,6 +8848,7 @@ function selBulkActions() {
       { v: 'to1', label: '移到 Company' },
       { v: 'plan', label: '加入计划' },
       { v: 'shop', label: '加入购物单' },
+      { v: 'abandoned', label: '弃坑', danger: true },
       { v: 'hide', label: '隐藏', danger: true }
     ];
     case 'finished': return [
@@ -8949,8 +9011,14 @@ function selApply(action, label, ids) {
     ids.forEach(id => hideGame(scope, id));
   } else if (action === 'playing') {
     ids.forEach(id => finishedToPlaying(id));
-  } else if (['beaten', 'completed', 'sated', 'abandoned'].indexOf(action) !== -1) {
-    ids.forEach(id => setTier2Completion(id, action));
+  } else if (action === 'abandoned') {
+    abandonGames(ids);
+  } else if (['beaten', 'completed', 'sated'].indexOf(action) !== -1) {
+    // Already-on-the-shelf games only; one render at the end, not one per id.
+    ids.forEach(id => {
+      const g = state.config.tier2.find(x => x.id === id);
+      if (g) pinCompletion(g, action);
+    });
   } else if (action === 'to1' || action === 'to2' || action === 'to3') {
     const to = 'tier' + action.slice(2);
     const from = scope === 'finished' ? 'tier2' : scope;
